@@ -5,6 +5,46 @@ import Link from "next/link";
 import { useState, useEffect, useMemo, useRef } from "react";
 import dynamic from 'next/dynamic';
 
+// --- STRICT TYPESCRIPT INTERFACES ---
+interface Contact {
+  "Contact Name": string;
+  "Program/Org Affiliation"?: string;
+  "Notes / Insights"?: string;
+  "Campus"?: string;
+  "Civic Domains"?: string;
+  "Capabilities / Expertise"?: string;
+  "Role/Title"?: string;
+  [key: string]: string | undefined;
+}
+
+// A unified type that satisfies both your data AND the physics engine's internal velocity requirements
+interface LibNode {
+  id?: string | number;
+  x?: number;
+  y?: number;
+  vx?: number;
+  vy?: number;
+  fx?: number;
+  fy?: number;
+  name?: string;
+  group?: string;
+  val?: number;
+  title?: string;
+  color?: string;
+  [key: string]: unknown;
+}
+
+interface GraphLink {
+  source: string | number;
+  target: string | number;
+}
+
+// Defines exactly what the graph reference is allowed to do
+interface ForceGraphMethods {
+  zoom: (k: number, duration?: number) => void;
+  zoomToFit: (duration?: number, padding?: number) => void;
+}
+
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
 
 const CUNY_LIST = [
@@ -37,9 +77,11 @@ const FuzzySearchDropdown = ({ options, value, onChange, placeholder }: { option
   const [search, setSearch] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    if (value !== search) setSearch(value);
-  }, [value]);
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) {
+    setPrevValue(value);
+    setSearch(value);
+  }
 
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
@@ -98,9 +140,11 @@ const SearchableDropdown = ({ options, value, onChange, placeholder }: { options
   const [search, setSearch] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    if (value !== search) setSearch(value);
-  }, [value]);
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) {
+    setPrevValue(value);
+    setSearch(value);
+  }
 
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
@@ -143,13 +187,13 @@ const SearchableDropdown = ({ options, value, onChange, placeholder }: { options
 };
 
 export default function ExploreMap() {
-  const [allContacts, setAllContacts] = useState<any[]>([]);
+  const [allContacts, setAllContacts] = useState<Contact[]>([]);
 
   // UI State
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Map Controls Reference
-  const fgRef = useRef<any>();
+  const fgRef = useRef<ForceGraphMethods | null>(null);
 
   // Navigation State
   const [viewType, setViewType] = useState<"topic" | "location" | "person">("location");
@@ -160,13 +204,13 @@ export default function ExploreMap() {
   const [selectedFocusDomain, setSelectedFocusDomain] = useState("");
   const [selectedSpecificFocus, setSelectedSpecificFocus] = useState("");
   const [selectedPerson, setSelectedPerson] = useState("");
-  const [activeContact, setActiveContact] = useState<any | null>(null);
+  const [activeContact, setActiveContact] = useState<Contact | null>(null);
 
-  // Load user's sidebar preference on mount
+  // Load user's sidebar preference safely
   useEffect(() => {
     const savedSidebarState = localStorage.getItem("exploreSidebarOpen");
     if (savedSidebarState !== null) {
-      setIsSidebarOpen(savedSidebarState === "true");
+      setTimeout(() => setIsSidebarOpen(savedSidebarState === "true"), 0);
     }
   }, []);
 
@@ -214,15 +258,15 @@ export default function ExploreMap() {
   };
 
   // Map Navigation Handlers
-  const handleZoomIn = () => { fgRef.current?.zoom(fgRef.current.zoom() * 1.5, 400); };
-  const handleZoomOut = () => { fgRef.current?.zoom(fgRef.current.zoom() / 1.5, 400); };
+  const handleZoomIn = () => { fgRef.current?.zoom(1.5, 400); };
+  const handleZoomOut = () => { fgRef.current?.zoom(0.66, 400); };
   const handleFitMap = () => { fgRef.current?.zoomToFit(400, 50); };
 
   // --- MACRO GRAPH GENERATOR ---
   const exploreGraphData = useMemo(() => {
-    const nodes: any[] = [];
-    const links: any[] = [];
-    const addedNodes = new Set();
+    const nodes: LibNode[] = [];
+    const links: GraphLink[] = [];
+    const addedNodes = new Set<string>();
 
     if (viewType === "person" && selectedPerson) {
       const centerPerson = allContacts.find(c => c["Contact Name"] === selectedPerson);
@@ -400,7 +444,7 @@ export default function ExploreMap() {
                     setSelectedSpecificFocus(val);
                     setSelectedFocusDomain("");
                   }}
-                  placeholder="e.g., 'Food Justice'"
+                  placeholder="e.g., &apos;Food Justice&apos;"
                 />
               </div>
 
@@ -498,45 +542,46 @@ export default function ExploreMap() {
         ) : (
           <div className="absolute inset-0">
             <ForceGraph2D
-              ref={fgRef}
-              onNodeClick={(node: any) => {
-                // If the node is a person (or the center person), find their data and open modal
-                if (node.group === "person" || (viewType === "person" && node.group === "center")) {
-                  const personData = allContacts.find(c => c["Contact Name"] === node.id);
-                  if (personData) setActiveContact(personData);
-                }
-              }}
-              graphData={exploreGraphData}
-              nodeRelSize={5}
-              linkDirectionalParticles={1}
-              linkDirectionalParticleSpeed={0.005}
-              nodeLabel="title"
-              cooldownTime={3000}
-              linkColor={() => "rgba(255, 255, 255, 0.2)"}
-              linkWidth={1.2}
-              nodeCanvasObject={(node: any, ctx, globalScale) => {
-                const size = node.val + 1;
-                ctx.beginPath();
-                ctx.arc(node.x, node.y, size, 0, 2 * Math.PI, false);
-                ctx.fillStyle = node.color || "#cccccc";
-                ctx.fill();
+                  ref={fgRef}
+                  onNodeClick={(node: LibNode) => {
+                    if (node.group === "person" || (viewType === "person" && node.group === "center")) {
+                      const personData = allContacts.find(c => c["Contact Name"] === node.id);
+                      if (personData) setActiveContact(personData);
+                    }
+                  }}
+                  graphData={exploreGraphData}
+                  nodeRelSize={5}
+                  linkDirectionalParticles={1}
+                  linkDirectionalParticleSpeed={0.005}
+                  nodeLabel="title"
+                  cooldownTime={3000}
+                  linkColor={() => "rgba(255, 255, 255, 0.2)"}
+                  linkWidth={1.2}
+                  nodeCanvasObject={(node: LibNode, ctx: CanvasRenderingContext2D, globalScale: number) => {
+                    if (node.x === undefined || node.y === undefined || node.val === undefined) return;
 
-                if (node.val >= 8 || globalScale > 1.8) {
-                  const label = node.name;
-                  const fontSize = Math.max(12 / globalScale, 2);
-                  ctx.font = `${fontSize}px Sans-Serif`;
-                  ctx.textAlign = 'center';
-                  ctx.textBaseline = 'top';
+                    const size = node.val + 1;
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, size, 0, 2 * Math.PI, false);
+                    ctx.fillStyle = node.color || "#cccccc";
+                    ctx.fill();
 
-                  const textWidth = ctx.measureText(label).width;
-                  ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-                  ctx.fillRect(node.x - textWidth / 2 - 2, node.y + size + 2, textWidth + 4, fontSize + 4);
+                    if (node.val >= 8 || globalScale > 1.8) {
+                      const label = node.name || "";
+                      const fontSize = Math.max(12 / globalScale, 2);
+                      ctx.font = `${fontSize}px Sans-Serif`;
+                      ctx.textAlign = 'center';
+                      ctx.textBaseline = 'top';
 
-                  ctx.fillStyle = '#ffffff';
-                  ctx.fillText(label, node.x, node.y + size + 4);
-                }
-              }}
-            />
+                      const textWidth = ctx.measureText(label).width;
+                      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+                      ctx.fillRect(node.x - textWidth / 2 - 2, node.y + size + 2, textWidth + 4, fontSize + 4);
+
+                      ctx.fillStyle = '#ffffff';
+                      ctx.fillText(label, node.x, node.y + size + 4);
+                    }
+                  }}
+                />
           </div>
         )}
       </div>
