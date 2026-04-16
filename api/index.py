@@ -3,11 +3,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import pandas as pd
-import sqlite3
-
-# Import your existing, untouched logic!
 from api.discovery_engine import search_civic_network, generate_civic_insight
-from api.db_manager import initialize_database
+# Import get_connection to prevent blank database generation
+from api.db_manager import initialize_database, get_connection
 
 app = FastAPI()
 
@@ -23,11 +21,9 @@ app.add_middleware(
 # Initialize your DB just like before
 initialize_database()
 
-
 # We define the shape of the data we expect from React
 class ChatRequest(BaseModel):
     prompt: str
-
 
 @app.post("/api/copilot")
 def ask_copilot(request: ChatRequest):
@@ -35,17 +31,16 @@ def ask_copilot(request: ChatRequest):
     Takes a natural language prompt, uses the AI to find specific
     collaborators, and generates a civic insight based on those matches.
     """
-    # 1. Load the database
-    conn = sqlite3.connect('cuny_civic_network.db')
-    df = pd.read_sql_query("SELECT * FROM Network_Contacts", conn)
-    conn.close()
-
     try:
+        # UPGRADED: Use the safe connection
+        conn = get_connection()
+        df = pd.read_sql_query("SELECT * FROM Network_Contacts", conn)
+        conn.close()
+
         # 2. Extract structured filters and matches using Gemini
         matches, filters = search_civic_network(request.prompt, df)
 
         # 3. Generate the insight based on the specific results found
-        # If matches is empty, the insight function handles the 'vague query' response
         insight = generate_civic_insight(request.prompt, matches if not matches.empty else df)
 
         # 4. Convert matches to a list of dicts for React
@@ -59,12 +54,10 @@ def ask_copilot(request: ChatRequest):
         }
 
     except Exception as e:
-        # Log the error for the developer and tell the user something went wrong
         print(f"ERROR in /api/copilot: {e}")
         return {"status": "error", "message": "The Copilot encountered an issue analyzing the network."}
 
 
-# --- NEW: The Dedicated Database Endpoint ---
 @app.get("/api/contacts")
 def get_all_contacts():
     """
@@ -72,7 +65,8 @@ def get_all_contacts():
     No AI, no prompts, just raw data.
     """
     try:
-        conn = sqlite3.connect('cuny_civic_network.db')
+        # UPGRADED: Use the safe connection
+        conn = get_connection()
         df = pd.read_sql_query("SELECT * FROM Network_Contacts", conn)
         conn.close()
 
@@ -89,7 +83,8 @@ def get_network_graph():
     Creates 'Hubs' for Campuses, and links people to their Campus.
     """
     try:
-        conn = sqlite3.connect('cuny_civic_network.db')
+        # UPGRADED: Use the safe connection
+        conn = get_connection()
         df = pd.read_sql_query("SELECT * FROM Network_Contacts", conn)
         conn.close()
 
