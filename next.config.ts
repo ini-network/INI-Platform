@@ -7,8 +7,8 @@ const nextConfig: NextConfig = {
         source: '/api/:path*',
         destination:
           process.env.NODE_ENV === 'development'
-            ? 'http://127.0.0.1:8000/api/:path*' // Local FastAPI
-            : '/api/index', // Vercel Production FastAPI
+            ? 'http://127.0.0.1:8000/api/:path*' // Local Python server
+            : '/api/', // The trailing slash is the magic key for Vercel + FastAPI
       },
     ]
   },
