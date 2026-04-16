@@ -48,7 +48,7 @@ def initialize_database():
                        TEXT,
                        "Needs / Challenges"
                        TEXT,
-                       "Oppurtunity Ideas"
+                       "Opportunity Ideas"
                        TEXT,
                        "INI Alignments"
                        TEXT,

@@ -3,4 +3,4 @@ cd ini-frontend
 npm run dev
 
 python backend launch:
-uvicorn index:app --reload
+uvicorn api.index:app --reload

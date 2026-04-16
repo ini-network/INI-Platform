@@ -39,3 +39,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+/ini_local.py
+/CUNY INI NLP Data Untransformed.csv

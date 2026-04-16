@@ -3,8 +3,10 @@
 
 import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
-// Dynamic import for the physics engine to prevent server-side crashes
 import dynamic from 'next/dynamic';
+import { INTEREST_BUCKETS } from "@/lib/taxonomy";
+import ProfileModal from "@/components/ProfileModal";
+
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
 
 // Define the shape of a Contact to replace "any"
@@ -74,7 +76,14 @@ export default function Home() {
         (person["Notes / Insights"]?.toLowerCase() || "").includes(searchQuery.toLowerCase());
 
       const campusMatch = selectedCampus === "All" || person["Campus"] === selectedCampus;
-      const focusMatch = selectedFocus === "All" || (person["Civic Domains"] && person["Civic Domains"].includes(selectedFocus));
+
+      // UPGRADED FOCUS MATCH LOGIC
+      let focusMatch = selectedFocus === "All";
+      if (selectedFocus !== "All" && person["Civic Domains"]) {
+         const granularTagsInFolder = INTEREST_BUCKETS[selectedFocus] || [];
+         // Check if the person's domains overlap with ANY of the tags inside the selected folder
+         focusMatch = granularTagsInFolder.some(tag => person["Civic Domains"]?.includes(tag));
+      }
 
       return keywordMatch && campusMatch && focusMatch;
     });
@@ -82,8 +91,7 @@ export default function Home() {
 
   // Extract unique filter options automatically
   const uniqueCampuses = Array.from(new Set(allContacts.map(c => c["Campus"]).filter(Boolean))).sort();
-  const allDomains = allContacts.flatMap(c => (c["Civic Domains"] || "").split(",").map((d: string) => d.trim())).filter(Boolean);
-  const uniqueFocusAreas = Array.from(new Set(allDomains)).sort();
+  const uniqueFocusAreas = Object.keys(INTEREST_BUCKETS);
 
   // --- MICRO MAP GRAPH GENERATOR ---
   const microGraphData = useMemo(() => {
@@ -97,13 +105,14 @@ export default function Home() {
 
     if (!centerId) return { nodes, links };
 
-    // 1. Center Node
+    // 1. Center Node (The person you clicked on)
     const centerOrgOrTitle = microMapContact["Program/Org Affiliation"] || microMapContact["Role/Title"];
     nodes.push({
       id: centerId,
       name: microMapContact["Contact Name"],
       group: "center",
       val: 8,
+      color: "#fbbf24",
       title: `${microMapContact["Contact Name"]} - ${microMapContact["Campus"]} | ${centerOrgOrTitle}`
     });
     addedNodes.add(centerId);
@@ -117,6 +126,7 @@ export default function Home() {
           name: topic,
           group: "topic_hub",
           val: 6,
+          color: "#0ea5e9",
           title: `FOCUS AREA: ${topic}`
         });
 
@@ -137,6 +147,7 @@ export default function Home() {
               name: otherPerson["Contact Name"],
               group: otherPerson["Campus"] || "Unknown",
               val: 3,
+              color: "#fbbf24",
               title: `${otherPerson["Contact Name"]} - ${otherPerson["Campus"]} | ${otherOrgOrTitle}`
             });
             addedNodes.add(otherId);
@@ -199,6 +210,9 @@ export default function Home() {
             </Link>
             <Link href="/explore" className="px-4 py-2 text-slate-500 rounded text-sm font-semibold hover:bg-slate-200 transition-colors">
               Map Explorer
+            </Link>
+            <Link href="/profile" className="px-4 py-2 text-slate-500 rounded text-sm font-semibold hover:bg-slate-200 transition-colors">
+              My Profile
             </Link>
             <Link href="/hub" className="px-4 py-2 text-slate-500 rounded text-sm font-semibold hover:bg-slate-200 transition-colors">
               Join Us
@@ -278,6 +292,26 @@ export default function Home() {
                   </div>
                 )}
 
+                {/* SAVE CONTACT BUTTON */}
+                <button
+                  onClick={async () => {
+                    try {
+                      // We will build this backend endpoint in the next step
+                      const res = await fetch("/api/save_contact", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ contact_id: person["ID"] || person["Contact Name"] })
+                      });
+                      if (res.ok) alert(`⭐ Saved ${person["Contact Name"]} to your profile!`);
+                    } catch (e) {
+                      console.error("Failed to save contact");
+                    }
+                  }}
+                  className="mt-4 mr-2 text-sm text-slate-700 bg-slate-100 border border-slate-200 px-4 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white font-semibold transition-all"
+                >
+                  ⭐ Save Contact
+                </button>
+
                 {/* MICRO MAP TRIGGER BUTTON */}
                 <button
                   onClick={() => setMicroMapContact(person)}
@@ -332,112 +366,24 @@ export default function Home() {
           THE MICRO MAP MODAL (OVERLAY)
           ========================================== */}
       {microMapContact && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-8">
-          <div className="bg-white w-full max-w-5xl h-[80vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden relative">
-
-            <div className="flex justify-between items-center p-6 border-b border-slate-100">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-800">{microMapContact["Contact Name"]}&apos;s Network</h2>
-                <p className="text-slate-500">{microMapContact["Campus"]} | {microMapContact["Role/Title"]}</p>
-              </div>
-              <button
-                onClick={() => setMicroMapContact(null)}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-lg font-bold transition-colors"
-              >
-                ✕ Close
-              </button>
-            </div>
-
-            <div className="flex flex-1 overflow-hidden">
-              <div className="w-1/3 p-6 bg-slate-50 border-r border-slate-100 flex flex-col space-y-6 overflow-y-auto">
-                <div>
-                  <h3 className="text-xs font-bold uppercase text-slate-400 mb-2">Focus Areas</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {microMapContact["Civic Domains"]?.split(",").map((d: string, i: number) => (
-                      <span key={i} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded font-medium">{d.trim()}</span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* RENAMED: Capabilities -> Skillset in Modal */}
-                {microMapContact["Capabilities / Expertise"] && (
-                  <div>
-                    <h3 className="text-xs font-bold uppercase text-slate-400 mb-2">Skillset</h3>
-                    <p className="text-sm text-slate-700">{microMapContact["Capabilities / Expertise"]}</p>
-                  </div>
-                )}
-
-                {/* ADDED: Notes in Modal */}
-                {microMapContact["Notes / Insights"] && (
-                  <div>
-                    <h3 className="text-xs font-bold uppercase text-slate-400 mb-2">Notes</h3>
-                    <p className="text-sm text-slate-700 italic border-l-2 border-slate-300 pl-3 py-1 bg-white rounded-r-md">
-                      {microMapContact["Notes / Insights"]}
-                    </p>
-                  </div>
-                )}
-
-                {/* Collaboration & Ask Buttons */}
-                <div className="mt-auto border-t border-slate-200 pt-6 space-y-3">
-                  <button className="w-full bg-slate-800 text-white font-bold py-2 rounded-lg hover:bg-slate-700 transition-colors shadow-sm">
-                    ⭐ Save Contact
-                  </button>
-                  <button className="w-full bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
-                    ✉️ Express Interest
-                  </button>
-                </div>
-              </div>
-
-              <div className="w-2/3 h-full min-h-[600px] relative bg-slate-900 overflow-hidden flex items-center justify-center">
-                <div className="absolute top-4 left-4 z-10 text-white/60 text-xs font-medium pointer-events-none bg-slate-800/50 p-2 rounded backdrop-blur">
-                  Connections are bridged by shared Focus Areas.
-                </div>
-
-                <ForceGraph2D
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  graphData={microGraphData as any}
-                  nodeAutoColorBy="group"
-                  nodeRelSize={5}
-                  linkDirectionalParticles={1}
-                  linkDirectionalParticleSpeed={0.005}
-                  nodeLabel="title"
-                  cooldownTime={3000}
-                  onEngineStop={() => console.log("Physics settled.")}
-                  width={800}
-                  height={600}
-                  linkColor={() => "rgba(255, 255, 255, 0.4)"}
-                  linkWidth={1.5}
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  nodeCanvasObject={(node: any, ctx: any, globalScale: number) => {
-                    const size = node.val + 1;
-                    ctx.beginPath();
-                    ctx.arc(node.x, node.y, size, 0, 2 * Math.PI, false);
-                    ctx.fillStyle = node.color || "#cccccc";
-                    ctx.fill();
-
-                    const label = node.name;
-                    const fontSize = Math.max(12 / globalScale, 2);
-                    ctx.font = `${fontSize}px Sans-Serif`;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'top';
-
-                    const textWidth = ctx.measureText(label).width;
-                    ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
-                    ctx.fillRect(
-                      node.x - textWidth / 2 - 2,
-                      node.y + size + 2,
-                      textWidth + 4,
-                      fontSize + 4
-                    );
-
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillText(label, node.x, node.y + size + 4);
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        <ProfileModal
+          contact={microMapContact}
+          onClose={() => setMicroMapContact(null)}
+          showGraph={true}
+          graphData={microGraphData}
+          onSaveContact={async (id) => {
+            try {
+              const res = await fetch("/api/save_contact", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contact_id: id })
+              });
+              if (res.ok) alert(`⭐ Saved ${microMapContact["Contact Name"]} to your profile!`);
+            } catch (e) {
+              console.error("Failed to save contact");
+            }
+          }}
+        />
       )}
     </div>
   );

@@ -60,7 +60,7 @@ const INTEREST_BUCKETS: Record<string, string[]> = {
   "Community & Civic Engagement": ["Community", "Engagement", "Outreach", "Organizing", "Neighborhood", "Housing", "Mutual Aid", "Volunteer"],
   "Economic Empowerment & Workforce": ["Economic", "Workforce", "Labor", "Employment", "Finance", "Business", "Career", "Poverty", "Industry"],
   "Arts, Media & Culture": ["Arts", "Media", "Culture", "Design", "History", "Literature", "Theater", "Music", "Journalism", "Communication"],
-  "Environment & Sustainability": ["Environment", "Sustainability", "Climate", "Food Security", "Ecology", "Energy", "Green", "Urban Planning"],
+  "Environment & Sustainability": ["Environment", "Sustainability", "Climate", "Food Security", "Food Justice", "Food Policy", "Ecology", "Energy", "Green", "Urban Planning"],
   "Technology, Data & Innovation": ["Technology", "Data", "Innovation", "AI", "Digital", "Engineering", "Computer Science", "STEM", "Tech", "Cyber"],
   "Research & Social Sciences": ["Research", "Social Science", "Sociology", "Psychology", "Anthropology", "Evaluation", "Data Collection", "Study"],
   "Other / Cross-Cutting": []

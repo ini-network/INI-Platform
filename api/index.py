@@ -6,6 +6,7 @@ import pandas as pd
 from api.discovery_engine import search_civic_network, generate_civic_insight
 # Import get_connection to prevent blank database generation
 from api.db_manager import initialize_database, get_connection
+from typing import Optional
 
 app = FastAPI()
 
@@ -119,4 +120,125 @@ def get_network_graph():
         return {"status": "success", "graph": {"nodes": nodes, "links": links}}
     except Exception as e:
         print(f"Graph Error: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+# --- NEW: PROFILE & SAVED CONTACTS SCHEMAS ---
+
+class ProfileData(BaseModel):
+    contact_name: str
+    campus: str
+    capabilities: Optional[str] = ""
+    category: Optional[str] = "User Generated"
+    civic_domains: Optional[str] = ""
+    communities_served: Optional[str] = ""
+    email: Optional[str] = ""
+    ini_alignments: Optional[str] = ""
+    needs_challenges: Optional[str] = ""
+    notes: Optional[str] = ""
+    opportunity_ideas: Optional[str] = ""
+    affiliation: Optional[str] = ""
+    role_title: Optional[str] = ""
+    url: Optional[str] = ""
+
+
+class SaveContactRequest(BaseModel):
+    contact_id: str
+
+
+# --- NEW: PROFILE ENDPOINTS ---
+
+@app.post("/api/save_contact")
+def save_contact(request: SaveContactRequest):
+    """Saves a contact to the current user's profile."""
+    # Note: In a real app with auth, you'd get the user_id from the session.
+    # For the demo, we'll hardcode user_id 1 (The Demo User)
+    user_id = 1
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # Ensure the user exists
+        cursor.execute("INSERT OR IGNORE INTO Users (user_id, name) VALUES (?, ?)", (user_id, "Demo User"))
+
+        cursor.execute("SELECT id FROM Saved_Collaborations WHERE user_id = ? AND contact_id = ?",
+                       (user_id, request.contact_id))
+        if not cursor.fetchone():
+            cursor.execute("INSERT INTO Saved_Collaborations (user_id, contact_id) VALUES (?, ?)",
+                           (user_id, request.contact_id))
+            conn.commit()
+        conn.close()
+        return {"status": "success", "message": "Contact saved!"}
+    except Exception as e:
+        print(f"Error saving contact: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+@app.get("/api/saved_contacts")
+def get_saved_contacts():
+    """Retrieves the saved contacts for the profile page."""
+    user_id = 1
+    try:
+        conn = get_connection()
+        query = """
+                SELECT nc.* \
+                FROM Saved_Collaborations sc \
+                         JOIN Network_Contacts nc ON sc.contact_id = nc.ID
+                WHERE sc.user_id = ?
+                ORDER BY sc.saved_at DESC \
+                """
+        df = pd.read_sql_query(query, conn, params=(user_id,))
+        conn.close()
+        return df.fillna("").to_dict(orient="records")
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+@app.post("/api/publish_profile")
+def publish_profile(profile: ProfileData):
+    """Takes the user's form data and injects it into the public Network_Contacts table."""
+    try:
+        import uuid
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # Generate a unique ID for the new user
+        new_id = f"USER_{uuid.uuid4().hex[:8]}"
+
+        # Mapped perfectly to the provided SQLite schema
+        insert_query = """
+                       INSERT INTO Network_Contacts ("Contact Name", Campus, "Capabilities / Expertise", Category, \
+                                                     "Civic Domains", "Communities Served", "Email/Phone/LinkedIn", \
+                                                     ID, "INI Alignments", "Needs / Challenges", "Notes / Insights", \
+                                                     "Opportunity Ideas", "Program/Org Affiliation", "Role/Title", \
+                                                     "URL (Overview Page)") \
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) \
+                       """
+
+        # The tuple order MUST match the insert_query order exactly
+        data = (
+            profile.contact_name,
+            profile.campus,
+            profile.capabilities,
+            profile.category,
+            profile.civic_domains,
+            profile.communities_served,
+            profile.email,
+            new_id,  # Maps to ID
+            profile.ini_alignments,
+            profile.needs_challenges,  # Warning: This is going into a REAL column
+            profile.notes,
+            profile.opportunity_ideas,  # Maps to Oppurtunity Ideas
+            profile.affiliation,
+            profile.role_title,
+            profile.url
+        )
+
+        cursor.execute(insert_query, data)
+        conn.commit()
+        conn.close()
+
+        return {"status": "success", "message": "Profile published to public directory!"}
+    except Exception as e:
+        print(f"Error publishing profile: {e}")
         return {"status": "error", "message": str(e)}
