@@ -1,0 +1,9 @@
+# Web Framework
+fastapi
+
+# Data Processing
+pandas
+
+# AI & Configuration
+openai
+python-dotenv
