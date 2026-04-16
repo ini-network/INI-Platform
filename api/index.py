@@ -6,8 +6,8 @@ import pandas as pd
 import sqlite3
 
 # Import your existing, untouched logic!
-from discovery_engine import search_civic_network, generate_civic_insight
-from db_manager import initialize_database
+from api.discovery_engine import search_civic_network, generate_civic_insight
+from api.db_manager import initialize_database
 
 app = FastAPI()
 
