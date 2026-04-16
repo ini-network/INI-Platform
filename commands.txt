@@ -1,0 +1,7 @@
+To launch the app:
+cd ini-frontend
+npm run dev
+
+python backend launch:
+cd api
+uvicorn api.index:app --reload

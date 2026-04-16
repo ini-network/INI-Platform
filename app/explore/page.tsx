@@ -39,12 +39,6 @@ interface GraphLink {
   target: string | number;
 }
 
-// Defines exactly what the graph reference is allowed to do
-interface ForceGraphMethods {
-  zoom: (k: number, duration?: number) => void;
-  zoomToFit: (duration?: number, padding?: number) => void;
-}
-
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
 
 const CUNY_LIST = [
@@ -193,7 +187,8 @@ export default function ExploreMap() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Map Controls Reference
-  const fgRef = useRef<ForceGraphMethods | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fgRef = useRef<any>(null);
 
   // Navigation State
   const [viewType, setViewType] = useState<"topic" | "location" | "person">("location");
