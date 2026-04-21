@@ -267,7 +267,7 @@ export default function ExploreMap() {
   const handleZoomOut = () => { fgRef.current?.zoom(0.66, 400); };
   const handleFitMap = () => { fgRef.current?.zoomToFit(400, 50); };
 
-  // --- UPGRADED INTERACTIVE HIERARCHICAL GRAPH ALGORITHM ---
+  // --- UPGRADED "PERSON-CENTRIC" GRAPH ALGORITHM ---
   const { nodes, links, hiddenCount } = useMemo(() => {
     let filteredContacts = allContacts;
     if (copilotSearch) {
@@ -282,39 +282,47 @@ export default function ExploreMap() {
 
     const safeAddLink = (s: string, t: string) => {
       const key = `${s}->${t}`;
-      if (!addedLinks.has(key)) { addedLinks.add(key); graphLinks.push({ source: s, target: t }); }
+      const reverseKey = `${t}->${s}`;
+      if (!addedLinks.has(key) && !addedLinks.has(reverseKey)) {
+        addedLinks.add(key);
+        graphLinks.push({ source: s, target: t });
+      }
     };
 
     const shouldExpandChildren = (parentNodeId: string, isSmallNetwork: boolean) => {
       return isGlobalExpanded || expandedNodes.has(parentNodeId) || isSmallNetwork;
     };
 
-    // 1. PERSON VIEW (Center -> Topic -> Location -> Person)
+    // 1. PERSON VIEW (Center Person -> Topics -> Other People)
     if (viewType === "person" && selectedPerson) {
       const centerPerson = filteredContacts.find(c => c.name === selectedPerson);
       if (!centerPerson) return { nodes: graphNodes, links: graphLinks, hiddenCount: 0 };
 
-      const networkContacts = filteredContacts.filter(other => other.id !== centerPerson.id && other.domains?.some(d => centerPerson.domains?.includes(d)));
-      const isSmallNetwork = networkContacts.length <= 25;
-
+      // Add Center Person
       graphNodes.push({ id: centerPerson.id, name: centerPerson.name, group: "center", val: 12, color: "#fbbf24", title: `CENTER: ${selectedPerson}` });
       addedNodes.add(centerPerson.id);
 
-      centerPerson.domains.forEach(topic => {
-        if (!addedNodes.has(topic)) { graphNodes.push({ id: topic, name: topic, group: "topic_hub", val: 8, color: "#0ea5e9", title: `INTEREST: ${topic} (Click to toggle)` }); addedNodes.add(topic); }
+      const networkContacts = filteredContacts.filter(other => other.id !== centerPerson.id && other.domains?.some(d => centerPerson.domains?.includes(d)));
+      const isSmallNetwork = networkContacts.length <= 25;
+
+      centerPerson.domains?.forEach(topic => {
+        // Add Their Topics
+        if (!addedNodes.has(topic)) {
+          graphNodes.push({ id: topic, name: topic, group: "topic_hub", val: 8, color: "#0ea5e9", title: `INTEREST: ${topic} (Click to toggle)` });
+          addedNodes.add(topic);
+        }
         safeAddLink(centerPerson.id, topic);
 
+        // Add Other People sharing the topic
         filteredContacts.forEach(other => {
           if (other.id === centerPerson.id || !other.domains?.includes(topic)) return;
-          const locName = other.campus || "Unknown Location";
-          const locId = `loc_${locName}`;
 
-          if (!addedNodes.has(locId)) { graphNodes.push({ id: locId, name: locName, group: "location_hub", val: 6, color: "#ec4899", title: `LOCATION: ${locName} (Click to toggle)` }); addedNodes.add(locId); }
-          safeAddLink(topic, locId);
-
-          if (shouldExpandChildren(locId, isSmallNetwork)) {
-            if (!addedNodes.has(other.id)) { graphNodes.push({ id: other.id, name: other.name, group: "person", val: 3, color: "#f59e0b", title: `CONTACT: ${other.name}` }); addedNodes.add(other.id); }
-            safeAddLink(locId, other.id);
+          if (shouldExpandChildren(topic, isSmallNetwork)) {
+            if (!addedNodes.has(other.id)) {
+              graphNodes.push({ id: other.id, name: other.name, group: "person", val: 4, color: "#ff0000", title: `CONTACT: ${other.name}` });
+              addedNodes.add(other.id);
+            }
+            safeAddLink(topic, other.id);
           } else {
             currentlyHiddenContacts++;
           }
@@ -322,65 +330,74 @@ export default function ExploreMap() {
       });
     }
 
-    // 2. LOCATION VIEW (Center -> Topic -> Person)
+    /// 2. LOCATION VIEW (Center Location -> Person -> Their Specific Topics)
     else if (viewType === "location" && selectedLocation) {
       const locId = `loc_${selectedLocation}`;
-      graphNodes.push({ id: locId, name: selectedLocation, group: "location_hub", val: 12, color: "#ec4899", title: `LOCATION: ${selectedLocation} (Click to toggle)` });
+      graphNodes.push({ id: locId, name: selectedLocation, group: "center", val: 12, color: "#ec4899", title: `LOCATION: ${selectedLocation}` });
       addedNodes.add(locId);
 
       const networkContacts = filteredContacts.filter(c => c.campus === selectedLocation);
-      const isSmallNetwork = networkContacts.length <= 25;
 
-      filteredContacts.forEach(person => {
-        if (person.campus === selectedLocation) {
-          person.domains.forEach(topic => {
-            if (!addedNodes.has(topic)) { graphNodes.push({ id: topic, name: topic, group: "topic_hub", val: 8, color: "#0ea5e9", title: `INTEREST: ${topic} (Click to toggle)` }); addedNodes.add(topic); }
-            safeAddLink(locId, topic);
+      networkContacts.forEach(person => {
+        // LEVEL 1: ALWAYS SHOW THE PEOPLE AT THIS LOCATION
+        if (!addedNodes.has(person.id)) {
+          graphNodes.push({ id: person.id, name: person.name, group: "person", val: 6, color: "#ff0000", title: `CONTACT: ${person.name}` });
+          addedNodes.add(person.id);
+        }
+        safeAddLink(locId, person.id);
 
-            if (shouldExpandChildren(topic, isSmallNetwork)) {
-              if (!addedNodes.has(person.id)) { graphNodes.push({ id: person.id, name: person.name, group: "person", val: 3, color: "#94a3b8", title: `CONTACT: ${person.name}` }); addedNodes.add(person.id); }
-              safeAddLink(topic, person.id);
-            } else {
-              currentlyHiddenContacts++;
+        // LEVEL 2: HIDE TOPICS UNTIL THE PERSON IS EXPANDED
+        const isPersonExpanded = isGlobalExpanded || expandedNodes.has(person.id);
+        if (isPersonExpanded) {
+          person.domains?.forEach(topic => {
+            if (!addedNodes.has(topic)) {
+              graphNodes.push({ id: topic, name: topic, group: "topic_hub", val: 4, color: "#0ea5e9", title: `INTEREST: ${topic}` });
+              addedNodes.add(topic);
             }
+            safeAddLink(person.id, topic);
           });
+        } else {
+          if (person.domains?.length) currentlyHiddenContacts += person.domains.length;
         }
       });
     }
 
-    // 3. TOPIC VIEW (Center -> Location -> Person)
+    // 3. TOPIC VIEW (Center Topic -> Person -> Their Other Topics)
     else if (viewType === "topic" && selectedSpecificFocus) {
       const topicId = selectedSpecificFocus;
-      graphNodes.push({ id: topicId, name: topicId, group: "topic_hub", val: 12, color: "#0ea5e9", title: `INTEREST: ${topicId} (Click to toggle)` });
+      graphNodes.push({ id: topicId, name: topicId, group: "center", val: 12, color: "#0ea5e9", title: `INTEREST: ${topicId}` });
       addedNodes.add(topicId);
 
       const networkContacts = filteredContacts.filter(c => c.domains?.includes(topicId));
-      const isSmallNetwork = networkContacts.length <= 25;
 
-      filteredContacts.forEach(person => {
-        if (person.domains?.includes(topicId)) {
-          const locName = person.campus || "Unknown Location";
-          const locId = `loc_${locName}`;
+      networkContacts.forEach(person => {
+        // LEVEL 1: ALWAYS SHOW THE PEOPLE WITH THIS INTEREST
+        if (!addedNodes.has(person.id)) {
+          graphNodes.push({ id: person.id, name: person.name, group: "person", val: 5, color: "#ff0000", title: `CONTACT: ${person.name}` });
+          addedNodes.add(person.id);
+        }
+        safeAddLink(topicId, person.id);
 
-          if (!addedNodes.has(locId)) { graphNodes.push({ id: locId, name: locName, group: "location_hub", val: 8, color: "#ec4899", title: `LOCATION: ${locName} (Click to toggle)` }); addedNodes.add(locId); }
-          safeAddLink(topicId, locId);
-
-          if (shouldExpandChildren(locId, isSmallNetwork)) {
-            if (!addedNodes.has(person.id)) { graphNodes.push({ id: person.id, name: person.name, group: "person", val: 3, color: "#94a3b8", title: `CONTACT: ${person.name}` }); addedNodes.add(person.id); }
-            safeAddLink(locId, person.id);
-          } else {
-            currentlyHiddenContacts++;
-          }
+        // LEVEL 2: HIDE THEIR OTHER TOPICS UNTIL THE PERSON IS EXPANDED
+        const isPersonExpanded = isGlobalExpanded || expandedNodes.has(person.id);
+        if (isPersonExpanded) {
+          person.domains?.forEach(otherTopic => {
+            if (otherTopic !== topicId) {
+              if (!addedNodes.has(otherTopic)) {
+                graphNodes.push({ id: otherTopic, name: otherTopic, group: "topic_hub", val: 3, color: "#38bdf8", title: `INTEREST: ${otherTopic}` });
+                addedNodes.add(otherTopic);
+              }
+              safeAddLink(person.id, otherTopic);
+            }
+          });
+        } else {
+          if (person.domains && person.domains.length > 1) currentlyHiddenContacts += (person.domains.length - 1);
         }
       });
     }
 
-    // 4. NEW: GLOBAL ECOSYSTEM VIEW (Progressive Disclosure)
+    // 4. GLOBAL ECOSYSTEM VIEW (Location -> Person -> Topic)
     else if (viewType === "global") {
-      const activeLocations = new Set<string>();
-      const activeTopics = new Set<string>();
-
-      // NEW: Filter the ecosystem based on the selected sub-view
       let globalContacts = filteredContacts;
       if (globalSubFilter === "cuny") {
         globalContacts = filteredContacts.filter(c => c.campus && CUNY_LIST.some(cuny => c.campus!.toLowerCase().includes(cuny.toLowerCase())));
@@ -388,42 +405,43 @@ export default function ExploreMap() {
         globalContacts = filteredContacts.filter(c => c.campus && !CUNY_LIST.some(cuny => c.campus!.toLowerCase().includes(cuny.toLowerCase())));
       }
 
-      // Step 1: Identify and create the high-level hubs
       globalContacts.forEach(person => {
-        const locName = person.campus || "Unknown Location";
-        const locId = `loc_${locName}`;
-
-        if (!addedNodes.has(locId)) {
-          graphNodes.push({ id: locId, name: locName, group: "location_hub", val: 8, color: "#ec4899", title: `LOCATION: ${locName}` });
-          addedNodes.add(locId);
-          activeLocations.add(locId);
-        }
-
-        person.domains?.forEach(topic => {
-          if (!addedNodes.has(topic)) {
-            graphNodes.push({ id: topic, name: topic, group: "topic_hub", val: 8, color: "#0ea5e9", title: `INTEREST: ${topic}` });
-            addedNodes.add(topic);
-            activeTopics.add(topic);
-          }
-          safeAddLink(locId, topic);
-        });
-      });
-
-      // Step 2: Add people if expanded
-      globalContacts.forEach(person => {
-        const locName = person.campus || "Unknown Location";
-        const locId = `loc_${locName}`;
-
-        const isExpanded = isGlobalExpanded || expandedNodes.has(locId) || person.domains?.some(d => expandedNodes.has(d));
+        const isExpanded = isGlobalExpanded || expandedNodes.has(`loc_${person.campus}`);
 
         if (isExpanded) {
+          // Add Person
           if (!addedNodes.has(person.id)) {
-            graphNodes.push({ id: person.id, name: person.name, group: "person", val: 3, color: "#94a3b8", title: `CONTACT: ${person.name}` });
+            graphNodes.push({ id: person.id, name: person.name, group: "person", val: 4, color: "#ff0000", title: `CONTACT: ${person.name}` });
             addedNodes.add(person.id);
           }
-          safeAddLink(locId, person.id);
-          person.domains?.forEach(topic => safeAddLink(topic, person.id));
+
+          // Link Location -> Person
+          if (person.campus) {
+            const locId = `loc_${person.campus}`;
+            if (!addedNodes.has(locId)) {
+              graphNodes.push({ id: locId, name: person.campus, group: "location_hub", val: 8, color: "#ec4899", title: `LOCATION: ${person.campus}` });
+              addedNodes.add(locId);
+            }
+            safeAddLink(locId, person.id);
+          }
+
+          // Link Person -> Topic
+          person.domains?.forEach(topic => {
+            if (!addedNodes.has(topic)) {
+              graphNodes.push({ id: topic, name: topic, group: "topic_hub", val: 5, color: "#0ea5e9", title: `INTEREST: ${topic}` });
+              addedNodes.add(topic);
+            }
+            safeAddLink(person.id, topic);
+          });
         } else {
+          // Just show locations as collapsed hubs
+          if (person.campus) {
+            const locId = `loc_${person.campus}`;
+            if (!addedNodes.has(locId)) {
+              graphNodes.push({ id: locId, name: person.campus, group: "location_hub", val: 10, color: "#ec4899", title: `LOCATION: ${person.campus} (Click to expand)` });
+              addedNodes.add(locId);
+            }
+          }
           currentlyHiddenContacts++;
         }
       });
@@ -565,7 +583,7 @@ export default function ExploreMap() {
                 <div className="flex items-center text-xs"><span className="w-3 h-3 rounded-full bg-emerald-500 mr-2"></span> CUNY Campus</div>
                 <div className="flex items-center text-xs"><span className="w-3 h-3 rounded-full bg-purple-500 mr-2"></span> Community Partner</div>
                 <div className="flex items-center text-xs"><span className="w-3 h-3 rounded-full bg-sky-500 mr-2"></span> Interest / Focus</div>
-                <div className="flex items-center text-xs"><span className="w-3 h-3 rounded-full bg-amber-500 mr-2"></span> Person</div>
+                <div className="flex items-center text-xs"><span className="w-3 h-3 rounded-full bg-[#ff0000] mr-2"></span> Person</div>
               </div>
             </div>
           </div>
@@ -583,8 +601,8 @@ export default function ExploreMap() {
         {nodes.length > 0 && (
           <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 flex gap-4 bg-slate-800/90 p-3 rounded-2xl border border-slate-700 shadow-2xl backdrop-blur">
               <span className="text-white text-sm font-medium self-center px-2">
-                {viewType === 'global' ? 'Hierarchy: Ecosystem View (Locations & Topics)' :
-                 `Hierarchy: ${viewType === 'person' ? 'Person ➔ Topic ➔ Location' : viewType === 'location' ? 'Location ➔ Topic' : 'Topic ➔ Location'} ➔ Contacts`}
+                {viewType === 'global' ? 'Hierarchy: Location ➔ Person ➔ Topic' :
+                 `Hierarchy: ${viewType === 'person' ? 'Person ➔ Topic ➔ Shared Contact' : viewType === 'location' ? 'Location ➔ Person ➔ Topic' : 'Topic ➔ Person ➔ Other Topics'}`}
               </span>
 
               {hiddenCount > 0 ? (
@@ -684,6 +702,19 @@ export default function ExploreMap() {
           contact={activeContact}
           onClose={() => setActiveContact(null)}
           showGraph={false}
+
+          isNodeExpanded={expandedNodes.has(activeContact.id)}
+          onToggleExpandNode={() => {
+            setExpandedNodes(prev => {
+              const newSet = new Set(prev);
+              if (newSet.has(activeContact.id)) {
+                newSet.delete(activeContact.id);
+              } else {
+                newSet.add(activeContact.id);
+              }
+              return newSet;
+            });
+          }}
 
           onRecenter={(person) => {
             setViewType("person");

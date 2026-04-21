@@ -43,10 +43,11 @@ interface ProfileModalProps {
   showGraph?: boolean;
   graphData?: { nodes: GraphNode[]; links: GraphLink[] };
   onNodeClick?: (node: GraphNode) => void;
-  // New Toggle Controls
   isGraphExpanded?: boolean;
   onToggleGraph?: () => void;
   hiddenCount?: number;
+  isNodeExpanded?: boolean;
+  onToggleExpandNode?: () => void;
 }
 
 export default function ProfileModal({
@@ -59,7 +60,9 @@ export default function ProfileModal({
   onNodeClick,
   isGraphExpanded = true,
   onToggleGraph,
-  hiddenCount = 0
+  hiddenCount = 0,
+  isNodeExpanded = false,
+  onToggleExpandNode
 }: ProfileModalProps) {
 
   const handleSave = () => {
@@ -146,6 +149,17 @@ export default function ProfileModal({
             {/* RESTORED: Stacked Button Layout & Original Wording */}
             <div className="mt-auto border-t border-slate-200 pt-6 space-y-3 shrink-0">
 
+              {/* 1. NEW EXPAND MAP TOGGLE BUTTON */}
+              {onToggleExpandNode && (
+                <button
+                  onClick={onToggleExpandNode}
+                  className={`w-full border font-bold py-2.5 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2 ${isNodeExpanded ? 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200' : 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100'}`}
+                >
+                  {isNodeExpanded ? "📉 Collapse Network on Map" : "📈 Expand Network on Map"}
+                </button>
+              )}
+
+              {/* 2. SINGLE RECENTER BUTTON */}
               {onRecenter && (
                 <button
                   onClick={() => onRecenter(contact)}
@@ -161,6 +175,7 @@ export default function ProfileModal({
               >
                 ⭐ Save Contact
               </button>
+
               <button className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
                 ✉️ Express Interest
               </button>
@@ -196,7 +211,7 @@ export default function ProfileModal({
                     <span className="w-2.5 h-2.5 rounded-full bg-[#fbbf24] mr-2 shadow-[0_0_8px_#fbbf24]"></span> CENTER
                   </div>
                   <div className="flex items-center text-[10px] font-bold text-white/90">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#f59e0b] mr-2"></span> PERSON
+                    <span className="w-3 h-3 rounded-full bg-[#ff0000] mr-2"></span> PERSON
                   </div>
                   <div className="flex items-center text-[10px] font-bold text-white/90">
                     <span className="w-2.5 h-2.5 rounded-full bg-[#0ea5e9] mr-2"></span> FOCUS AREA

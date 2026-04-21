@@ -100,7 +100,6 @@ export default function Home() {
     setInspectContact(person);
   };
 
-  // --- HIERARCHICAL GRAPH ALGORITHM ---
   const microGraphData = useMemo(() => {
     if (!microMapContact) return { nodes: [], links: [], hiddenCount: 0 };
 
@@ -108,65 +107,71 @@ export default function Home() {
     const links: GraphLink[] = [];
     const addedNodes = new Set<string>();
     const addedLinks = new Set<string>();
-    let currentlyHiddenContacts = 0;
+    let hiddenCount = 0;
 
-    const safeAddLink = (source: string, target: string) => {
-      const key = `${source}->${target}`;
-      if (!addedLinks.has(key)) {
+    const safeAddLink = (s: string, t: string) => {
+      const key = `${s}->${t}`;
+      const reverseKey = `${t}->${s}`;
+      if (!addedLinks.has(key) && !addedLinks.has(reverseKey)) {
         addedLinks.add(key);
-        links.push({ source, target });
+        links.push({ source: s, target: t });
       }
     };
 
-    const centerId = microMapContact.id;
-    const networkContacts = allContacts.filter(other => other.id !== centerId && other.domains?.some(d => microMapContact.domains?.includes(d)));
+    // 1. Add the Center Person
+    nodes.push({
+      id: microMapContact.id,
+      name: microMapContact.name,
+      group: "center",
+      val: 12,
+      color: "#fbbf24",
+      title: `CENTER: ${microMapContact.name}`
+    });
+    addedNodes.add(microMapContact.id);
+
+    // 2. Determine if the network is small enough to auto-expand
+    const networkContacts = allContacts.filter(other =>
+      other.id !== microMapContact.id &&
+      other.domains?.some(d => microMapContact.domains?.includes(d))
+    );
     const isSmallNetwork = networkContacts.length <= 15;
 
-    const shouldExpandChildren = (parentNodeId: string) => {
-      return isGraphExpanded || expandedNodes.has(parentNodeId) || isSmallNetwork;
-    };
+    // 3. Map out the shared Topics and the People attached to them
+    microMapContact.domains?.forEach(topic => {
 
-    // 1. Center Person
-    nodes.push({ id: centerId, name: microMapContact.name, group: "center", val: 10, color: "#fbbf24", title: "CENTER" });
-    addedNodes.add(centerId);
+      // Add the Topic Node
+      if (!addedNodes.has(topic)) {
+        nodes.push({ id: topic, name: topic, group: "topic_hub", val: 8, color: "#0ea5e9", title: `INTEREST: ${topic} (Click to expand)` });
+        addedNodes.add(topic);
+      }
+      safeAddLink(microMapContact.id, topic);
 
-    if (microMapContact.domains) {
-      microMapContact.domains.forEach(topic => {
-        // 2. Interests
-        if (!addedNodes.has(topic)) {
-          nodes.push({ id: topic, name: topic, group: "topic_hub", val: 8, color: "#0ea5e9", title: `INTEREST: ${topic} (Click to toggle)` });
-          addedNodes.add(topic);
+      // Add the connected people
+      allContacts.forEach(other => {
+        if (other.id === microMapContact.id || !other.domains?.includes(topic)) return;
+
+        const shouldExpand = isGraphExpanded || expandedNodes.has(topic) || isSmallNetwork;
+
+        if (shouldExpand) {
+          if (!addedNodes.has(other.id)) {
+            nodes.push({ id: other.id, name: other.name, group: "person", val: 5, color: "#ff0000", title: `CONTACT: ${other.name}` });
+            addedNodes.add(other.id);
+          }
+          safeAddLink(topic, other.id);
+        } else {
+          // We only count them as hidden if they aren't already on the map from another topic
+          if (!addedNodes.has(other.id)) {
+            hiddenCount++;
+          }
         }
-        safeAddLink(centerId, topic);
-
-        // 3. Locations -> People
-        allContacts.forEach(otherPerson => {
-          if (otherPerson.id === centerId || !otherPerson.domains?.includes(topic)) return;
-
-          const locationName = otherPerson.campus || "Unspecified Location";
-          const locId = `loc_${locationName}`;
-
-          if (!addedNodes.has(locId)) {
-            nodes.push({ id: locId, name: locationName, group: "location_hub", val: 6, color: "#ec4899", title: `LOCATION: ${locationName} (Click to toggle)` });
-            addedNodes.add(locId);
-          }
-          safeAddLink(topic, locId);
-
-          // 4. Contacts (If Expanded)
-          if (shouldExpandChildren(locId)) {
-            if (!addedNodes.has(otherPerson.id)) {
-              nodes.push({ id: otherPerson.id, name: otherPerson.name, group: "person", val: 3, color: "#f59e0b", title: `CONTACT: ${otherPerson.name}` });
-              addedNodes.add(otherPerson.id);
-            }
-            safeAddLink(locId, otherPerson.id);
-          } else {
-             currentlyHiddenContacts++;
-          }
-        });
       });
-    }
-    return { nodes, links, hiddenCount: currentlyHiddenContacts };
-  }, [microMapContact, allContacts, isGraphExpanded, expandedNodes]);
+    });
+
+    // Approximate hidden count adjustment so we don't over-count people sharing multiple topics
+    const adjustedHiddenCount = Math.floor(hiddenCount / (microMapContact.domains?.length || 1));
+
+    return { nodes, links, hiddenCount: adjustedHiddenCount };
+  }, [allContacts, microMapContact, isGraphExpanded, expandedNodes]);
 
 
   return (
