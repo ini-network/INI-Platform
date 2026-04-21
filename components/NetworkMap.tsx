@@ -8,7 +8,7 @@ const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), { ssr: false 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const NetworkMap = forwardRef(({ graphData, repulsion = -400, distance = 120, ...rest }: any, forwardedRef: any) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const fallbackRef = useRef<any>();
+  const fallbackRef = useRef<any>(null);
   const targetRef = forwardedRef || fallbackRef;
 
   useEffect(() => {
