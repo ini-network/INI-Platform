@@ -1,4 +1,11 @@
 # index.py
+import os
+from dotenv import load_dotenv
+
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+dotenv_path = os.path.join(base_dir, ".env.local")
+load_dotenv(dotenv_path=dotenv_path)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -54,11 +61,12 @@ def ask_copilot(request: ChatRequest):
             "match_count": len(results_data)
         }
 
+
     except Exception as e:
         print(f"ERROR in /api/copilot: {e}")
         return {"status": "error", "message": "The Copilot encountered an issue analyzing the network."}
 
-
+# All the api points after this point are replaced by Supabase or local code in the pages so they can all be deleted safely
 @app.get("/api/contacts")
 def get_all_contacts():
     """

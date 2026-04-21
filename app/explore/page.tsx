@@ -1,23 +1,27 @@
-// src/app/explore/page.tsx
 "use client";
 
 import Link from "next/link";
 import { useState, useEffect, useMemo, useRef } from "react";
-import dynamic from 'next/dynamic';
+import { createClient } from '../../utils/supabase/client';
+import ProfileModal from "@/components/ProfileModal";
+import Copilot from "@/components/Copilot";
+import NetworkMap from "@/components/NetworkMap";
 
 // --- STRICT TYPESCRIPT INTERFACES ---
 interface Contact {
-  "Contact Name": string;
-  "Program/Org Affiliation"?: string;
-  "Notes / Insights"?: string;
-  "Campus"?: string;
-  "Civic Domains"?: string;
-  "Capabilities / Expertise"?: string;
-  "Role/Title"?: string;
-  [key: string]: string | undefined;
+  id: string;
+  name: string;
+  campus?: string | null;
+  role_title?: string | null;
+  affiliation?: string | null;
+  capabilities?: string | null;
+  communities_served?: string | null;
+  notes?: string | null;
+  email_contact?: string | null;
+  url?: string | null;
+  domains: string[];
 }
 
-// A unified type that satisfies both your data AND the physics engine's internal velocity requirements
 interface LibNode {
   id?: string | number;
   x?: number;
@@ -38,8 +42,6 @@ interface GraphLink {
   source: string | number;
   target: string | number;
 }
-
-const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
 
 const CUNY_LIST = [
   "Borough of Manhattan Community College", "BMCC", "Baruch",
@@ -181,27 +183,26 @@ const SearchableDropdown = ({ options, value, onChange, placeholder }: { options
 };
 
 export default function ExploreMap() {
+  const [globalSubFilter, setGlobalSubFilter] = useState<"cuny" | "partner" | "all">("cuny");
   const [allContacts, setAllContacts] = useState<Contact[]>([]);
-
-  // UI State
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-
-  // Map Controls Reference
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fgRef = useRef<any>(null);
 
-  // Navigation State
-  const [viewType, setViewType] = useState<"topic" | "location" | "person">("location");
+  // Navigation & Search State - ADDED "global"
+  const [viewType, setViewType] = useState<"topic" | "location" | "person" | "global">("location");
   const [locationSubFilter, setLocationSubFilter] = useState<"cuny" | "partner">("cuny");
-
-  // Selection State
   const [selectedLocation, setSelectedLocation] = useState("");
   const [selectedFocusDomain, setSelectedFocusDomain] = useState("");
   const [selectedSpecificFocus, setSelectedSpecificFocus] = useState("");
   const [selectedPerson, setSelectedPerson] = useState("");
-  const [activeContact, setActiveContact] = useState<Contact | null>(null);
+  const [copilotSearch, setCopilotSearch] = useState("");
 
-  // Load user's sidebar preference safely
+  // Graph Display & Interaction State
+  const [activeContact, setActiveContact] = useState<Contact | null>(null);
+  const [isGlobalExpanded, setIsGlobalExpanded] = useState(false);
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     const savedSidebarState = localStorage.getItem("exploreSidebarOpen");
     if (savedSidebarState !== null) {
@@ -218,9 +219,18 @@ export default function ExploreMap() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const resContacts = await fetch("/api/contacts");
-        const dataContacts = await resContacts.json();
-        if (Array.isArray(dataContacts)) setAllContacts(dataContacts);
+        const supabase = createClient();
+        const { data, error } = await supabase.from('contacts').select(`*, contact_domains (domains (domain_name))`);
+        if (error) throw error;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const formattedData: Contact[] = (data as any[]).map((c) => ({
+          ...c,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          domains: c.contact_domains.map((cd: any) => cd.domains.domain_name)
+        }));
+
+        setAllContacts(formattedData);
       } catch (error) {
         console.error("Failed to load directory data:", error);
       }
@@ -228,14 +238,15 @@ export default function ExploreMap() {
     fetchInitialData();
   }, []);
 
-  const uniqueLocations = Array.from(new Set(allContacts.map(c => c["Campus"]).filter(Boolean))).sort() as string[];
+  // Filter Extractions
+  const uniqueLocations = Array.from(new Set(allContacts.map(c => c.campus).filter(Boolean))).sort() as string[];
   const cunyOptions = uniqueLocations.filter(loc => CUNY_LIST.some(c => loc.toLowerCase().includes(c.toLowerCase())));
   const partnerOptions = uniqueLocations.filter(loc => !CUNY_LIST.some(c => loc.toLowerCase().includes(c.toLowerCase())));
 
-  const allDomainsRaw = allContacts.flatMap(c => (c["Civic Domains"] || "").split(",").map((d: string) => d.trim())).filter(Boolean);
+  const allDomainsRaw = allContacts.flatMap(c => c.domains).filter(Boolean);
   const uniqueFocusAreas = Array.from(new Set(allDomainsRaw)).sort() as string[];
 
-  const allPeopleOptions = Array.from(new Set(allContacts.map(c => c["Contact Name"]).filter(Boolean))).sort() as string[];
+  const allPeopleOptions = Array.from(new Set(allContacts.map(c => c.name).filter(Boolean))).sort() as string[];
 
   const filteredFocusOptions = useMemo(() => {
     if (!selectedFocusDomain) return [];
@@ -252,100 +263,179 @@ export default function ExploreMap() {
     setSelectedSpecificFocus("");
   };
 
-  // Map Navigation Handlers
   const handleZoomIn = () => { fgRef.current?.zoom(1.5, 400); };
   const handleZoomOut = () => { fgRef.current?.zoom(0.66, 400); };
   const handleFitMap = () => { fgRef.current?.zoomToFit(400, 50); };
 
-  // --- MACRO GRAPH GENERATOR ---
-  const exploreGraphData = useMemo(() => {
-    const nodes: LibNode[] = [];
-    const links: GraphLink[] = [];
-    const addedNodes = new Set<string>();
-
-    if (viewType === "person" && selectedPerson) {
-      const centerPerson = allContacts.find(c => c["Contact Name"] === selectedPerson);
-      if (!centerPerson) return { nodes, links };
-
-      nodes.push({ id: selectedPerson, name: selectedPerson, group: "center", val: 12, color: "#fbbf24", title: `PERSON: ${selectedPerson}` });
-      addedNodes.add(selectedPerson);
-
-      const location = centerPerson["Campus"];
-      if (location && !addedNodes.has(location)) {
-         const isCuny = CUNY_LIST.some(c => location.toLowerCase().includes(c.toLowerCase()));
-         nodes.push({ id: location, name: location, group: "location_hub", val: 8, color: isCuny ? "#10b981" : "#a855f7", title: `LOCATION: ${location}` });
-         addedNodes.add(location);
-         links.push({ source: selectedPerson, target: location });
-      }
-
-      if (centerPerson["Civic Domains"]) {
-        const topics = centerPerson["Civic Domains"].split(",").map((d: string) => d.trim()).filter(Boolean);
-        topics.forEach((topic: string) => {
-          if (!addedNodes.has(topic)) {
-            nodes.push({ id: topic, name: topic, group: "topic_hub", val: 7, color: "#0ea5e9", title: `INTEREST: ${topic}` });
-            addedNodes.add(topic);
-          }
-          links.push({ source: selectedPerson, target: topic });
-
-          allContacts.forEach(other => {
-            const otherId = other["Contact Name"];
-            if (!otherId || otherId === selectedPerson || addedNodes.has(otherId)) return;
-            if (other["Civic Domains"]?.includes(topic)) {
-              nodes.push({ id: otherId, name: otherId, group: "person", val: 3, color: "#94a3b8", title: `${otherId} | ${other["Campus"]}` });
-              addedNodes.add(otherId);
-              links.push({ source: otherId, target: topic });
-            }
-          });
-        });
-      }
-      return { nodes, links };
+  // --- UPGRADED INTERACTIVE HIERARCHICAL GRAPH ALGORITHM ---
+  const { nodes, links, hiddenCount } = useMemo(() => {
+    let filteredContacts = allContacts;
+    if (copilotSearch) {
+      filteredContacts = allContacts.filter(c => copilotSearch.includes(c.name));
     }
 
-    const targetNodes = viewType === "location" ? [selectedLocation] : [selectedSpecificFocus];
-    const mainTarget = targetNodes[0];
+    const graphNodes: LibNode[] = [];
+    const graphLinks: GraphLink[] = [];
+    const addedNodes = new Set<string>();
+    const addedLinks = new Set<string>();
+    let currentlyHiddenContacts = 0;
 
-    if (!mainTarget) return { nodes, links };
+    const safeAddLink = (s: string, t: string) => {
+      const key = `${s}->${t}`;
+      if (!addedLinks.has(key)) { addedLinks.add(key); graphLinks.push({ source: s, target: t }); }
+    };
 
-    const isTopic = viewType === "topic";
-    const centerColor = isTopic ? "#0ea5e9" : (locationSubFilter === "cuny" ? "#10b981" : "#a855f7");
+    const shouldExpandChildren = (parentNodeId: string, isSmallNetwork: boolean) => {
+      return isGlobalExpanded || expandedNodes.has(parentNodeId) || isSmallNetwork;
+    };
 
-    nodes.push({ id: mainTarget, name: mainTarget, group: isTopic ? "topic_hub" : "location_hub", val: 12, color: centerColor, title: `${isTopic ? 'INTEREST' : 'LOCATION'}: ${mainTarget}` });
-    addedNodes.add(mainTarget);
+    // 1. PERSON VIEW (Center -> Topic -> Location -> Person)
+    if (viewType === "person" && selectedPerson) {
+      const centerPerson = filteredContacts.find(c => c.name === selectedPerson);
+      if (!centerPerson) return { nodes: graphNodes, links: graphLinks, hiddenCount: 0 };
 
-    allContacts.forEach(person => {
-      const personId = person["Contact Name"];
-      if (!personId) return;
+      const networkContacts = filteredContacts.filter(other => other.id !== centerPerson.id && other.domains?.some(d => centerPerson.domains?.includes(d)));
+      const isSmallNetwork = networkContacts.length <= 25;
 
-      const hasLocationMatch = person["Campus"] === mainTarget;
-      const hasTopicMatch = person["Civic Domains"]?.includes(mainTarget);
+      graphNodes.push({ id: centerPerson.id, name: centerPerson.name, group: "center", val: 12, color: "#fbbf24", title: `CENTER: ${selectedPerson}` });
+      addedNodes.add(centerPerson.id);
 
-      if ((viewType === "location" && hasLocationMatch) || (viewType === "topic" && hasTopicMatch)) {
-        if (!addedNodes.has(personId)) {
-          nodes.push({ id: personId, name: personId, group: "person", val: 3, color: "#fbbf24", title: `${personId} | ${person["Campus"]} (${person["Role/Title"]})` });
-          addedNodes.add(personId);
-        }
-        links.push({ source: personId, target: mainTarget });
+      centerPerson.domains.forEach(topic => {
+        if (!addedNodes.has(topic)) { graphNodes.push({ id: topic, name: topic, group: "topic_hub", val: 8, color: "#0ea5e9", title: `INTEREST: ${topic} (Click to toggle)` }); addedNodes.add(topic); }
+        safeAddLink(centerPerson.id, topic);
 
-        if (viewType === "location" && person["Civic Domains"]) {
-          person["Civic Domains"].split(",").map((d: string) => d.trim()).forEach((topic: string) => {
-            if (!topic) return;
-            if (!addedNodes.has(topic)) {
-              nodes.push({ id: topic, name: topic, group: "topic_hub", val: 5, color: "#0ea5e9", title: `INTEREST: ${topic}` });
-              addedNodes.add(topic);
+        filteredContacts.forEach(other => {
+          if (other.id === centerPerson.id || !other.domains?.includes(topic)) return;
+          const locName = other.campus || "Unknown Location";
+          const locId = `loc_${locName}`;
+
+          if (!addedNodes.has(locId)) { graphNodes.push({ id: locId, name: locName, group: "location_hub", val: 6, color: "#ec4899", title: `LOCATION: ${locName} (Click to toggle)` }); addedNodes.add(locId); }
+          safeAddLink(topic, locId);
+
+          if (shouldExpandChildren(locId, isSmallNetwork)) {
+            if (!addedNodes.has(other.id)) { graphNodes.push({ id: other.id, name: other.name, group: "person", val: 3, color: "#f59e0b", title: `CONTACT: ${other.name}` }); addedNodes.add(other.id); }
+            safeAddLink(locId, other.id);
+          } else {
+            currentlyHiddenContacts++;
+          }
+        });
+      });
+    }
+
+    // 2. LOCATION VIEW (Center -> Topic -> Person)
+    else if (viewType === "location" && selectedLocation) {
+      const locId = `loc_${selectedLocation}`;
+      graphNodes.push({ id: locId, name: selectedLocation, group: "location_hub", val: 12, color: "#ec4899", title: `LOCATION: ${selectedLocation} (Click to toggle)` });
+      addedNodes.add(locId);
+
+      const networkContacts = filteredContacts.filter(c => c.campus === selectedLocation);
+      const isSmallNetwork = networkContacts.length <= 25;
+
+      filteredContacts.forEach(person => {
+        if (person.campus === selectedLocation) {
+          person.domains.forEach(topic => {
+            if (!addedNodes.has(topic)) { graphNodes.push({ id: topic, name: topic, group: "topic_hub", val: 8, color: "#0ea5e9", title: `INTEREST: ${topic} (Click to toggle)` }); addedNodes.add(topic); }
+            safeAddLink(locId, topic);
+
+            if (shouldExpandChildren(topic, isSmallNetwork)) {
+              if (!addedNodes.has(person.id)) { graphNodes.push({ id: person.id, name: person.name, group: "person", val: 3, color: "#94a3b8", title: `CONTACT: ${person.name}` }); addedNodes.add(person.id); }
+              safeAddLink(topic, person.id);
+            } else {
+              currentlyHiddenContacts++;
             }
-            links.push({ source: personId, target: topic });
           });
         }
-      }
-    });
+      });
+    }
 
-    return { nodes, links };
-  }, [allContacts, viewType, selectedLocation, selectedSpecificFocus, selectedPerson, locationSubFilter]);
+    // 3. TOPIC VIEW (Center -> Location -> Person)
+    else if (viewType === "topic" && selectedSpecificFocus) {
+      const topicId = selectedSpecificFocus;
+      graphNodes.push({ id: topicId, name: topicId, group: "topic_hub", val: 12, color: "#0ea5e9", title: `INTEREST: ${topicId} (Click to toggle)` });
+      addedNodes.add(topicId);
+
+      const networkContacts = filteredContacts.filter(c => c.domains?.includes(topicId));
+      const isSmallNetwork = networkContacts.length <= 25;
+
+      filteredContacts.forEach(person => {
+        if (person.domains?.includes(topicId)) {
+          const locName = person.campus || "Unknown Location";
+          const locId = `loc_${locName}`;
+
+          if (!addedNodes.has(locId)) { graphNodes.push({ id: locId, name: locName, group: "location_hub", val: 8, color: "#ec4899", title: `LOCATION: ${locName} (Click to toggle)` }); addedNodes.add(locId); }
+          safeAddLink(topicId, locId);
+
+          if (shouldExpandChildren(locId, isSmallNetwork)) {
+            if (!addedNodes.has(person.id)) { graphNodes.push({ id: person.id, name: person.name, group: "person", val: 3, color: "#94a3b8", title: `CONTACT: ${person.name}` }); addedNodes.add(person.id); }
+            safeAddLink(locId, person.id);
+          } else {
+            currentlyHiddenContacts++;
+          }
+        }
+      });
+    }
+
+    // 4. NEW: GLOBAL ECOSYSTEM VIEW (Progressive Disclosure)
+    else if (viewType === "global") {
+      const activeLocations = new Set<string>();
+      const activeTopics = new Set<string>();
+
+      // NEW: Filter the ecosystem based on the selected sub-view
+      let globalContacts = filteredContacts;
+      if (globalSubFilter === "cuny") {
+        globalContacts = filteredContacts.filter(c => c.campus && CUNY_LIST.some(cuny => c.campus!.toLowerCase().includes(cuny.toLowerCase())));
+      } else if (globalSubFilter === "partner") {
+        globalContacts = filteredContacts.filter(c => c.campus && !CUNY_LIST.some(cuny => c.campus!.toLowerCase().includes(cuny.toLowerCase())));
+      }
+
+      // Step 1: Identify and create the high-level hubs
+      globalContacts.forEach(person => {
+        const locName = person.campus || "Unknown Location";
+        const locId = `loc_${locName}`;
+
+        if (!addedNodes.has(locId)) {
+          graphNodes.push({ id: locId, name: locName, group: "location_hub", val: 8, color: "#ec4899", title: `LOCATION: ${locName}` });
+          addedNodes.add(locId);
+          activeLocations.add(locId);
+        }
+
+        person.domains?.forEach(topic => {
+          if (!addedNodes.has(topic)) {
+            graphNodes.push({ id: topic, name: topic, group: "topic_hub", val: 8, color: "#0ea5e9", title: `INTEREST: ${topic}` });
+            addedNodes.add(topic);
+            activeTopics.add(topic);
+          }
+          safeAddLink(locId, topic);
+        });
+      });
+
+      // Step 2: Add people if expanded
+      globalContacts.forEach(person => {
+        const locName = person.campus || "Unknown Location";
+        const locId = `loc_${locName}`;
+
+        const isExpanded = isGlobalExpanded || expandedNodes.has(locId) || person.domains?.some(d => expandedNodes.has(d));
+
+        if (isExpanded) {
+          if (!addedNodes.has(person.id)) {
+            graphNodes.push({ id: person.id, name: person.name, group: "person", val: 3, color: "#94a3b8", title: `CONTACT: ${person.name}` });
+            addedNodes.add(person.id);
+          }
+          safeAddLink(locId, person.id);
+          person.domains?.forEach(topic => safeAddLink(topic, person.id));
+        } else {
+          currentlyHiddenContacts++;
+        }
+      });
+    }
+
+    return { nodes: graphNodes, links: graphLinks, hiddenCount: currentlyHiddenContacts };
+  }, [allContacts, copilotSearch, viewType, selectedLocation, selectedSpecificFocus, selectedPerson, isGlobalExpanded, expandedNodes]);
 
   return (
     <div className="flex h-screen w-full bg-slate-900 overflow-hidden font-sans">
 
-      {/* LEFT SIDEBAR: NAVIGATION (Collapsible) */}
+      {/* LEFT SIDEBAR */}
       <div className={`${isSidebarOpen ? "w-1/4" : "hidden"} h-full bg-white border-r border-slate-200 flex flex-col z-10 shadow-xl transition-all duration-300 flex-shrink-0`}>
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-start">
               <div>
@@ -354,140 +444,116 @@ export default function ExploreMap() {
                       ← Back to Workspace
                   </Link>
               </div>
-
-              {/* The new Label + Button Stack */}
               <div className="flex flex-col items-center">
-                  <span
-                      className="text-[10px] font-black uppercase text-slate-400 mb-1 tracking-tighter">Hide Controls</span>
-                  <button
-                      onClick={toggleSidebar}
-                      className="p-2 bg-slate-100 hover:bg-slate-800 hover:text-white text-slate-500 rounded-lg transition-all border border-slate-200 shadow-sm"
-                      title="Hide"
-                  >
+                  <span className="text-[10px] font-black uppercase text-slate-400 mb-1 tracking-tighter">Hide Controls</span>
+                  <button onClick={toggleSidebar} className="p-2 bg-slate-100 hover:bg-slate-800 hover:text-white text-slate-500 rounded-lg transition-all border border-slate-200 shadow-sm" title="Hide">
                       <span className="font-bold">◀</span>
                   </button>
               </div>
           </div>
 
         <div className="p-6 flex-1 overflow-y-auto space-y-8">
+
+          {/* UPDATED: 2x2 Toggle Grid including Global View */}
           <div>
-            <div className="flex bg-slate-100 p-1 rounded-xl flex-col space-y-1">
+            <div className="flex flex-col space-y-2 bg-slate-100 p-1.5 rounded-xl">
               <div className="flex space-x-1">
-                <button
-                  onClick={() => { setViewType("location"); setSelectedLocation(""); }}
-                  className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${viewType === "location" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
-                >
+                <button onClick={() => { setViewType("location"); setSelectedLocation(""); setIsGlobalExpanded(false); setExpandedNodes(new Set()); }} className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${viewType === "location" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
                   By Location
                 </button>
-                <button
-                  onClick={() => { setViewType("topic"); setSelectedSpecificFocus(""); }}
-                  className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${viewType === "topic" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
-                >
+                <button onClick={() => { setViewType("topic"); setSelectedSpecificFocus(""); setIsGlobalExpanded(false); setExpandedNodes(new Set()); }} className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${viewType === "topic" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
                   By Interest
                 </button>
               </div>
-              <button
-                onClick={() => { setViewType("person"); setSelectedPerson(""); }}
-                className={`w-full py-2 rounded-lg text-xs font-bold transition-all ${viewType === "person" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
-              >
-                By Person
-              </button>
+              <div className="flex space-x-1">
+                <button onClick={() => { setViewType("person"); setSelectedPerson(""); setIsGlobalExpanded(false); setExpandedNodes(new Set()); }} className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${viewType === "person" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+                  By Person
+                </button>
+                <button onClick={() => { setViewType("global"); setIsGlobalExpanded(false); setExpandedNodes(new Set()); }} className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${viewType === "global" ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+                  🌍 Global Map
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Location Logic */}
+          {viewType === "global" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-left-2">
+              <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl shadow-sm">
+                <h3 className="text-emerald-800 font-bold mb-2">🌍 The Ecosystem View</h3>
+                <p className="text-sm text-emerald-700/80 font-medium mb-4">
+                  A high-level constellation of how locations connect to focus areas. Click any node to expand it.
+                </p>
+
+                <label className="text-xs font-bold uppercase text-emerald-800/60 mb-2 block">Filter Ecosystem</label>
+                <div className="flex flex-col space-y-2">
+                  <button onClick={() => { setGlobalSubFilter("cuny"); setIsGlobalExpanded(false); setExpandedNodes(new Set()); }} className={`py-2 text-xs font-bold border-2 rounded-lg transition-all ${globalSubFilter === "cuny" ? "border-emerald-500 bg-white text-emerald-700 shadow-sm" : "border-emerald-200/50 text-emerald-600 hover:bg-emerald-100/50"}`}>
+                    CUNY Campuses
+                  </button>
+                  <button onClick={() => { setGlobalSubFilter("partner"); setIsGlobalExpanded(false); setExpandedNodes(new Set()); }} className={`py-2 text-xs font-bold border-2 rounded-lg transition-all ${globalSubFilter === "partner" ? "border-purple-500 bg-white text-purple-700 shadow-sm" : "border-emerald-200/50 text-emerald-600 hover:bg-emerald-100/50"}`}>
+                    Community Partners
+                  </button>
+                  <button onClick={() => { setGlobalSubFilter("all"); setIsGlobalExpanded(false); setExpandedNodes(new Set()); }} className={`py-2 text-xs font-bold border-2 rounded-lg transition-all ${globalSubFilter === "all" ? "border-blue-500 bg-white text-blue-700 shadow-sm" : "border-emerald-200/50 text-emerald-600 hover:bg-emerald-100/50"}`}>
+                    Full Ecosystem
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {viewType === "location" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-left-2">
               <div>
                 <label className="text-xs font-bold uppercase text-slate-400 mb-3 block">Location Type</label>
                 <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => { setLocationSubFilter("cuny"); setSelectedLocation(""); }}
-                    className={`py-2 text-xs font-bold border-2 rounded-lg ${locationSubFilter === "cuny" ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-100 text-slate-400"}`}
-                  >
+                  <button onClick={() => { setLocationSubFilter("cuny"); setSelectedLocation(""); setIsGlobalExpanded(false); setExpandedNodes(new Set()); }} className={`py-2 text-xs font-bold border-2 rounded-lg ${locationSubFilter === "cuny" ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-100 text-slate-400"}`}>
                     CUNY Campuses
                   </button>
-                  <button
-                    onClick={() => { setLocationSubFilter("partner"); setSelectedLocation(""); }}
-                    className={`py-2 text-xs font-bold border-2 rounded-lg ${locationSubFilter === "partner" ? "border-purple-500 bg-purple-50 text-purple-700" : "border-slate-100 text-slate-400"}`}
-                  >
+                  <button onClick={() => { setLocationSubFilter("partner"); setSelectedLocation(""); setIsGlobalExpanded(false); setExpandedNodes(new Set()); }} className={`py-2 text-xs font-bold border-2 rounded-lg ${locationSubFilter === "partner" ? "border-purple-500 bg-purple-50 text-purple-700" : "border-slate-100 text-slate-400"}`}>
                     Community Partners
                   </button>
                 </div>
               </div>
               <div>
                 <label className="text-xs font-bold uppercase text-slate-400 mb-2 block">Search Location</label>
-                <SearchableDropdown
-                  options={locationSubFilter === "cuny" ? cunyOptions : partnerOptions}
-                  value={selectedLocation}
-                  onChange={setSelectedLocation}
-                  placeholder="Type to search locations..."
-                />
+                <SearchableDropdown options={locationSubFilter === "cuny" ? cunyOptions : partnerOptions} value={selectedLocation} onChange={setSelectedLocation} placeholder="Type to search locations..." />
               </div>
             </div>
           )}
 
-          {/* Interest Logic */}
           {viewType === "topic" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-left-2">
               <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
                 <label className="text-xs font-bold uppercase text-blue-500 mb-2 block">🔍 Global Keyword Search</label>
-                <FuzzySearchDropdown
-                  options={uniqueFocusAreas}
-                  value={selectedSpecificFocus}
-                  onChange={(val) => {
-                    setSelectedSpecificFocus(val);
-                    setSelectedFocusDomain("");
-                  }}
-                  placeholder="e.g., &apos;Food Justice&apos;"
-                />
+                <FuzzySearchDropdown options={uniqueFocusAreas} value={selectedSpecificFocus} onChange={(val) => { setSelectedSpecificFocus(val); setSelectedFocusDomain(""); }} placeholder="e.g., 'Food Justice'" />
               </div>
-
               <div className="flex items-center">
                 <div className="flex-1 border-t border-slate-200"></div>
                 <span className="px-3 text-xs font-bold text-slate-400 uppercase">OR BROWSE FOLDERS</span>
                 <div className="flex-1 border-t border-slate-200"></div>
               </div>
-
               <div>
                 <div className="flex flex-col space-y-1">
                   {Object.keys(INTEREST_BUCKETS).map(domain => (
-                    <button
-                      key={domain}
-                      onClick={() => handleDomainClick(domain)}
-                      className={`p-2.5 text-left text-xs font-bold rounded-lg border-2 transition-all ${selectedFocusDomain === domain ? "border-slate-400 bg-slate-100 text-slate-800" : "border-slate-100 text-slate-500 hover:border-slate-200"}`}
-                    >
+                    <button key={domain} onClick={() => handleDomainClick(domain)} className={`p-2.5 text-left text-xs font-bold rounded-lg border-2 transition-all ${selectedFocusDomain === domain ? "border-slate-400 bg-slate-100 text-slate-800" : "border-slate-100 text-slate-500 hover:border-slate-200"}`}>
                       📁 {domain}
                     </button>
                   ))}
                 </div>
               </div>
-
               {selectedFocusDomain && (
                 <div className="animate-in slide-in-from-top-2">
                   <label className="text-xs font-bold uppercase text-slate-400 mb-2 block">Select Specific Interest</label>
-                  <SearchableDropdown
-                    options={filteredFocusOptions}
-                    value={selectedSpecificFocus}
-                    onChange={setSelectedSpecificFocus}
-                    placeholder={`Search within ${selectedFocusDomain}...`}
-                  />
+                  <SearchableDropdown options={filteredFocusOptions} value={selectedSpecificFocus} onChange={setSelectedSpecificFocus} placeholder={`Search within ${selectedFocusDomain}...`} />
                 </div>
               )}
             </div>
           )}
 
-          {/* Person Logic */}
           {viewType === "person" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-left-2">
               <div>
                 <label className="text-xs font-bold uppercase text-slate-400 mb-2 block">Search Directory</label>
-                <SearchableDropdown
-                  options={allPeopleOptions}
-                  value={selectedPerson}
-                  onChange={setSelectedPerson}
-                  placeholder="Type a name..."
-                />
+                <SearchableDropdown options={allPeopleOptions} value={selectedPerson} onChange={setSelectedPerson} placeholder="Type a name..." />
               </div>
             </div>
           )}
@@ -499,29 +565,57 @@ export default function ExploreMap() {
                 <div className="flex items-center text-xs"><span className="w-3 h-3 rounded-full bg-emerald-500 mr-2"></span> CUNY Campus</div>
                 <div className="flex items-center text-xs"><span className="w-3 h-3 rounded-full bg-purple-500 mr-2"></span> Community Partner</div>
                 <div className="flex items-center text-xs"><span className="w-3 h-3 rounded-full bg-sky-500 mr-2"></span> Interest / Focus</div>
-                <div className="flex items-center text-xs"><span className="w-3 h-3 rounded-full bg-amber-400 mr-2"></span> Person</div>
+                <div className="flex items-center text-xs"><span className="w-3 h-3 rounded-full bg-amber-500 mr-2"></span> Person</div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* RIGHT PANE: THE UNIVERSE */}
-      <div className={`h-full relative flex items-center justify-center bg-slate-900 transition-all duration-300 ${isSidebarOpen ? "w-3/4" : "w-full"}`}>
-
-        {/* Toggle Button when Sidebar is closed */}
+      {/* RIGHT PANE: THE GRAPH */}
+      <div className={`h-full relative flex flex-col bg-slate-900 transition-all duration-300 ${isSidebarOpen ? "w-3/4" : "w-full"}`}>
         {!isSidebarOpen && (
-          <button
-            onClick={toggleSidebar}
-            className="absolute top-6 left-6 z-20 bg-slate-800/90 text-white px-4 py-2 rounded-lg shadow-lg backdrop-blur border border-slate-700 hover:bg-slate-700 transition-colors font-bold flex items-center space-x-2"
-          >
-            <span>▶</span>
-            <span className="text-sm uppercase tracking-wide">Show Controls</span>
+          <button onClick={toggleSidebar} className="absolute top-6 left-6 z-20 bg-slate-800/90 text-white px-4 py-2 rounded-lg shadow-lg backdrop-blur border border-slate-700 hover:bg-slate-700 transition-colors font-bold flex items-center space-x-2">
+            <span>▶</span><span className="text-sm uppercase tracking-wide">Show Controls</span>
           </button>
         )}
 
-        {/* Map Navigation Controls */}
-        {exploreGraphData.nodes.length > 0 && (
+        {nodes.length > 0 && (
+          <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 flex gap-4 bg-slate-800/90 p-3 rounded-2xl border border-slate-700 shadow-2xl backdrop-blur">
+              <span className="text-white text-sm font-medium self-center px-2">
+                {viewType === 'global' ? 'Hierarchy: Ecosystem View (Locations & Topics)' :
+                 `Hierarchy: ${viewType === 'person' ? 'Person ➔ Topic ➔ Location' : viewType === 'location' ? 'Location ➔ Topic' : 'Topic ➔ Location'} ➔ Contacts`}
+              </span>
+
+              {hiddenCount > 0 ? (
+                <button
+                  onClick={() => {
+                    // NEW: Performance Warning check before unleashing the global map
+                    if (viewType === 'global') {
+                      const confirmLoad = window.confirm("Loading the entire network at once may momentarily slow down your browser. Are you sure you want to expand all nodes?");
+                      if (!confirmLoad) return;
+                    }
+                    setIsGlobalExpanded(true);
+                  }}
+                  className="px-4 py-2 rounded-xl text-sm font-bold shadow-lg transition-all bg-pink-500 text-white hover:bg-pink-400"
+                >
+                  Expand All Contacts ({hiddenCount} Hidden)
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setIsGlobalExpanded(false);
+                    setExpandedNodes(new Set());
+                  }}
+                  className="px-4 py-2 rounded-xl text-sm font-bold shadow-lg transition-all bg-slate-700 text-white hover:bg-slate-600"
+                >
+                  Collapse All Contacts
+                </button>
+              )}
+          </div>
+        )}
+
+        {nodes.length > 0 && (
           <div className="absolute bottom-8 right-8 z-20 flex flex-col space-y-2 bg-slate-800/80 p-2 rounded-xl shadow-2xl backdrop-blur-md border border-slate-700">
             <button onClick={handleZoomIn} className="text-white hover:bg-slate-700 p-3 rounded-lg font-bold text-lg leading-none" title="Zoom In">➕</button>
             <button onClick={handleFitMap} className="text-white hover:bg-slate-700 p-3 rounded-lg font-bold text-lg leading-none" title="Fit to Screen">⛶</button>
@@ -529,122 +623,97 @@ export default function ExploreMap() {
           </div>
         )}
 
-        {exploreGraphData.nodes.length === 0 ? (
-          <div className="bg-slate-800/80 p-8 rounded-2xl text-center border border-slate-700 shadow-2xl animate-fade-in">
-            <p className="text-white text-xl font-bold mb-2">Awaiting Instructions 🔭</p>
-            <p className="text-slate-400 text-sm">Select a location, interest, or person from the sidebar to generate a map.</p>
+        {nodes.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="bg-slate-800/80 p-8 rounded-2xl text-center border border-slate-700 shadow-2xl animate-fade-in">
+              <p className="text-white text-xl font-bold mb-2">{viewType === "global" ? "Loading Ecosystem..." : "Awaiting Instructions 🔭"}</p>
+              <p className="text-slate-400 text-sm">{viewType === "global" ? "Generating the full network..." : "Select a location, interest, or person from the sidebar to generate a map."}</p>
+            </div>
           </div>
         ) : (
           <div className="absolute inset-0">
-            <ForceGraph2D
-                  ref={fgRef}
-                  onNodeClick={(node: LibNode) => {
-                    if (node.group === "person" || (viewType === "person" && node.group === "center")) {
-                      const personData = allContacts.find(c => c["Contact Name"] === node.id);
-                      if (personData) setActiveContact(personData);
+            <NetworkMap
+              ref={fgRef}
+              onNodeClick={(node: LibNode) => {
+                const nodeId = String(node.id);
+
+                if (node.group === "person" || node.group === "center") {
+                  const pData = allContacts.find(c => c.id === nodeId || c.name === node.name);
+                  if (pData) setActiveContact(pData);
+                }
+                else if (node.group === "topic_hub" || node.group === "location_hub") {
+                  setExpandedNodes(prev => {
+                    const newSet = new Set(prev);
+                    if (newSet.has(nodeId)) {
+                      newSet.delete(nodeId);
+                    } else {
+                      newSet.add(nodeId);
                     }
-                  }}
-                  graphData={exploreGraphData}
-                  nodeRelSize={5}
-                  linkDirectionalParticles={1}
-                  linkDirectionalParticleSpeed={0.005}
-                  nodeLabel="title"
-                  cooldownTime={3000}
-                  linkColor={() => "rgba(255, 255, 255, 0.2)"}
-                  linkWidth={1.2}
-                  nodeCanvasObject={(node: LibNode, ctx: CanvasRenderingContext2D, globalScale: number) => {
-                    if (node.x === undefined || node.y === undefined || node.val === undefined) return;
+                    return newSet;
+                  });
+                }
+              }}
+              graphData={{ nodes, links }}
+              nodeRelSize={5}
+              linkColor={() => "rgba(255, 255, 255, 0.2)"}
+              linkWidth={1.5}
+              linkDirectionalParticles={viewType === "global" ? 0 : 1}
+              linkDirectionalParticleSpeed={0.005}
+              nodeCanvasObject={(node: LibNode, ctx: CanvasRenderingContext2D, globalScale: number) => {
+                if (node.x === undefined || node.y === undefined || node.val === undefined) return;
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, node.val + 1, 0, 2 * Math.PI, false);
+                ctx.fillStyle = node.color || "#cccccc";
+                ctx.fill();
 
-                    const size = node.val + 1;
-                    ctx.beginPath();
-                    ctx.arc(node.x, node.y, size, 0, 2 * Math.PI, false);
-                    ctx.fillStyle = node.color || "#cccccc";
-                    ctx.fill();
-
-                    if (node.val >= 8 || globalScale > 1.8) {
-                      const label = node.name || "";
-                      const fontSize = Math.max(12 / globalScale, 2);
-                      ctx.font = `${fontSize}px Sans-Serif`;
-                      ctx.textAlign = 'center';
-                      ctx.textBaseline = 'top';
-
-                      const textWidth = ctx.measureText(label).width;
-                      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-                      ctx.fillRect(node.x - textWidth / 2 - 2, node.y + size + 2, textWidth + 4, fontSize + 4);
-
-                      ctx.fillStyle = '#ffffff';
-                      ctx.fillText(label, node.x, node.y + size + 4);
-                    }
-                  }}
-                />
+                if (node.val >= 6 || globalScale > 1.5) {
+                  ctx.font = `${Math.max(12 / globalScale, 2)}px Sans-Serif`;
+                  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+                  ctx.fillStyle = '#ffffff';
+                  ctx.fillText(node.name || "", node.x, node.y + node.val + 4);
+                }
+              }}
+            />
           </div>
         )}
       </div>
-        {/* ==========================================
-          THE PROFILE CARD MODAL (OVERLAY)
-          ========================================== */}
+
+      {/* INSPECT CARD OVERLAY (Traverse Flow) */}
       {activeContact && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <ProfileModal
+          contact={activeContact}
+          onClose={() => setActiveContact(null)}
+          showGraph={false}
 
-            <div className="flex justify-between items-start p-6 border-b border-slate-100 bg-slate-50/50">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-800">{activeContact["Contact Name"]}</h2>
-                <p className="text-slate-500 font-medium">{activeContact["Campus"]} | {activeContact["Role/Title"]}</p>
-              </div>
-              <button
-                onClick={() => setActiveContact(null)}
-                className="bg-white hover:bg-slate-100 text-slate-400 px-3 py-1 rounded-lg border border-slate-200 font-bold transition-colors shadow-sm"
-              >
-                ✕
-              </button>
-            </div>
+          onRecenter={(person) => {
+            setViewType("person");
+            setSelectedPerson(person.name);
+            setIsGlobalExpanded(false);
+            setExpandedNodes(new Set());
+            setActiveContact(null);
+          }}
 
-            <div className="p-6 space-y-6 overflow-y-auto max-h-[60vh]">
-              {activeContact["Program/Org Affiliation"] && (
-                <div>
-                  <h3 className="text-xs font-black uppercase text-slate-400 mb-2 tracking-widest">Title</h3>
-                  <p className="text-slate-800 font-semibold text-lg">🏢 {activeContact["Program/Org Affiliation"]}</p>
-                </div>
-              )}
+          onSaveContact={async (id) => {
+            try {
+              const supabase = createClient();
+              const { error } = await supabase
+                .from('saved_contacts')
+                .insert([{ contact_id: id }]);
 
-              <div>
-                <h3 className="text-xs font-black uppercase text-slate-400 mb-2 tracking-widest">Interests</h3>
-                <div className="flex flex-wrap gap-2">
-                  {activeContact["Civic Domains"]?.split(",").map((d: string, i: number) => (
-                    <span key={i} className="bg-sky-50 text-sky-700 text-xs px-3 py-1.5 rounded-full font-bold border border-sky-100">{d.trim()}</span>
-                  ))}
-                </div>
-              </div>
-
-              {activeContact["Capabilities / Expertise"] && (
-                <div>
-                  <h3 className="text-xs font-black uppercase text-slate-400 mb-2 tracking-widest">Skillset</h3>
-                  <p className="text-sm text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-100">{activeContact["Capabilities / Expertise"]}</p>
-                </div>
-              )}
-
-              {activeContact["Notes / Insights"] && (
-                <div>
-                  <h3 className="text-xs font-black uppercase text-slate-400 mb-2 tracking-widest">Notes</h3>
-                  <p className="text-sm text-slate-600 italic border-l-4 border-slate-200 pl-4 py-2">
-                    {activeContact["Notes / Insights"]}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-auto border-t border-slate-100 p-6 flex gap-3 bg-slate-50/50">
-              <button className="flex-1 bg-slate-800 text-white font-bold py-3 rounded-xl hover:bg-slate-700 transition-colors shadow-sm">
-                ⭐ Save Contact
-              </button>
-              <button className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors shadow-sm">
-                ✉️ Express Interest
-              </button>
-            </div>
-          </div>
-        </div>
+              if (error) throw error;
+              alert(`⭐ Saved ${activeContact.name} to your profile!`);
+            } catch (e) {
+              console.error("Failed to save contact", e);
+            }
+          }}
+        />
       )}
+
+      {/* FLOATING COPILOT */}
+      <Copilot onInspectProfile={(name) => {
+        const found = allContacts.find(c => c.name === name);
+        if (found) setActiveContact(found);
+      }} />
     </div>
   );
 }

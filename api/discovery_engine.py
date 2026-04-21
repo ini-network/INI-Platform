@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 # ---------------------------------------------------------
 # CONFIGURATION
 # ---------------------------------------------------------
-load_dotenv()
+load_dotenv(dotenv_path=".env.local")
 PROVIDER = 'GEMINI'
 
 if PROVIDER == 'OLLAMA':

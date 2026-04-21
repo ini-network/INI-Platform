@@ -1,48 +1,28 @@
-// src/app/page.tsx
 "use client";
 
 import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
-import dynamic from 'next/dynamic';
 import { INTEREST_BUCKETS } from "@/lib/taxonomy";
-import ProfileModal from "@/components/ProfileModal";
+import ProfileModal, { GraphNode, GraphLink } from "@/components/ProfileModal";
+import { createClient } from '../utils/supabase/client';
+import Copilot from "@/components/Copilot";
 
-const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
-
-// Define the shape of a Contact to replace "any"
+// 1. UPDATED INTERFACE
 interface Contact {
-  "Contact Name": string;
-  "Program/Org Affiliation"?: string;
-  "Notes / Insights"?: string;
-  "Campus"?: string;
-  "Civic Domains"?: string;
-  "Capabilities / Expertise"?: string;
-  "Role/Title"?: string;
-  [key: string]: string | undefined; // Allow other properties
-}
-
-// Define the shape of a Graph Node to replace "any"
-interface GraphNode {
   id: string;
   name: string;
-  group: string;
-  val: number;
-  title: string;
-  x?: number;
-  y?: number;
-  color?: string;
-}
-
-interface GraphLink {
-  source: string;
-  target: string;
+  campus?: string | null;
+  role_title?: string | null;
+  affiliation?: string | null;
+  capabilities?: string | null;
+  communities_served?: string | null;
+  notes?: string | null;
+  email_contact?: string | null;
+  url?: string | null;
+  domains: string[];
 }
 
 export default function Home() {
-  // --- STATE MANAGEMENT ---
-  const [prompt, setPrompt] = useState("");
-  const [chatHistory, setChatHistory] = useState<{ role: string; content: string }[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
 
   // Master List & Filters
   const [allContacts, setAllContacts] = useState<Contact[]>([]);
@@ -50,16 +30,30 @@ export default function Home() {
   const [selectedCampus, setSelectedCampus] = useState("All");
   const [selectedFocus, setSelectedFocus] = useState("All");
 
-  // Micro Map State (If this holds a person's data, the modal opens)
+  // State for the Micro Map & Modal
   const [microMapContact, setMicroMapContact] = useState<Contact | null>(null);
+  const [inspectContact, setInspectContact] = useState<Contact | null>(null);
+  const [isGraphExpanded, setIsGraphExpanded] = useState(false);
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set()); // Tracks clicked hubs
 
   // --- INITIAL DATA FETCH ---
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const resContacts = await fetch("/api/contacts");
-        const dataContacts = await resContacts.json();
-        if (Array.isArray(dataContacts)) setAllContacts(dataContacts);
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('contacts')
+          .select(`*, contact_domains (domains (domain_name))`);
+
+        if (error) throw error;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const formattedData: Contact[] = (data as any[]).map((c) => ({
+          ...c,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          domains: c.contact_domains.map((cd: any) => cd.domains.domain_name)
+        }));
+        setAllContacts(formattedData);
       } catch (error) {
         console.error("Failed to load directory data:", error);
       }
@@ -67,141 +61,121 @@ export default function Home() {
     fetchInitialData();
   }, []);
 
-  // --- DYNAMIC FILTERING (List View) ---
+  // --- DYNAMIC FILTERING ---
   const displayedContacts = useMemo(() => {
     return allContacts.filter((person) => {
       const keywordMatch = searchQuery === "" ||
-        (person["Contact Name"]?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-        (person["Program/Org Affiliation"]?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-        (person["Notes / Insights"]?.toLowerCase() || "").includes(searchQuery.toLowerCase());
+        (person.name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+        (person.affiliation?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+        (person.notes?.toLowerCase() || "").includes(searchQuery.toLowerCase());
 
-      const campusMatch = selectedCampus === "All" || person["Campus"] === selectedCampus;
+      const campusMatch = selectedCampus === "All" || person.campus === selectedCampus;
 
-      // UPGRADED FOCUS MATCH LOGIC
       let focusMatch = selectedFocus === "All";
-      if (selectedFocus !== "All" && person["Civic Domains"]) {
+      if (selectedFocus !== "All" && person.domains && person.domains.length > 0) {
          const granularTagsInFolder = INTEREST_BUCKETS[selectedFocus] || [];
-         // Check if the person's domains overlap with ANY of the tags inside the selected folder
-         focusMatch = granularTagsInFolder.some(tag => person["Civic Domains"]?.includes(tag));
+         focusMatch = granularTagsInFolder.some(tag => person.domains.includes(tag));
       }
 
       return keywordMatch && campusMatch && focusMatch;
     });
   }, [allContacts, searchQuery, selectedCampus, selectedFocus]);
 
-  // Extract unique filter options automatically
-  const uniqueCampuses = Array.from(new Set(allContacts.map(c => c["Campus"]).filter(Boolean))).sort();
+  const uniqueCampuses = Array.from(new Set(allContacts.map(c => c.campus).filter(Boolean))).sort();
   const uniqueFocusAreas = Object.keys(INTEREST_BUCKETS);
 
-  // --- MICRO MAP GRAPH GENERATOR ---
+  // Trigger when launching a new map center
+  const launchMap = (person: Contact) => {
+    const connectedPeople = allContacts.filter(c => c.id !== person.id && c.domains?.some(d => person.domains?.includes(d)));
+
+    // Auto-expand only if there are 15 or fewer connected contacts
+    if (connectedPeople.length > 15) {
+      setIsGraphExpanded(false);
+    } else {
+      setIsGraphExpanded(true);
+    }
+
+    setExpandedNodes(new Set()); // Reset manual node expansions on new map
+    setMicroMapContact(person);
+    setInspectContact(person);
+  };
+
+  // --- HIERARCHICAL GRAPH ALGORITHM ---
   const microGraphData = useMemo(() => {
-    if (!microMapContact) return { nodes: [], links: [] };
+    if (!microMapContact) return { nodes: [], links: [], hiddenCount: 0 };
 
     const nodes: GraphNode[] = [];
     const links: GraphLink[] = [];
     const addedNodes = new Set<string>();
+    const addedLinks = new Set<string>();
+    let currentlyHiddenContacts = 0;
 
-    const centerId = microMapContact["Contact Name"];
+    const safeAddLink = (source: string, target: string) => {
+      const key = `${source}->${target}`;
+      if (!addedLinks.has(key)) {
+        addedLinks.add(key);
+        links.push({ source, target });
+      }
+    };
 
-    if (!centerId) return { nodes, links };
+    const centerId = microMapContact.id;
+    const networkContacts = allContacts.filter(other => other.id !== centerId && other.domains?.some(d => microMapContact.domains?.includes(d)));
+    const isSmallNetwork = networkContacts.length <= 15;
 
-    // 1. Center Node (The person you clicked on)
-    const centerOrgOrTitle = microMapContact["Program/Org Affiliation"] || microMapContact["Role/Title"];
-    nodes.push({
-      id: centerId,
-      name: microMapContact["Contact Name"],
-      group: "center",
-      val: 8,
-      color: "#fbbf24",
-      title: `${microMapContact["Contact Name"]} - ${microMapContact["Campus"]} | ${centerOrgOrTitle}`
-    });
+    const shouldExpandChildren = (parentNodeId: string) => {
+      return isGraphExpanded || expandedNodes.has(parentNodeId) || isSmallNetwork;
+    };
+
+    // 1. Center Person
+    nodes.push({ id: centerId, name: microMapContact.name, group: "center", val: 10, color: "#fbbf24", title: "CENTER" });
     addedNodes.add(centerId);
 
-    if (microMapContact["Civic Domains"]) {
-      const topics = microMapContact["Civic Domains"].split(",").map((d: string) => d.trim()).filter(Boolean);
+    if (microMapContact.domains) {
+      microMapContact.domains.forEach(topic => {
+        // 2. Interests
+        if (!addedNodes.has(topic)) {
+          nodes.push({ id: topic, name: topic, group: "topic_hub", val: 8, color: "#0ea5e9", title: `INTEREST: ${topic} (Click to toggle)` });
+          addedNodes.add(topic);
+        }
+        safeAddLink(centerId, topic);
 
-      topics.forEach((topic: string) => {
-        nodes.push({
-          id: topic,
-          name: topic,
-          group: "topic_hub",
-          val: 6,
-          color: "#0ea5e9",
-          title: `FOCUS AREA: ${topic}`
-        });
-
-        // Bridge Center Person to Topic
-        addedNodes.add(topic);
-        links.push({ source: centerId, target: topic });
-
+        // 3. Locations -> People
         allContacts.forEach(otherPerson => {
-          const otherId = otherPerson["Contact Name"];
+          if (otherPerson.id === centerId || !otherPerson.domains?.includes(topic)) return;
 
-          if (!otherId || otherId === centerId || addedNodes.has(otherId)) return;
+          const locationName = otherPerson.campus || "Unspecified Location";
+          const locId = `loc_${locationName}`;
 
-          if (otherPerson["Civic Domains"] && otherPerson["Civic Domains"].includes(topic)) {
-            const otherOrgOrTitle = otherPerson["Program/Org Affiliation"] || otherPerson["Role/Title"];
+          if (!addedNodes.has(locId)) {
+            nodes.push({ id: locId, name: locationName, group: "location_hub", val: 6, color: "#ec4899", title: `LOCATION: ${locationName} (Click to toggle)` });
+            addedNodes.add(locId);
+          }
+          safeAddLink(topic, locId);
 
-            nodes.push({
-              id: otherId,
-              name: otherPerson["Contact Name"],
-              group: otherPerson["Campus"] || "Unknown",
-              val: 3,
-              color: "#fbbf24",
-              title: `${otherPerson["Contact Name"]} - ${otherPerson["Campus"]} | ${otherOrgOrTitle}`
-            });
-            addedNodes.add(otherId);
-            links.push({ source: otherId, target: topic });
+          // 4. Contacts (If Expanded)
+          if (shouldExpandChildren(locId)) {
+            if (!addedNodes.has(otherPerson.id)) {
+              nodes.push({ id: otherPerson.id, name: otherPerson.name, group: "person", val: 3, color: "#f59e0b", title: `CONTACT: ${otherPerson.name}` });
+              addedNodes.add(otherPerson.id);
+            }
+            safeAddLink(locId, otherPerson.id);
+          } else {
+             currentlyHiddenContacts++;
           }
         });
       });
     }
+    return { nodes, links, hiddenCount: currentlyHiddenContacts };
+  }, [microMapContact, allContacts, isGraphExpanded, expandedNodes]);
 
-    return { nodes, links };
-  }, [microMapContact, allContacts]);
-
-
-  // --- COPILOT LOGIC ---
-  const askCopilot = async () => {
-    if (!prompt) return;
-
-    const newHistory = [...chatHistory, { role: "user", content: prompt }];
-    setChatHistory(newHistory);
-    setIsLoading(true);
-    setPrompt("");
-
-    try {
-      const response = await fetch("/api/copilot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: newHistory[newHistory.length - 1].content }),
-      });
-
-      const data = await response.json();
-
-      if (data.status === "success") {
-        setChatHistory([...newHistory, { role: "ai", content: data.insight }]);
-        if (data.matches.length > 0) {
-           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-           const names = data.matches.map((m: any) => m["Contact Name"]);
-           setSearchQuery(names.join("|"));
-        }
-      } else {
-        setChatHistory([...newHistory, { role: "ai", content: "Error: " + data.message }]);
-      }
-    } catch (error) {
-      setChatHistory([...newHistory, { role: "ai", content: "Failed to connect to Python server." }]);
-    }
-    setIsLoading(false);
-  };
 
   return (
     <div className="flex h-screen w-full bg-slate-50 overflow-hidden font-sans relative">
 
-      {/* LEFT PANE: DIRECTORY (70%) */}
-      <div className="w-2/3 h-full p-8 overflow-y-auto border-r border-slate-200 bg-white">
+      {/* DIRECTORY */}
+      <div className="w-full h-full p-8 overflow-y-auto bg-white">
 
-        {/* Header with New Navigation Tabs */}
+        {/* Header with Navigation Tabs */}
         <div className="flex justify-between items-center mb-8 border-b pb-4">
           <h1 className="text-2xl font-bold text-slate-800">🏙️ CUNY Civic Discovery</h1>
           <div className="flex space-x-2 bg-slate-100 p-1 rounded-lg">
@@ -211,10 +185,13 @@ export default function Home() {
             <Link href="/explore" className="px-4 py-2 text-slate-500 rounded text-sm font-semibold hover:bg-slate-200 transition-colors">
               Map Explorer
             </Link>
+            <Link href="/collab" className="px-4 py-2 text-slate-500 rounded text-sm font-semibold hover:bg-slate-200 transition-colors">
+              Collaboration Hub
+            </Link>
             <Link href="/profile" className="px-4 py-2 text-slate-500 rounded text-sm font-semibold hover:bg-slate-200 transition-colors">
               My Profile
             </Link>
-            <Link href="/hub" className="px-4 py-2 text-slate-500 rounded text-sm font-semibold hover:bg-slate-200 transition-colors">
+            <Link href="/contribute" className="px-4 py-2 text-slate-500 rounded text-sm font-semibold hover:bg-slate-200 transition-colors">
               Join Us
             </Link>
           </div>
@@ -275,36 +252,35 @@ export default function Home() {
 
             {displayedContacts.slice(0, 50).map((person, index) => (
               <div key={index} className="p-5 border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                <h3 className="text-lg font-bold text-blue-900">{person["Contact Name"]}</h3>
-                <p className="text-sm text-slate-600 font-medium mb-2">{person["Campus"]} | {person["Role/Title"]}</p>
-                {person["Program/Org Affiliation"] && <p className="text-sm text-slate-700"><span className="font-semibold">🏢 Title:</span> {person["Program/Org Affiliation"]}</p>}
-                {person["Civic Domains"] && <p className="text-sm text-slate-700"><span className="font-semibold">🎯 Focus:</span> {person["Civic Domains"]}</p>}
+                <h3 className="text-lg font-bold text-blue-900">{person.name}</h3>
+                <p className="text-sm text-slate-600 font-medium mb-2">{person.campus} | {person.role_title}</p>
+                {person.affiliation && <p className="text-sm text-slate-700"><span className="font-semibold">🏢 Title:</span> {person.affiliation}</p>}
+                {person.domains && person.domains.length > 0 && <p className="text-sm text-slate-700"><span className="font-semibold">🎯 Focus:</span> {person.domains.join(", ")}</p>}
 
-                {/* RENAMED: Capabilities -> Skillset */}
-                {person["Capabilities / Expertise"] && <p className="text-sm text-slate-700"><span className="font-semibold">🛠️ Skillset:</span> {person["Capabilities / Expertise"]}</p>}
+                {person.capabilities && <p className="text-sm text-slate-700"><span className="font-semibold">🛠️ Skillset:</span> {person.capabilities}</p>}
 
-                {/* ADDED: Raw Notes Block */}
-                {person["Notes / Insights"] && (
+                {person.notes && (
                   <div className="mt-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
                     <p className="text-sm text-slate-600 italic">
-                      <span className="font-semibold not-italic text-slate-700">📝 Notes:</span> {person["Notes / Insights"]}
+                      <span className="font-semibold not-italic text-slate-700">📝 Notes:</span> {person.notes}
                     </p>
                   </div>
                 )}
 
-                {/* SAVE CONTACT BUTTON */}
+                {/* FULLY RESTORED SAVE CONTACT BUTTON */}
                 <button
                   onClick={async () => {
                     try {
-                      // We will build this backend endpoint in the next step
-                      const res = await fetch("/api/save_contact", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ contact_id: person["ID"] || person["Contact Name"] })
-                      });
-                      if (res.ok) alert(`⭐ Saved ${person["Contact Name"]} to your profile!`);
+                      const supabase = createClient();
+                      const { error } = await supabase
+                        .from('saved_contacts')
+                        .insert([{ contact_id: person.id }]);
+
+                      if (error) throw error;
+                      alert(`⭐ Saved ${person.name} to your profile!`);
                     } catch (e) {
-                      console.error("Failed to save contact");
+                      console.error("Failed to save contact", e);
+                      alert("Could not save contact right now.");
                     }
                   }}
                   className="mt-4 mr-2 text-sm text-slate-700 bg-slate-100 border border-slate-200 px-4 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white font-semibold transition-all"
@@ -312,9 +288,8 @@ export default function Home() {
                   ⭐ Save Contact
                 </button>
 
-                {/* MICRO MAP TRIGGER BUTTON */}
                 <button
-                  onClick={() => setMicroMapContact(person)}
+                  onClick={() => launchMap(person)}
                   className="mt-4 text-sm text-blue-600 bg-blue-50 border border-blue-100 px-4 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white font-semibold transition-all"
                 >
                   🗺️ View Connections Map
@@ -325,62 +300,58 @@ export default function Home() {
         )}
       </div>
 
-      {/* RIGHT PANE: AI COPILOT (30%) */}
-      <div className="w-1/3 h-full flex flex-col bg-slate-50">
-        <div className="p-4 border-b border-slate-200 bg-white">
-          <h2 className="text-lg font-bold text-slate-800">🤖 Civic Copilot</h2>
-        </div>
+      {/* NEW FLOATING COPILOT */}
+      <Copilot onInspectProfile={(name) => {
+        const found = allContacts.find(c => c.name === name);
+        if (found) {
+          setInspectContact(found); // Opens the modal
+          // Only change the map center if one isn't currently active
+          if (!microMapContact) setMicroMapContact(found);
+        }
+      }} />
 
-        <div className="flex-1 p-4 overflow-y-auto space-y-4">
-          {chatHistory.map((msg, index) => (
-            <div key={index} className={`p-4 rounded-xl max-w-[90%] text-sm shadow-sm whitespace-pre-wrap ${
-              msg.role === "user" ? "bg-blue-600 text-white ml-auto" : "bg-white border border-slate-200 text-slate-800 mr-auto"
-            }`}>
-              {msg.content}
-            </div>
-          ))}
-          {isLoading && <div className="text-slate-400 text-sm animate-pulse ml-2">Analyzing network...</div>}
-        </div>
-
-        <div className="p-4 bg-white border-t border-slate-200">
-          <div className="flex space-x-2">
-            <input
-              type="text"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && askCopilot()}
-              placeholder="Ask Copilot to find partners..."
-              className="flex-1 border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              onClick={askCopilot}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-            >
-              Ask
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ==========================================
-          THE MICRO MAP MODAL (OVERLAY)
-          ========================================== */}
-      {microMapContact && (
+      {/* MAP MODAL OVERLAY */}
+      {inspectContact && microMapContact && (
         <ProfileModal
-          contact={microMapContact}
-          onClose={() => setMicroMapContact(null)}
+          contact={inspectContact}
+          onClose={() => { setInspectContact(null); setMicroMapContact(null); setExpandedNodes(new Set()); }}
           showGraph={true}
-          graphData={microGraphData}
+          graphData={{ nodes: microGraphData.nodes, links: microGraphData.links }}
+          isGraphExpanded={isGraphExpanded}
+          hiddenCount={microGraphData.hiddenCount}
+          onToggleGraph={() => {
+            setIsGraphExpanded(!isGraphExpanded);
+            if (isGraphExpanded) setExpandedNodes(new Set()); // Clear specific node memory if collapsing all
+          }}
+
+          // TRAVERSAL AND EXPAND LOGIC
+          onNodeClick={(node) => {
+            const nodeId = String(node.id);
+            if (node.group === "person" || node.group === "center") {
+              const clickedPerson = allContacts.find((c) => c.id === nodeId);
+              if (clickedPerson) setInspectContact(clickedPerson);
+            } else if (node.group === "topic_hub" || node.group === "location_hub") {
+              setExpandedNodes(prev => {
+                const newSet = new Set(prev);
+                if (newSet.has(nodeId)) newSet.delete(nodeId);
+                else newSet.add(nodeId);
+                return newSet;
+              });
+            }
+          }}
+          onRecenter={(person) => launchMap(person as Contact)}
+
           onSaveContact={async (id) => {
             try {
-              const res = await fetch("/api/save_contact", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ contact_id: id })
-              });
-              if (res.ok) alert(`⭐ Saved ${microMapContact["Contact Name"]} to your profile!`);
+              const supabase = createClient();
+              const { error } = await supabase
+                .from('saved_contacts')
+                .insert([{ contact_id: id }]);
+
+              if (error) throw error;
+              alert(`⭐ Saved ${inspectContact.name} to your profile!`);
             } catch (e) {
-              console.error("Failed to save contact");
+              console.error("Failed to save contact", e);
             }
           }}
         />

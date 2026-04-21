@@ -1,19 +1,24 @@
-// src/app/profile/page.tsx
 "use client";
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { INTEREST_BUCKETS } from "@/lib/taxonomy";
+import { createClient } from "@/utils/supabase/client";
 
+// --- UPDATED INTERFACE: Matches Supabase Schema ---
 interface SavedContact {
-  "Contact Name": string;
-  "Campus"?: string;
-  "Role/Title"?: string;
-  "Program/Org Affiliation"?: string;
-  "Civic Domains"?: string;
-  "Capabilities / Expertise"?: string;
-  "Notes / Insights"?: string;
-  "Email/Phone/LinkedIn"?: string;
+  id: string; // The ID in the saved_contacts table
+  contact: {
+    id: string;
+    name: string;
+    campus: string | null;
+    role_title: string | null;
+    affiliation: string | null;
+    capabilities: string | null;
+    notes: string | null;
+    email_contact: string | null;
+    contact_domains: { domains: { domain_name: string } }[];
+  };
 }
 
 export default function ProfilePage() {
@@ -21,14 +26,14 @@ export default function ProfilePage() {
   const [isLoadingContacts, setIsLoadingContacts] = useState(true);
 
   // Dashboard State
-  const [activeTab, setActiveTab] = useState<"form" | "vault">("form");
+  const [activeTab, setActiveTab] = useState<"form" | "vault">("vault");
 
   // Form State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Strict Taxonomy State
+  // Taxonomy State
   const [selectedDomains, setSelectedDomains] = useState<Set<string>>(new Set());
   const [otherDomain, setOtherDomain] = useState("");
 
@@ -39,12 +44,36 @@ export default function ProfilePage() {
     opportunity_ideas: "", ini_alignments: "", notes: ""
   });
 
+  // --- NEW: FETCH FROM SUPABASE ---
   useEffect(() => {
     const fetchSaved = async () => {
       try {
-        const res = await fetch("/api/saved_contacts");
-        const data = await res.json();
-        if (Array.isArray(data)) setSavedContacts(data);
+        const supabase = createClient();
+
+        // Fetch saved contacts and JOIN the contact details + domains in one go
+        const { data, error } = await supabase
+          .from('saved_contacts')
+          .select(`
+            id,
+            contact:contacts (
+              id,
+              name,
+              campus,
+              role_title,
+              affiliation,
+              capabilities,
+              notes,
+              email_contact,
+              contact_domains (
+                domains (
+                  domain_name
+                )
+              )
+            )
+          `);
+
+        if (error) throw error;
+        if (data) setSavedContacts(data as unknown as SavedContact[]);
       } catch (e) {
         console.error("Failed to load saved contacts", e);
       } finally {
@@ -70,34 +99,67 @@ export default function ProfilePage() {
     setIsSubmitting(true);
     setSubmitStatus("idle");
 
-    const domainString = Array.from(selectedDomains).join(", ");
-    const finalNotes = otherDomain.trim()
-      ? `${formData.notes}\n\n[Suggested New Domains]: ${otherDomain}`.trim()
-      : formData.notes;
-
-    const payload = { ...formData, civic_domains: domainString, notes: finalNotes, category: "User Generated" };
+    // Combine all the extra text fields into the notes section just like the old logic did
+    let combinedNotes = formData.notes;
+    if (formData.needs_challenges) combinedNotes += `\n\n[Needs/Challenges]: ${formData.needs_challenges}`;
+    if (formData.opportunity_ideas) combinedNotes += `\n\n[Opportunities]: ${formData.opportunity_ideas}`;
+    if (formData.ini_alignments) combinedNotes += `\n\n[Alignments]: ${formData.ini_alignments}`;
+    if (otherDomain.trim()) combinedNotes += `\n\n[Suggested New Domains]: ${otherDomain.trim()}`;
 
     try {
-      const res = await fetch("/api/publish_profile", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
-      });
-      const result = await res.json();
-      if (res.ok && result.status === "success") {
-        setSubmitStatus("success");
-        setFormData({
-          contact_name: "", email: "", campus: "", role_title: "", affiliation: "",
-          url: "", capabilities: "", communities_served: "", needs_challenges: "",
-          opportunity_ideas: "", ini_alignments: "", notes: ""
-        });
-        setSelectedDomains(new Set());
-        setOtherDomain("");
-        window.scrollTo(0, 0);
-      } else {
-        throw new Error(result.message || "Failed to publish profile");
+      const supabase = createClient();
+
+      // 1. Insert the new person into the contacts table
+      const { data: newContact, error: contactError } = await supabase
+        .from('contacts')
+        .insert([{
+          name: formData.contact_name,
+          email_contact: formData.email,
+          campus: formData.campus,
+          role_title: formData.role_title,
+          affiliation: formData.affiliation,
+          url: formData.url,
+          capabilities: formData.capabilities,
+          communities_served: formData.communities_served,
+          notes: combinedNotes.trim()
+        }])
+        .select('id')
+        .single();
+
+      if (contactError) throw contactError;
+
+      // 2. If they selected domains, link them in the bridge table
+      if (selectedDomains.size > 0 && newContact) {
+        // Find the IDs of the domains they selected
+        const { data: domainRecords } = await supabase
+          .from('domains')
+          .select('id, domain_name')
+          .in('domain_name', Array.from(selectedDomains));
+
+        if (domainRecords && domainRecords.length > 0) {
+          const bridgeInserts = domainRecords.map(d => ({
+            contact_id: newContact.id,
+            domain_id: d.id
+          }));
+
+          await supabase.from('contact_domains').insert(bridgeInserts);
+        }
       }
+
+      setSubmitStatus("success");
+      setFormData({
+        contact_name: "", email: "", campus: "", role_title: "", affiliation: "",
+        url: "", capabilities: "", communities_served: "", needs_challenges: "",
+        opportunity_ideas: "", ini_alignments: "", notes: ""
+      });
+      setSelectedDomains(new Set());
+      setOtherDomain("");
+      window.scrollTo(0, 0);
+
     } catch (error: any) {
+      console.error("Submission error:", error);
       setSubmitStatus("error");
-      setErrorMessage(error.message);
+      setErrorMessage(error.message || "Failed to publish profile");
     } finally {
       setIsSubmitting(false);
     }
@@ -106,16 +168,15 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-col md:flex-row h-screen w-full bg-slate-50 overflow-hidden font-sans">
 
-      {/* DESKTOP SIDEBAR / MOBILE TOP BAR */}
+      {/* SIDEBAR */}
       <div className="md:w-64 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col shrink-0">
         <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between md:flex-col md:items-start md:space-y-4">
           <h2 className="text-xl font-bold text-slate-800">User Dashboard</h2>
           <Link href="/" className="text-sm font-bold text-blue-600 hover:underline">
-            ← Back to Map
+            ← Back to Workspace
           </Link>
         </div>
 
-        {/* Navigation Controls */}
         <div className="flex md:flex-col p-2 md:p-4 gap-2 overflow-x-auto md:overflow-visible">
           <button
             onClick={() => setActiveTab("form")}
@@ -133,11 +194,10 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* MAIN CONTENT CANVAS */}
+      {/* MAIN CONTENT */}
       <div className="flex-1 h-full overflow-y-auto p-4 md:p-8">
         <div className="max-w-5xl mx-auto">
 
-          {/* ================= VAULT VIEW ================= */}
           {activeTab === "vault" && (
             <div className="animate-in fade-in slide-in-from-bottom-2">
               <div className="mb-8">
@@ -156,34 +216,32 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {savedContacts.map((contact, i) => (
-                    <div key={i} className="p-6 border border-slate-200 rounded-2xl shadow-sm bg-white hover:shadow-md transition-all flex flex-col">
-                      <h3 className="font-bold text-blue-900 text-xl">{contact["Contact Name"]}</h3>
-                      <p className="text-sm font-medium text-slate-500 mb-4">{contact["Campus"]} | {contact["Role/Title"]}</p>
+                  {savedContacts.map((item) => (
+                    <div key={item.id} className="p-6 border border-slate-200 rounded-2xl shadow-sm bg-white hover:shadow-md transition-all flex flex-col">
+                      <h3 className="font-bold text-blue-900 text-xl">{item.contact.name}</h3>
+                      <p className="text-sm font-medium text-slate-500 mb-4">{item.contact.campus} | {item.contact.role_title}</p>
 
                       <div className="space-y-2 mb-4 flex-1">
-                        {contact["Program/Org Affiliation"] && <p className="text-sm text-slate-700"><span className="font-semibold">🏢 Title:</span> {contact["Program/Org Affiliation"]}</p>}
-                        {contact["Email/Phone/LinkedIn"] && <p className="text-sm text-slate-700"><span className="font-semibold">✉️ Contact:</span> {contact["Email/Phone/LinkedIn"]}</p>}
-                        {contact["Capabilities / Expertise"] && <p className="text-sm text-slate-700"><span className="font-semibold">🛠️ Skillset:</span> {contact["Capabilities / Expertise"]}</p>}
+                        {item.contact.affiliation && <p className="text-sm text-slate-700"><span className="font-semibold">🏢 Title:</span> {item.contact.affiliation}</p>}
+                        {item.contact.email_contact && <p className="text-sm text-slate-700"><span className="font-semibold">✉️ Contact:</span> {item.contact.email_contact}</p>}
+                        {item.contact.capabilities && <p className="text-sm text-slate-700"><span className="font-semibold">🛠️ Skillset:</span> {item.contact.capabilities}</p>}
                       </div>
 
-                      {contact["Notes / Insights"] && (
+                      {item.contact.notes && (
                         <div className="mb-4 bg-slate-50 p-3 rounded-lg border border-slate-100">
                           <p className="text-sm text-slate-600 italic leading-relaxed">
-                            <span className="font-semibold not-italic text-slate-700">📝 Notes:</span> {contact["Notes / Insights"]}
+                            <span className="font-semibold not-italic text-slate-700">📝 Notes:</span> {item.contact.notes}
                           </p>
                         </div>
                       )}
 
-                      {contact["Civic Domains"] && (
-                        <div className="flex flex-wrap gap-1 mt-auto pt-4 border-t border-slate-100">
-                          {contact["Civic Domains"].split(",").map((d, idx) => (
-                            <span key={idx} className="bg-sky-50 text-sky-700 text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider border border-sky-100">
-                              {d.trim()}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                      <div className="flex flex-wrap gap-1 mt-auto pt-4 border-t border-slate-100">
+                        {item.contact.contact_domains.map((cd, idx) => (
+                          <span key={idx} className="bg-sky-50 text-sky-700 text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider border border-sky-100">
+                            {cd.domains.domain_name}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
