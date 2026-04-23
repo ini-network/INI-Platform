@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function ContributorsHub() {
   // Replace the URL below with your actual Google Form link
-  const GOOGLE_FORM_URL = "https://forms.gle/your-form-id-here";
+  const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/1VXaj8YPklVva7zJ92ZBA7EZg3Aw2LGhZ5PMiuNFMQyc/edit?ts=69de7307";
 
   return (
     <div className="min-h-screen bg-slate-50 p-8 font-sans text-black">
@@ -61,7 +61,7 @@ export default function ContributorsHub() {
 
             <div className="flex items-start gap-3">
               <div className="mt-1.5 h-2 w-2 rounded-full bg-blue-600 shrink-0" />
-              <p className="text-sm"><strong>Campus Network Liaison:</strong> Expanding our reach across the 25 campuses and facilitating cross-CUNY connections.</p>
+              <p className="text-sm"><strong>Campus Network Ambassador:</strong> Expanding our reach across the 25 campuses and facilitating cross-CUNY connections.</p>
             </div>
 
             <div className="flex items-start gap-3">
