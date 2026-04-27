@@ -24,6 +24,7 @@ export default function ContributorsHub() {
           <p className="text-blue-50 text-lg">
             The <strong>Institute for Nonpartisan Innovation (INI)</strong> is developing a first-of-its-kind
             open-source discovery engine to bridge the gap between CUNY researchers, students, and civic leaders.
+            We are looking for ambitious communicators, developers, and ambassadors.
           </p>
         </div>
 
