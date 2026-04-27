@@ -57,17 +57,18 @@ const CUNY_LIST = [
 
 const INTEREST_BUCKETS: Record<string, string[]> = {
   "Education & Student Success": ["Education", "Youth", "Mentorship", "K-12", "Curriculum", "Pedagogy", "Schools", "Student", "Teaching", "Learning"],
-  "Government, Policy & Law": ["Justice", "Policy", "Government", "Law", "Advocacy", "Human Rights", "Criminal", "Immigration", "Police", "Voting", "Civic"],
+  "Government, Policy & Law": ["Policy", "Government", "Law", "Criminal", "Immigration", "Police", "Voting", "Civic", "Legislation"],
   "Public Health & Wellness": ["Health", "Wellness", "Medicine", "Mental Health", "Public Health", "Care", "Disability", "Nursing"],
-  "Community Engagement & Organizing": ["Community", "Engagement", "Outreach", "Organizing", "Neighborhood", "Housing", "Mutual Aid", "Volunteer"],
+  "Community Engagement & Organizing": ["Community", "Engagement", "Outreach", "Organizing", "Neighborhood", "Mutual Aid", "Volunteer"],
   "Economic Development & Labor": ["Economic", "Workforce", "Labor", "Employment", "Finance", "Business", "Career", "Poverty", "Industry"],
-  "Arts, Culture & Humanities": ["Arts", "Media", "Culture", "Design", "History", "Literature", "Theater", "Music", "Journalism", "Communication"],
-  "Environment & Sustainability": ["Environment", "Sustainability", "Climate", "Food Security", "Food Justice", "Food Policy", "Ecology", "Energy", "Green", "Urban Planning"],
+  "Arts, Culture & Humanities": ["Arts", "Culture", "Design", "History", "Literature", "Theater", "Music", "Communication"],
+  "Environment & Sustainability": ["Environment", "Sustainability", "Climate", "Food Security", "Food Justice", "Food Policy", "Ecology", "Energy", "Green"],
   "Technology & Data": ["Technology", "Data", "Innovation", "AI", "Digital", "Engineering", "Computer Science", "STEM", "Tech", "Cyber"],
   "Research & Academia": ["Research", "Social Science", "Sociology", "Psychology", "Anthropology", "Evaluation", "Data Collection", "Study"],
-  "Social Justice & Equity": [],
-  "Urban Planning & Housing": [],
-  "Media, Journalism & Storytelling": []
+  "Social Justice & Equity": ["Justice", "Equity", "Equality", "Diversity", "Inclusion", "Human Rights", "Civil Rights", "Advocacy", "Liberation"],
+  "Urban Planning & Housing": ["Urban Planning", "Housing", "Zoning", "Real Estate", "Architecture", "Transportation", "Transit", "Infrastructure", "Urban Design"],
+  "Media, Journalism & Storytelling": ["Media", "Journalism", "Storytelling", "Podcast", "News", "Publishing", "Reporting", "Documentary", "Broadcast"],
+  "Other / Cross-Cutting": []
 };
 
 // --- CUSTOM FUZZY SEARCH DROPDOWN ---
