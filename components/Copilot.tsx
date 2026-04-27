@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@/utils/supabase/client";
 
 interface CopilotProps {
-  // NEW: Instead of filtering, we pass the name back to open the profile card
   onInspectProfile?: (contactName: string) => void;
 }
 
-// Define the shape of our messages so they can hold contact matches
 type ChatMessage = {
   role: string;
   content: string;
@@ -19,9 +18,42 @@ export default function Copilot({ onInspectProfile }: CopilotProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [input, setInput] = useState("");
+
+  // Set a generic fallback initially
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: "assistant", content: "Hi Jeremiah! I'm your AI Copilot. Ask me anything about the CUNY Civic Network or your data." }
+    { role: "assistant", content: "Hi there! I'm your AI Copilot. Ask me anything about the CUNY Civic Network or your data." }
   ]);
+
+  // --- NEW: Fetch User Data for Greeting ---
+  useEffect(() => {
+    const fetchUserGreeting = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        let firstName = "there";
+
+        if (user.user_metadata?.full_name) {
+          // Grab just the first name if available
+          firstName = user.user_metadata.full_name.split(" ")[0];
+        } else if (user.email) {
+          // Fallback to capitalizing the start of their email
+          const prefix = user.email.split("@")[0];
+          firstName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+        }
+
+        // Overwrite the initial generic greeting
+        setMessages([
+          {
+            role: "assistant",
+            content: `Hi ${firstName}! I'm your AI Copilot. Ask me anything about the CUNY Civic Network or your data.`
+          }
+        ]);
+      }
+    };
+
+    fetchUserGreeting();
+  }, []);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +75,6 @@ export default function Copilot({ onInspectProfile }: CopilotProps) {
       const data = await response.json();
 
       if (data.status === "success") {
-        // UPGRADED: We now save the data.matches array directly into the message state!
         setMessages([...newMessages, {
           role: "assistant",
           content: data.insight,
@@ -99,7 +130,6 @@ export default function Copilot({ onInspectProfile }: CopilotProps) {
                 {msg.content}
               </div>
 
-              {/* NEW: Clickable Contact Chips */}
               {msg.matches && msg.matches.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1.5 max-w-[85%]">
                   {msg.matches.map((match, i) => {

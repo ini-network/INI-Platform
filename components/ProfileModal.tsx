@@ -19,7 +19,6 @@ export interface GraphLink {
   target: string;
 }
 
-// 1. UPDATED INTERFACE: Matches your new Supabase 'contacts' table schema
 export interface ContactProfile {
   id: string;
   name: string;
@@ -31,7 +30,6 @@ export interface ContactProfile {
   notes?: string | null;
   email_contact?: string | null;
   url?: string | null;
-  // Domains will be passed as a clean array after the parent fetches the relational data
   domains?: string[];
 }
 
@@ -39,7 +37,7 @@ interface ProfileModalProps {
   contact: ContactProfile;
   onClose: () => void;
   onSaveContact?: (contactId: string) => Promise<void> | void;
-  onRecenter?: (contact: ContactProfile) => void; // New Recenter Handler
+  onRecenter?: (contact: ContactProfile) => void;
   showGraph?: boolean;
   graphData?: { nodes: GraphNode[]; links: GraphLink[] };
   onNodeClick?: (node: GraphNode) => void;
@@ -66,9 +64,20 @@ export default function ProfileModal({
 }: ProfileModalProps) {
 
   const handleSave = () => {
-    if (onSaveContact) {
-      onSaveContact(contact.id); // Cleanly uses the UUID/String ID
+    if (onSaveContact) onSaveContact(contact.id);
+  };
+
+  // --- NEW: Express Interest Logic ---
+  const handleExpressInterest = () => {
+    if (!contact.email_contact) {
+      alert(`No public email address is listed for ${contact.name}.`);
+      return;
     }
+    const subject = encodeURIComponent(`Connecting via INI Civic Network`);
+    const body = encodeURIComponent(`Hi ${contact.name},\n\nI found your profile on the INI Civic Network and would love to connect to discuss potential collaboration.\n\nBest,\n[Your Name]`);
+
+    // Triggers the default mail client
+    window.location.href = `mailto:${contact.email_contact}?subject=${subject}&body=${body}`;
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -89,10 +98,7 @@ export default function ProfileModal({
               {contact.campus || 'No Campus'} {contact.role_title ? `| ${contact.role_title}` : ''}
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-lg font-bold transition-colors"
-          >
+          <button onClick={onClose} className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-lg font-bold transition-colors">
             ✕ Close
           </button>
         </div>
@@ -108,7 +114,6 @@ export default function ProfileModal({
               </div>
             )}
 
-            {/* RESTORED: Email/Contact Block */}
             {contact.email_contact && (
               <div>
                 <h3 className="text-xs font-bold uppercase text-slate-400 mb-2">Contact</h3>
@@ -116,7 +121,6 @@ export default function ProfileModal({
               </div>
             )}
 
-            {/* DOMAINS (Focus Areas) updated to map over an array */}
             {contact.domains && contact.domains.length > 0 && (
               <div>
                 <h3 className="text-xs font-bold uppercase text-slate-400 mb-2">Focus Areas</h3>
@@ -146,37 +150,26 @@ export default function ProfileModal({
               </div>
             )}
 
-            {/* RESTORED: Stacked Button Layout & Original Wording */}
+            {/* BUTTON LAYOUT */}
             <div className="mt-auto border-t border-slate-200 pt-6 space-y-3 shrink-0">
-
-              {/* 1. NEW EXPAND MAP TOGGLE BUTTON */}
               {onToggleExpandNode && (
-                <button
-                  onClick={onToggleExpandNode}
-                  className={`w-full border font-bold py-2.5 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2 ${isNodeExpanded ? 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200' : 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100'}`}
-                >
+                <button onClick={onToggleExpandNode} className={`w-full border font-bold py-2.5 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2 ${isNodeExpanded ? 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200' : 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100'}`}>
                   {isNodeExpanded ? "📉 Collapse Network on Map" : "📈 Expand Network on Map"}
                 </button>
               )}
 
-              {/* 2. SINGLE RECENTER BUTTON */}
               {onRecenter && (
-                <button
-                  onClick={() => onRecenter(contact)}
-                  className="w-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold py-2.5 rounded-lg hover:bg-emerald-100 transition-colors shadow-sm flex items-center justify-center gap-2"
-                >
+                <button onClick={() => onRecenter(contact)} className="w-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold py-2.5 rounded-lg hover:bg-emerald-100 transition-colors shadow-sm flex items-center justify-center gap-2">
                   📍 Center Map on {contact.name.split(" ")[0]}
                 </button>
               )}
 
-              <button
-                onClick={handleSave}
-                className="w-full bg-slate-800 text-white font-bold py-2.5 rounded-lg hover:bg-slate-700 transition-colors shadow-sm"
-              >
+              <button onClick={handleSave} className="w-full bg-slate-800 text-white font-bold py-2.5 rounded-lg hover:bg-slate-700 transition-colors shadow-sm">
                 ⭐ Save Contact
               </button>
 
-              <button className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+              {/* NEW EXPRESS INTEREST BUTTON */}
+              <button onClick={handleExpressInterest} className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
                 ✉️ Express Interest
               </button>
             </div>
@@ -185,26 +178,19 @@ export default function ProfileModal({
           {/* GRAPH VISUALIZATION */}
           {showGraph && (
             <div className="hidden md:flex w-2/3 h-full relative bg-slate-900 overflow-hidden items-center justify-center">
-
-              {/* RESTORED: Original Overlay text + New Toggle UI */}
               <div className="absolute top-4 left-4 right-4 z-10 flex justify-between items-start pointer-events-none">
                 <div className="text-white/60 text-xs font-medium pointer-events-none bg-slate-800/50 p-2 rounded backdrop-blur">
                   Connections are bridged by shared Focus Areas.
                 </div>
-
                 {onToggleGraph && (
                   <div className="pointer-events-auto">
-                    <button
-                      onClick={onToggleGraph}
-                      className={`px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-lg ${isGraphExpanded ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-pink-500 text-white hover:bg-pink-400'}`}
-                    >
+                    <button onClick={onToggleGraph} className={`px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-lg ${isGraphExpanded ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-pink-500 text-white hover:bg-pink-400'}`}>
                       {isGraphExpanded ? "Collapse Contacts" : `Show Hidden Contacts (${hiddenCount})`}
                     </button>
                   </div>
                 )}
               </div>
 
-              {/* NEW: MINI-MAP LEGEND (Bottom Left) */}
               <div className="absolute bottom-4 left-4 z-20 bg-slate-800/60 p-2.5 rounded-xl backdrop-blur-md border border-slate-700 pointer-events-none">
                 <div className="space-y-1.5">
                   <div className="flex items-center text-[10px] font-bold text-white/90">
@@ -223,11 +209,11 @@ export default function ProfileModal({
               </div>
 
               <NetworkMap
-                ref={mapRef} // <--- 1. We MUST pass the ref here!
+                ref={mapRef}
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 graphData={graphData as any}
-                repulsion={-150} // Gentle push
-                distance={60}    // Tight links
+                repulsion={-150}
+                distance={60}
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 onNodeClick={(node: any) => onNodeClick && onNodeClick(node as GraphNode)}
                 nodeRelSize={5}
@@ -259,7 +245,6 @@ export default function ProfileModal({
                 }}
               />
 
-              {/* 2. THE ZOOM CONTROLS OVERLAY */}
               {graphData && graphData.nodes.length > 0 && (
                 <div className="absolute bottom-4 right-4 z-20 flex flex-col space-y-2 bg-slate-800/80 p-1.5 rounded-xl shadow-xl backdrop-blur-md border border-slate-700 pointer-events-auto">
                   <button onClick={handleZoomIn} className="text-white hover:bg-slate-700 p-2.5 rounded-lg font-bold text-sm leading-none" title="Zoom In">➕</button>
