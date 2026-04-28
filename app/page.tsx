@@ -1,7 +1,7 @@
 "use client";
 
 import {useState, useEffect, useMemo, useRef} from "react";
-import ProfileModal, {GraphNode, GraphLink} from "@/components/ProfileModal";
+import MiniMapModal from "@/components/MiniMapModal";
 import {createClient} from '@/utils/supabase/client';
 import Copilot from "@/components/Copilot";
 
@@ -130,10 +130,7 @@ export default function Home() {
     const [selectedFocus, setSelectedFocus] = useState("All");
 
     // State for the Micro Map & Modal
-    const [microMapContact, setMicroMapContact] = useState<Contact | null>(null);
-    const [inspectContact, setInspectContact] = useState<Contact | null>(null);
-    const [isGraphExpanded, setIsGraphExpanded] = useState(false);
-    const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set()); // Tracks clicked hubs
+    const [activeMapContact, setActiveMapContact] = useState<Contact | null>(null);
 
     // --- INITIAL DATA FETCH ---
     useEffect(() => {
@@ -224,110 +221,6 @@ export default function Home() {
         return groups;
     }, [uniqueFocusAreas]);
 
-    // Trigger when launching a new map center
-    const launchMap = (person: Contact) => {
-        const connectedPeople = allContacts.filter(c => c.id !== person.id && c.domains?.some(d => person.domains?.includes(d)));
-
-        // Auto-expand only if there are 15 or fewer connected contacts
-        if (connectedPeople.length > 15) {
-            setIsGraphExpanded(false);
-        } else {
-            setIsGraphExpanded(true);
-        }
-
-        setExpandedNodes(new Set()); // Reset manual node expansions on new map
-        setMicroMapContact(person);
-        setInspectContact(person);
-    };
-
-    const microGraphData = useMemo(() => {
-        if (!microMapContact) return {nodes: [], links: [], hiddenCount: 0};
-
-        const nodes: GraphNode[] = [];
-        const links: GraphLink[] = [];
-        const addedNodes = new Set<string>();
-        const addedLinks = new Set<string>();
-        let hiddenCount = 0;
-
-        // --- NEW: HTML Tooltip Generator ---
-        const createPersonTooltip = (c: Contact, isCenter = false) => {
-            const parts = [];
-            if (c.campus) parts.push(`Locale: ${c.campus}`);
-            if (c.affiliation) parts.push(`Affiliation: ${c.affiliation}`);
-            const details = parts.length > 0 ? `<br/><span style="font-size: 11px; color: #cbd5e1; font-weight: normal;">${parts.join(' | ')}</span>` : '';
-            const prefix = isCenter ? `<span style="display: block; font-size: 9px; color: #fbbf24; margin-bottom: 2px;">CENTER PROFILE</span>` : '';
-            return `<div style="text-align: center; font-family: sans-serif; padding: 2px;">${prefix}<strong>${c.name}</strong>${details}</div>`;
-        };
-
-        const safeAddLink = (s: string, t: string) => {
-            const key = `${s}->${t}`;
-            const reverseKey = `${t}->${s}`;
-            if (!addedLinks.has(key) && !addedLinks.has(reverseKey)) {
-                addedLinks.add(key);
-                links.push({source: s, target: t});
-            }
-        };
-
-        // 1. Add the Center Person
-        nodes.push({
-            id: microMapContact.id,
-            name: microMapContact.name,
-            group: "center",
-            val: 12,
-            color: "#fbbf24",
-            title: createPersonTooltip(microMapContact, true) // <-- Updated
-        });
-        addedNodes.add(microMapContact.id);
-
-        // 2. Determine if the network is small enough to auto-expand
-        const networkContacts = allContacts.filter(other =>
-            other.id !== microMapContact.id &&
-            other.domains?.some(d => microMapContact.domains?.includes(d))
-        );
-        const isSmallNetwork = networkContacts.length <= 15;
-
-        // 3. Map out the shared Topics and the People attached to them
-        microMapContact.domains?.forEach(topic => {
-
-            // Add the Topic Node
-            if (!addedNodes.has(topic)) {
-                nodes.push({
-                    id: topic, name: topic, group: "topic_hub", val: 8, color: "#0ea5e9",
-                    title: `<div style="text-align: center;"><strong>${topic}</strong><br/><span style="font-size: 10px; color: #94a3b8;">Interest Hub (Click to expand)</span></div>` // <-- Updated
-                });
-                addedNodes.add(topic);
-            }
-            safeAddLink(microMapContact.id, topic);
-
-            // Add the connected people
-            allContacts.forEach(other => {
-                if (other.id === microMapContact.id || !other.domains?.includes(topic)) return;
-
-                const shouldExpand = isGraphExpanded || expandedNodes.has(topic) || isSmallNetwork;
-
-                if (shouldExpand) {
-                    if (!addedNodes.has(other.id)) {
-                        nodes.push({
-                            id: other.id, name: other.name, group: "person", val: 5, color: "#ff0000",
-                            title: createPersonTooltip(other) // <-- Updated
-                        });
-                        addedNodes.add(other.id);
-                    }
-                    safeAddLink(topic, other.id);
-                } else {
-                    if (!addedNodes.has(other.id)) {
-                        hiddenCount++;
-                    }
-                }
-            });
-        });
-
-        const adjustedHiddenCount = Math.floor(hiddenCount / (microMapContact.domains?.length || 1));
-
-        return {nodes, links, hiddenCount: adjustedHiddenCount};
-    }, [allContacts, microMapContact, isGraphExpanded, expandedNodes]);
-
-
     return (
         <div className="flex h-full w-full bg-slate-50 overflow-hidden font-sans relative">
 
@@ -410,12 +303,25 @@ export default function Home() {
                                     onClick={async () => {
                                         try {
                                             const supabase = createClient();
+                                            const { data: { user } } = await supabase.auth.getUser();
+
+                                            if (!user) {
+                                                alert("You must be logged in to save contacts.");
+                                                return;
+                                            }
+
                                             const {error} = await supabase
                                                 .from('saved_contacts')
-                                                .insert([{contact_id: person.id}]);
+                                                .insert([{contact_id: person.id, user_id: user.id}]);
 
-                                            if (error) throw error;
-                                            alert(`⭐ Saved ${person.name} to your profile!`);
+                                            if (error) {
+                                                if (error.code === '23505') {
+                                                    alert(`⭐ ${person.name} is already in your vault!`);
+                                                    return;
+                                                }
+                                                throw error;
+                                            }
+                                            alert(`⭐ Saved ${person.name} to your vault!`);
                                         } catch (e) {
                                             console.error("Failed to save contact", e);
                                             alert("Could not save contact right now.");
@@ -443,7 +349,7 @@ export default function Home() {
                                 </button>
 
                                 <button
-                                    onClick={() => launchMap(person)}
+                                    onClick={() => setActiveMapContact(person)}
                                     className="mt-4 text-sm text-blue-600 bg-blue-50 border border-blue-100 px-4 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white font-semibold transition-all"
                                 >
                                     🗺️ View Connections Map
@@ -458,47 +364,16 @@ export default function Home() {
             <Copilot onInspectProfile={(name) => {
                 const found = allContacts.find(c => c.name === name);
                 if (found) {
-                    setInspectContact(found); // Opens the modal
-                    // Only change the map center if one isn't currently active
-                    if (!microMapContact) setMicroMapContact(found);
+                    setActiveMapContact(found); // Opens the modal
                 }
             }}/>
 
             {/* MAP MODAL OVERLAY */}
-            {inspectContact && microMapContact && (
-                <ProfileModal
-                    contact={inspectContact}
-                    onClose={() => {
-                        setInspectContact(null);
-                        setMicroMapContact(null);
-                        setExpandedNodes(new Set());
-                    }}
-                    showGraph={true}
-                    graphData={{nodes: microGraphData.nodes, links: microGraphData.links}}
-                    isGraphExpanded={isGraphExpanded}
-                    hiddenCount={microGraphData.hiddenCount}
-                    onToggleGraph={() => {
-                        setIsGraphExpanded(!isGraphExpanded);
-                        if (isGraphExpanded) setExpandedNodes(new Set()); // Clear specific node memory if collapsing all
-                    }}
-
-                    // TRAVERSAL AND EXPAND LOGIC
-                    onNodeClick={(node) => {
-                        const nodeId = String(node.id);
-                        if (node.group === "person" || node.group === "center") {
-                            const clickedPerson = allContacts.find((c) => c.id === nodeId);
-                            if (clickedPerson) setInspectContact(clickedPerson);
-                        } else if (node.group === "topic_hub" || node.group === "location_hub") {
-                            setExpandedNodes(prev => {
-                                const newSet = new Set(prev);
-                                if (newSet.has(nodeId)) newSet.delete(nodeId);
-                                else newSet.add(nodeId);
-                                return newSet;
-                            });
-                        }
-                    }}
-                    onRecenter={(person) => launchMap(person as Contact)}
-
+            {activeMapContact && (
+                <MiniMapModal
+                    initialContact={activeMapContact}
+                    allContacts={allContacts}
+                    onClose={() => setActiveMapContact(null)}
                     onSaveContact={async (id) => {
                         try {
                             const supabase = createClient();
@@ -506,20 +381,23 @@ export default function Home() {
 
                             if (!user) return alert("You must be logged in to save contacts.");
 
+                            const { data: existing } = await supabase
+                                .from('saved_contacts')
+                                .select('id')
+                                .eq('contact_id', id)
+                                .eq('user_id', user.id)
+                                .maybeSingle();
+
+                            if (existing) {
+                                alert(`⭐ This contact is already in your vault!`);
+                                return;
+                            }
+
                             const {error} = await supabase
                                 .from('saved_contacts')
                                 .insert([{contact_id: id, user_id: user.id}]);
 
-                            if (error) {
-                                if (error.code === '23505') {
-                                    // FIXED: Changed activeContact to inspectContact
-                                    alert(`⭐ ${inspectContact.name} is already in your vault!`);
-                                    return;
-                                }
-                                throw error;
-                            }
-                            // FIXED: Changed activeContact to inspectContact
-                            alert(`⭐ Saved ${inspectContact.name} to your vault!`);
+                            alert(`⭐ Saved contact to your vault!`);
                         } catch (e) {
                             console.error("Failed to save contact", e);
                         }

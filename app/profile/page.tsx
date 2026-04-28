@@ -3,6 +3,8 @@
 import Link from "next/link";
 import {useState, useEffect} from "react";
 import {createClient} from "@/utils/supabase/client";
+import MiniMapModal from "@/components/MiniMapModal";
+import { ContactProfile } from "@/components/ProfileModal";
 
 // --- CORE DATA CONSTANTS ---
 const CUNY_LOCATIONS = [
@@ -53,6 +55,8 @@ interface SavedContact {
 
 export default function ProfilePage() {
     const [savedContacts, setSavedContacts] = useState<SavedContact[]>([]);
+    const [allContacts, setAllContacts] = useState<ContactProfile[]>([]);
+    const [activeMapContact, setActiveMapContact] = useState<ContactProfile | null>(null);
     const [isLoadingContacts, setIsLoadingContacts] = useState(true);
 
     // Profile Visibility State
@@ -168,6 +172,22 @@ export default function ProfilePage() {
                     // Extract just the string names and remove any empty ones
                     const formattedTags = domainsData.map(d => d.domain_name).filter(Boolean);
                     setExistingTags(formattedTags);
+                }
+
+                // 5. NEW: Fetch entire network directory to power the Mini-Map
+                const { data: allContactsData } = await supabase
+                    .from('contacts')
+                    .select(`*, contact_domains (domains (domain_name))`)
+                    .eq('is_public', true);
+
+                if (allContactsData) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const formatted = allContactsData.map((c: any) => ({
+                        ...c,
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        domains: c.contact_domains?.map((cd: any) => cd.domains?.domain_name).filter(Boolean) || []
+                    }));
+                    setAllContacts(formatted);
                 }
 
             } catch (e) {
@@ -419,28 +439,64 @@ export default function ProfilePage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {savedContacts.map((item) => (
                                         <div key={item.id}
-                                             className="p-6 border border-slate-200 rounded-2xl shadow-sm bg-white flex flex-col relative group">
+                                             className="p-5 border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow bg-white flex flex-col relative group">
 
-                                            {/* NEW: Remove Button */}
-                                            <button
-                                                onClick={() => handleRemoveSavedContact(item.id)}
-                                                className="absolute top-4 right-4 text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
-                                                title="Remove from Vault"
-                                            >
-                                                ✕
-                                            </button>
+                                            <h3 className="text-lg font-bold text-blue-900">{item.contact.name}</h3>
+                                            <p className="text-sm font-medium text-slate-600 mb-2">{item.contact.campus} | {item.contact.role_title}</p>
 
-                                            <h3 className="font-bold text-blue-900 text-xl pr-6">{item.contact.name}</h3>
-                                            <p className="text-sm font-medium text-slate-500 mb-4">{item.contact.campus} | {item.contact.role_title}</p>
+                                            {item.contact.affiliation && <p className="text-sm text-slate-700"><span
+                                                className="font-semibold">🏢 Title:</span> {item.contact.affiliation}</p>}
+                                            {item.contact.contact_domains && item.contact.contact_domains.length > 0 &&
+                                                <p className="text-sm text-slate-700"><span
+                                                    className="font-semibold">🎯 Focus:</span> {item.contact.contact_domains.map(cd => cd.domains?.domain_name).filter(Boolean).join(", ")}</p>}
 
-                                            <div
-                                                className="flex flex-wrap gap-1 mt-auto pt-4 border-t border-slate-100">
-                                                {item.contact.contact_domains.map((cd, idx) => (
-                                                    <span key={idx}
-                                                          className="bg-sky-50 text-sky-700 text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider border border-sky-100">
-                                                        {cd.domains.domain_name}
-                                                    </span>
-                                                ))}
+                                            {item.contact.capabilities && <p className="text-sm text-slate-700"><span
+                                                className="font-semibold">🛠️ Skillset:</span> {item.contact.capabilities}</p>}
+
+                                            {item.contact.notes && (
+                                                <div className="mt-3 bg-slate-50 p-3 rounded-lg border border-slate-100 mb-4">
+                                                    <p className="text-sm text-slate-600 italic">
+                                                        <span
+                                                            className="font-semibold not-italic text-slate-700">📝 Notes:</span> {item.contact.notes}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            
+                                            <div className="mt-auto pt-4 flex flex-wrap">
+                                                <button
+                                                    onClick={() => handleRemoveSavedContact(item.id)}
+                                                    className="mt-4 mr-2 text-sm text-rose-700 bg-rose-50 border border-rose-200 px-4 py-1.5 rounded-lg hover:bg-rose-600 hover:text-white font-semibold transition-all"
+                                                >
+                                                    🗑️ Remove Contact
+                                                </button>
+
+                                                <button
+                                                    onClick={() => {
+                                                        if (!item.contact.email_contact) {
+                                                            alert(`No public email address is listed for ${item.contact.name}.`);
+                                                            return;
+                                                        }
+                                                        const subject = encodeURIComponent(`Connecting via INI Civic Network`);
+                                                        const body = encodeURIComponent(`Hi ${item.contact.name},\n\nI found your profile on the INI Civic Network and would love to connect to discuss potential collaboration.\n\nBest,\n[Your Name]`);
+                                                        window.location.href = `mailto:${item.contact.email_contact}?subject=${subject}&body=${body}`;
+                                                    }}
+                                                    className="mt-4 mr-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-1.5 rounded-lg hover:bg-emerald-600 hover:text-white font-semibold transition-all"
+                                                >
+                                                    ✉️ Connect
+                                                </button>
+
+                                                <button
+                                                    onClick={() => {
+                                                        const mappedContact: ContactProfile = {
+                                                            ...item.contact,
+                                                            domains: item.contact.contact_domains?.map((cd) => cd.domains?.domain_name).filter(Boolean) || []
+                                                        };
+                                                        setActiveMapContact(mappedContact);
+                                                    }}
+                                                    className="mt-4 text-sm text-blue-600 bg-blue-50 border border-blue-100 px-4 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white font-semibold transition-all"
+                                                >
+                                                    🗺️ View Connections Map
+                                                </button>
                                             </div>
                                         </div>
                                     ))}
@@ -697,6 +753,38 @@ export default function ProfilePage() {
                     )}
                 </div>
             </div>
+
+            {/* MAP MODAL OVERLAY */}
+            {activeMapContact && (
+                <MiniMapModal
+                    initialContact={activeMapContact}
+                    allContacts={allContacts}
+                    onClose={() => setActiveMapContact(null)}
+                    onSaveContact={async (id) => {
+                        try {
+                            const supabase = createClient();
+                            const { data: { user } } = await supabase.auth.getUser();
+
+                            if (!user) return alert("You must be logged in to save contacts.");
+
+                            const { data: existing } = await supabase
+                                .from('saved_contacts')
+                                .select('id')
+                                .eq('contact_id', id)
+                                .eq('user_id', user.id)
+                                .maybeSingle();
+
+                            if (existing) return alert(`⭐ This contact is already in your vault!`);
+
+                            const { error } = await supabase.from('saved_contacts').insert([{ contact_id: id, user_id: user.id }]);
+                            if (error) throw error;
+                            alert(`⭐ Saved contact to your vault!`);
+                        } catch (e) {
+                            console.error("Failed to save contact", e);
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 }
