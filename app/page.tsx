@@ -2,7 +2,7 @@
 
 import {useState, useEffect, useMemo, useRef} from "react";
 import ProfileModal, {GraphNode, GraphLink} from "@/components/ProfileModal";
-import {createClient} from '../utils/supabase/client';
+import {createClient} from '@/utils/supabase/client';
 import Copilot from "@/components/Copilot";
 
 const INTEREST_BUCKETS: Record<string, string[]> = {
@@ -142,8 +142,8 @@ export default function Home() {
                 const supabase = createClient();
                 const {data, error} = await supabase
                     .from('contacts')
-                    .select(`*, contact_domains (domains (domain_name))`);
-
+                    .select(`*, contact_domains (domains (domain_name))`)
+                    .eq('is_public', true);
                 if (error) throw error;
 
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -502,12 +502,24 @@ export default function Home() {
                     onSaveContact={async (id) => {
                         try {
                             const supabase = createClient();
+                            const {data: {user}} = await supabase.auth.getUser();
+
+                            if (!user) return alert("You must be logged in to save contacts.");
+
                             const {error} = await supabase
                                 .from('saved_contacts')
-                                .insert([{contact_id: id}]);
+                                .insert([{contact_id: id, user_id: user.id}]);
 
-                            if (error) throw error;
-                            alert(`⭐ Saved ${inspectContact.name} to your profile!`);
+                            if (error) {
+                                if (error.code === '23505') {
+                                    // FIXED: Changed activeContact to inspectContact
+                                    alert(`⭐ ${inspectContact.name} is already in your vault!`);
+                                    return;
+                                }
+                                throw error;
+                            }
+                            // FIXED: Changed activeContact to inspectContact
+                            alert(`⭐ Saved ${inspectContact.name} to your vault!`);
                         } catch (e) {
                             console.error("Failed to save contact", e);
                         }

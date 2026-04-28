@@ -26,8 +26,7 @@ interface CollaborationPost {
         capabilities: string | null;
         notes: string | null;
         email_contact: string | null;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        contact_domains: any[];
+        contact_domains: { domains: { domain_name: string } }[];
     };
 }
 
@@ -92,11 +91,12 @@ export default function CollaborationHub() {
                     .from('collaboration_posts')
                     .select(`
             *,
-            author:contacts (
+            author:contacts!inner (
               id, name, campus, role_title, affiliation, capabilities, notes, email_contact,
               contact_domains ( domains ( domain_name ) )
             )
           `)
+                    .eq('contacts.is_public', true) // <-- ADDED FILTER (Requires !inner above)
                     .gt('expires_at', new Date().toISOString())
                     .order('created_at', {ascending: false});
 
@@ -107,6 +107,7 @@ export default function CollaborationHub() {
                 const {data: contactData} = await supabase
                     .from('contacts')
                     .select('id, name')
+                    .eq('is_public', true) // <-- ADDED FILTER
                     .order('name');
 
                 if (contactData) setAllContacts(contactData);
@@ -482,14 +483,25 @@ export default function CollaborationHub() {
                     showGraph={false} // No graph needed on the hub page
                     onSaveContact={async (id) => {
                         try {
-                            const res = await fetch("/api/save_contact", {
-                                method: "POST",
-                                headers: {"Content-Type": "application/json"},
-                                body: JSON.stringify({contact_id: id})
-                            });
-                            if (res.ok) alert(`⭐ Saved ${inspectContact.name} to your vault!`);
+                            const supabase = createClient();
+                            const { data: { user } } = await supabase.auth.getUser();
+
+                            if (!user) return alert("You must be logged in to save contacts.");
+
+                            const { error } = await supabase
+                                .from('saved_contacts')
+                                .insert([{ contact_id: id, user_id: user.id }]);
+
+                            if (error) {
+                                if (error.code === '23505') {
+                                    alert(`⭐ ${inspectContact.name} is already in your vault!`);
+                                    return;
+                                }
+                                throw error;
+                            }
+                            alert(`⭐ Saved ${inspectContact.name} to your vault!`);
                         } catch (e) {
-                            console.error("Failed to save contact");
+                            console.error("Failed to save contact", e);
                         }
                     }}
                 />

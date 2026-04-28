@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { createClient } from '../../utils/supabase/client';
 import ProfileModal from "@/components/ProfileModal";
 import Copilot from "@/components/Copilot";
-import NetworkMap from "@/components/NetworkMap";
+import NetworkMap, { ForceGraphMethods } from "@/components/NetworkMap";
 
 // --- STRICT TYPESCRIPT INTERFACES ---
 interface Contact {
@@ -190,7 +190,7 @@ export default function ExploreMap() {
   const [allContacts, setAllContacts] = useState<Contact[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const fgRef = useRef<any>(null);
+  const fgRef = useRef<ForceGraphMethods | null>(null);
 
   // Navigation & Search State - ADDED "global"
   const [viewType, setViewType] = useState<"topic" | "location" | "person" | "global">("location");
@@ -223,14 +223,16 @@ export default function ExploreMap() {
     const fetchInitialData = async () => {
       try {
         const supabase = createClient();
-        const { data, error } = await supabase.from('contacts').select(`*, contact_domains (domains (domain_name))`);
+        const { data, error } = await supabase
+            .from('contacts')
+            .select(`*, contact_domains (domains (domain_name))`)
+            .eq('is_public', true);
         if (error) throw error;
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const formattedData: Contact[] = (data as any[]).map((c) => ({
+        const formattedData: Contact[] = (data as unknown as Array<Contact & { contact_domains: { domains: { domain_name: string } }[] }>).map((c) => ({
           ...c,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          domains: c.contact_domains.map((cd: any) => cd.domains.domain_name)
+          domains: c.contact_domains.map((cd) => cd.domains.domain_name)
         }));
 
         setAllContacts(formattedData);
@@ -733,11 +735,21 @@ export default function ExploreMap() {
           onSaveContact={async (id) => {
             try {
               const supabase = createClient();
+              const { data: { user } } = await supabase.auth.getUser();
+
+              if (!user) return alert("You must be logged in to save contacts.");
+
               const { error } = await supabase
                 .from('saved_contacts')
-                .insert([{ contact_id: id }]);
+                .insert([{ contact_id: id, user_id: user.id }]); // <-- ID attached here!
 
-              if (error) throw error;
+              if (error) {
+                  if (error.code === '23505') {
+                      alert(`⭐ ${activeContact.name} is already in your vault!`);
+                      return;
+                  }
+                  throw error;
+              }
               alert(`⭐ Saved ${activeContact.name} to your profile!`);
             } catch (e) {
               console.error("Failed to save contact", e);

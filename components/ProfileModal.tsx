@@ -1,6 +1,6 @@
 "use client";
 
-import NetworkMap from "@/components/NetworkMap";
+import NetworkMap, { ForceGraphMethods } from "@/components/NetworkMap";
 import { useState, useRef } from "react";
 
 export interface GraphNode {
@@ -81,7 +81,7 @@ export default function ProfileModal({
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<ForceGraphMethods | null>(null);
   const handleZoomIn = () => { mapRef.current?.zoom(1.5, 400); };
   const handleZoomOut = () => { mapRef.current?.zoom(0.66, 400); };
   const handleFitMap = () => { mapRef.current?.zoomToFit(400, 50); };
@@ -210,12 +210,10 @@ export default function ProfileModal({
 
               <NetworkMap
                 ref={mapRef}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                graphData={graphData as any}
+                graphData={graphData}
                 repulsion={-150}
                 distance={60}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                onNodeClick={(node: any) => onNodeClick && onNodeClick(node as GraphNode)}
+                onNodeClick={(node: unknown) => onNodeClick && onNodeClick(node as GraphNode)}
                 nodeRelSize={5}
                 linkDirectionalParticles={1}
                 linkDirectionalParticleSpeed={0.005}
@@ -225,22 +223,22 @@ export default function ProfileModal({
                 height={600}
                 linkColor={() => "rgba(255, 255, 255, 0.4)"}
                 linkWidth={1.5}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                nodeCanvasObject={(node: any, ctx: any, globalScale: number) => {
-                  const size = node.val + 1;
+                nodeCanvasObject={(node: unknown, ctx: CanvasRenderingContext2D, globalScale: number) => {
+                  const n = node as GraphNode & { x: number; y: number };
+                  const size = n.val + 1;
                   ctx.beginPath();
-                  ctx.arc(node.x, node.y, size, 0, 2 * Math.PI, false);
-                  ctx.fillStyle = node.color || "#94a3b8";
+                  ctx.arc(n.x, n.y, size, 0, 2 * Math.PI, false);
+                  ctx.fillStyle = n.color || "#94a3b8";
                   ctx.fill();
 
                   if (globalScale >= 1.5) {
-                    const label = node.name;
+                    const label = n.name;
                     const fontSize = Math.max(12 / globalScale, 2);
                     ctx.font = `${fontSize}px Sans-Serif`;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'top';
                     ctx.fillStyle = '#ffffff';
-                    ctx.fillText(label, node.x, node.y + size + 4);
+                    ctx.fillText(label, n.x, n.y + size + 4);
                   }
                 }}
               />
