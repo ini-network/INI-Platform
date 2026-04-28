@@ -739,17 +739,22 @@ export default function ExploreMap() {
 
               if (!user) return alert("You must be logged in to save contacts.");
 
+              const { data: existing } = await supabase
+                .from('saved_contacts')
+                .select('id')
+                .eq('contact_id', id)
+                .eq('user_id', user.id)
+                .maybeSingle();
+
+              if (existing) {
+                  alert(`⭐ ${activeContact.name} is already in your vault!`);
+                  return;
+              }
+
               const { error } = await supabase
                 .from('saved_contacts')
                 .insert([{ contact_id: id, user_id: user.id }]); // <-- ID attached here!
 
-              if (error) {
-                  if (error.code === '23505') {
-                      alert(`⭐ ${activeContact.name} is already in your vault!`);
-                      return;
-                  }
-                  throw error;
-              }
               alert(`⭐ Saved ${activeContact.name} to your profile!`);
             } catch (e) {
               console.error("Failed to save contact", e);

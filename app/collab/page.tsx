@@ -488,17 +488,22 @@ export default function CollaborationHub() {
 
                             if (!user) return alert("You must be logged in to save contacts.");
 
+                            const { data: existing } = await supabase
+                                .from('saved_contacts')
+                                .select('id')
+                                .eq('contact_id', id)
+                                .eq('user_id', user.id)
+                                .maybeSingle();
+
+                            if (existing) {
+                                alert(`⭐ ${inspectContact.name} is already in your vault!`);
+                                return;
+                            }
+
                             const { error } = await supabase
                                 .from('saved_contacts')
                                 .insert([{ contact_id: id, user_id: user.id }]);
 
-                            if (error) {
-                                if (error.code === '23505') {
-                                    alert(`⭐ ${inspectContact.name} is already in your vault!`);
-                                    return;
-                                }
-                                throw error;
-                            }
                             alert(`⭐ Saved ${inspectContact.name} to your vault!`);
                         } catch (e) {
                             console.error("Failed to save contact", e);
