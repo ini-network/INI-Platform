@@ -47,8 +47,7 @@ interface SavedContact {
         capabilities: string | null;
         notes: string | null;
         email_contact: string | null;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        contact_domains: any[];
+        contact_domains: { domains: { domain_name: string } }[]
     };
 }
 
@@ -74,6 +73,11 @@ export default function ProfilePage() {
     const [tagInput, setTagInput] = useState("");
     const [existingTags, setExistingTags] = useState<string[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
+
+    // Communities Served State
+    const [communities, setCommunities] = useState<string[]>([]);
+    const [communityInput, setCommunityInput] = useState("");
+
     // Standard Form Fields
     const [formData, setFormData] = useState({
         contact_name: "", email: "", campus: "", role_title: "", affiliation: "",
@@ -111,18 +115,47 @@ export default function ProfilePage() {
                     setSavedContacts(savedData as unknown as SavedContact[]);
                 }
 
-                // 3. Fetch User's Profile Visibility Status
+                // 3. Fetch User's Profile Visibility Status AND Data
                 if (user.email) {
+                    setFormData(prev => ({ ...prev, email: user.email || "" })); // Lock email
+
                     const {data: contactProfile} = await supabase
                         .from('contacts')
-                        .select('id, is_public')
+                        .select(`*, contact_domains( domains(domain_name) )`)
                         .eq('email_contact', user.email)
-                        .maybeSingle(); // maybeSingle prevents a crash if they don't have a profile yet
+                        .maybeSingle();
 
                     if (contactProfile) {
                         setHasProfile(true);
                         setContactId(contactProfile.id);
                         setIsPublic(contactProfile.is_public ?? true);
+
+                        // Auto-fill standard fields
+                        setFormData({
+                            contact_name: contactProfile.name || "",
+                            email: contactProfile.email_contact || user.email || "",
+                            campus: contactProfile.campus || "",
+                            role_title: contactProfile.role_title || "",
+                            affiliation: contactProfile.affiliation || "",
+                            url: contactProfile.url || "",
+                            capabilities: contactProfile.capabilities || "",
+                            communities_served: contactProfile.communities_served || "",
+                            needs_challenges: "",
+                            opportunity_ideas: "",
+                            notes: contactProfile.notes || "",
+                            interest_category: contactProfile.interest_category || ""
+                        });
+
+                        // Auto-fill Communities
+                        if (contactProfile.communities_served) {
+                            setCommunities(contactProfile.communities_served.split(',').map((s: string) => s.trim()).filter(Boolean));
+                        }
+
+                        // Auto-fill Micro-Tags
+                        if (contactProfile.contact_domains) {
+                            const existingProfileTags = contactProfile.contact_domains.map((cd: { domains: { domain_name: string } }) => cd.domains?.domain_name).filter(Boolean);
+                            setTags(existingProfileTags);
+                        }
                     }
                 }
 
@@ -165,9 +198,41 @@ export default function ProfilePage() {
         setTags(tags.filter(t => t !== tagToRemove));
     };
 
+    const handleAddCommunity = (newComm: string) => {
+        const trimmed = newComm.trim();
+        if (trimmed && !communities.includes(trimmed)) {
+            setCommunities([...communities, trimmed]);
+        }
+        setCommunityInput("");
+    };
+
+    const removeCommunity = (commToRemove: string) => {
+        setCommunities(communities.filter(c => c !== commToRemove));
+    };
+
+    const handleRemoveSavedContact = async (savedContactId: string) => {
+        if (!window.confirm("Remove this contact from your vault?")) return;
+
+        try {
+            const supabase = createClient();
+            const { error } = await supabase
+                .from('saved_contacts')
+                .delete()
+                .eq('id', savedContactId);
+
+            if (error) throw error;
+
+            // Instantly remove it from the UI
+            setSavedContacts(prev => prev.filter(c => c.id !== savedContactId));
+        } catch (err) {
+            console.error("Failed to remove saved contact:", err);
+            alert("Could not remove contact. Please try again.");
+        }
+    };
+
     // --- TOGGLE VISIBILITY HANDLER ---
     const handleToggleVisibility = async () => {
-        if (!contactId) return;
+        if (!formData.email) return;
         setIsSubmitting(true);
         setSubmitStatus("idle");
 
@@ -175,17 +240,21 @@ export default function ProfilePage() {
             const supabase = createClient();
             const newVisibility = !isPublic;
 
-            const {error} = await supabase
+            const { data, error } = await supabase
                 .from('contacts')
-                .update({is_public: newVisibility})
-                .eq('id', contactId);
+                .update({ is_public: newVisibility })
+                .eq('email_contact', formData.email) // Foolproof match against locked email
+                .select(); // Removed .single() to prevent crashes
 
             if (error) throw error;
+            if (!data || data.length === 0) throw new Error("Could not find matching profile to update.");
 
             setIsPublic(newVisibility);
-        } catch (error) {
-            console.error("Failed to update visibility", error);
-            setErrorMessage("Could not update profile visibility.");
+        } catch (error: unknown) {
+            const err = error as { message?: string; details?: string };
+            const errorMsg = err?.message || err?.details || String(error);
+            console.error("Error details:", errorMsg);
+            setErrorMessage(errorMsg || "An unexpected error occurred.");
             setSubmitStatus("error");
         } finally {
             setIsSubmitting(false);
@@ -224,38 +293,44 @@ export default function ProfilePage() {
                     affiliation: formData.affiliation,
                     url: formData.url,
                     capabilities: formData.capabilities,
-                    communities_served: formData.communities_served,
+                    communities_served: communities.join(', '), // NEW: Saves communities as string
                     notes: combinedNotes.trim(),
                     interest_category: formData.interest_category,
-                    is_public: true // Force public when they actively hit Publish
-                }], {onConflict: 'email_contact'})
+                    is_public: hasProfile ? isPublic : true // Keeps current visibility if editing
+                }], {onConflict: 'id'})
                 .select('id')
                 .single();
 
             if (contactError) throw contactError;
 
-            // 2. Handle the Smart Tags
-            if (tags.length > 0 && newContact) {
-                const domainsToInsert = tags.map(t => ({domain_name: t, status: 'unprocessed'}));
-                await supabase.from('domains').upsert(domainsToInsert, {
-                    onConflict: 'domain_name',
-                    ignoreDuplicates: true
-                });
+            // 2. Handle the Smart Tags (Wipe & Replace Strategy)
+            if (newContact) {
+                // Wipe old tags to ensure perfect sync if user removed any
+                await supabase.from('contact_domains').delete().eq('contact_id', newContact.id);
 
-                const {data: domainRecords} = await supabase
-                    .from('domains')
-                    .select('id, domain_name')
-                    .in('domain_name', tags);
-
-                if (domainRecords && domainRecords.length > 0) {
-                    const bridgeInserts = domainRecords.map(d => ({
-                        contact_id: newContact.id,
-                        domain_id: d.id
-                    }));
-                    await supabase.from('contact_domains').upsert(bridgeInserts, {
-                        onConflict: 'contact_id, domain_id',
+                if (tags.length > 0) {
+                    const domainsToInsert = tags.map(t => ({domain_name: t}));
+                    const { error: domainErr } = await supabase.from('domains').upsert(domainsToInsert, {
+                        onConflict: 'domain_name',
                         ignoreDuplicates: true
                     });
+
+                    if (domainErr) throw new Error("Failed to save domains: " + domainErr.message);
+
+                    const {data: domainRecords} = await supabase
+                        .from('domains')
+                        .select('id, domain_name')
+                        .in('domain_name', tags);
+
+                    if (domainRecords && domainRecords.length > 0) {
+                        const bridgeInserts = domainRecords.map(d => ({
+                            contact_id: newContact.id,
+                            domain_id: d.id
+                        }));
+                        // Just insert since we wiped the old ones clean
+                        const { error: bridgeErr } = await supabase.from('contact_domains').insert(bridgeInserts);
+                        if (bridgeErr) throw new Error("Failed to link domains: " + bridgeErr.message);
+                    }
                 }
             }
 
@@ -272,11 +347,12 @@ export default function ProfilePage() {
             setTags([]);
             window.scrollTo(0, 0);
 
-        } catch (error) {
+        } catch (error: unknown) {
             const err = error as { message?: string; details?: string };
-            console.error("Submission error details:", JSON.stringify(err, null, 2));
+            const errorMsg = err?.message || err?.details || String(error);
+            console.error("Error details:", errorMsg);
+            setErrorMessage(errorMsg || "An unexpected error occurred.");
             setSubmitStatus("error");
-            setErrorMessage(err.message || err.details || "Failed to publish profile. Check the console.");
         } finally {
             setIsSubmitting(false);
         }
@@ -343,8 +419,18 @@ export default function ProfilePage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {savedContacts.map((item) => (
                                         <div key={item.id}
-                                             className="p-6 border border-slate-200 rounded-2xl shadow-sm bg-white flex flex-col">
-                                            <h3 className="font-bold text-blue-900 text-xl">{item.contact.name}</h3>
+                                             className="p-6 border border-slate-200 rounded-2xl shadow-sm bg-white flex flex-col relative group">
+
+                                            {/* NEW: Remove Button */}
+                                            <button
+                                                onClick={() => handleRemoveSavedContact(item.id)}
+                                                className="absolute top-4 right-4 text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
+                                                title="Remove from Vault"
+                                            >
+                                                ✕
+                                            </button>
+
+                                            <h3 className="font-bold text-blue-900 text-xl pr-6">{item.contact.name}</h3>
                                             <p className="text-sm font-medium text-slate-500 mb-4">{item.contact.campus} | {item.contact.role_title}</p>
 
                                             <div
@@ -352,8 +438,8 @@ export default function ProfilePage() {
                                                 {item.contact.contact_domains.map((cd, idx) => (
                                                     <span key={idx}
                                                           className="bg-sky-50 text-sky-700 text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider border border-sky-100">
-                            {cd.domains.domain_name}
-                          </span>
+                                                        {cd.domains.domain_name}
+                                                    </span>
                                                 ))}
                                             </div>
                                         </div>
@@ -427,11 +513,10 @@ export default function ProfilePage() {
                                                    className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"/>
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-700 mb-1">Email /
-                                                LinkedIn *</label>
-                                            <input required name="email" value={formData.email}
-                                                   onChange={handleInputChange}
-                                                   className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"/>
+                                            <label className="block text-xs font-bold text-slate-700 mb-1">Email / LinkedIn *</label>
+                                            <input required name="email" value={formData.email} readOnly
+                                                   title="Change your email through your account settings."
+                                                   className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-100 text-slate-500 outline-none cursor-not-allowed"/>
                                         </div>
                                         <div>
                                             <label className="block text-xs font-bold text-slate-700 mb-1">Role /
@@ -557,7 +642,35 @@ export default function ProfilePage() {
                                 <div className="space-y-4">
                                     <h3 className="text-sm font-black uppercase text-slate-400 tracking-widest border-b pb-2">Extended
                                         Details</h3>
-                                    <div className="space-y-4">
+                                    <div className="space-y-6">
+
+                                        {/* NEW: COMMUNITIES SERVED TAG SYSTEM */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-700 mb-1">Communities Served</label>
+                                            <p className="text-[10px] text-slate-500 mb-2">Type a demographic or community and press <b>Enter</b>.</p>
+                                            <div className="border border-slate-300 rounded-lg p-2 bg-white flex flex-wrap gap-2 focus-within:ring-2 focus-within:ring-purple-500 transition-all">
+                                                {communities.map(comm => (
+                                                    <span key={comm} className="flex items-center gap-1 bg-purple-100 text-purple-800 px-2.5 py-1 rounded text-xs font-bold shadow-sm">
+                                                        {comm}
+                                                        <button type="button" onClick={() => removeCommunity(comm)} className="hover:text-red-600 focus:outline-none">✕</button>
+                                                    </span>
+                                                ))}
+                                                <input
+                                                    type="text"
+                                                    value={communityInput}
+                                                    onChange={(e) => setCommunityInput(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === "Enter" || e.key === ",") {
+                                                            e.preventDefault();
+                                                            if (communityInput) handleAddCommunity(communityInput);
+                                                        }
+                                                    }}
+                                                    placeholder={communities.length === 0 ? "e.g., Disabled Students, Bronx residents..." : ""}
+                                                    className="flex-1 outline-none text-sm min-w-[150px] bg-transparent"
+                                                />
+                                            </div>
+                                        </div>
+
                                         <div>
                                             <label className="block text-xs font-bold text-slate-700 mb-1">Capabilities
                                                 / Expertise</label>
