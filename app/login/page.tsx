@@ -29,6 +29,7 @@ export default function LoginPage() {
     useEffect(() => {
         const {data: {subscription}} = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN' && session) {
+                router.refresh(); // Fix for the layout cache issue
                 router.push('/');
             }
         });
@@ -74,23 +75,22 @@ export default function LoginPage() {
                 email,
                 password,
             });
-            if (error) setErrorMessage(error.message);
+
+            if (error) {
+                setErrorMessage(error.message);
+            } else {
+                // BUG FIX: Force Next.js to refresh the layout and header state!
+                router.refresh();
+                router.push('/');
+            }
         }
 
         setIsLoading(false);
     };
 
-    const handleLinkedInLogin = async () => {
-        const {error} = await supabase.auth.signInWithOAuth({
-            provider: 'linkedin',
-            options: {redirectTo: getRedirectUrl()}
-        });
-        if (error) setErrorMessage(error.message);
-    };
-
     return (
         <div className="flex min-h-screen items-center justify-center bg-slate-900 p-4 font-sans">
-            <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+            <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl relative">
 
                 {/* Header */}
                 <div className="mb-6 text-center">
@@ -205,14 +205,21 @@ export default function LoginPage() {
                     </button>
                 </form>
 
+                {/* Updated Anonymous Browsing Button */}
                 <div className="mt-6 border-t border-slate-100 pt-6">
                     <button
                         type="button"
-                        onClick={handleLinkedInLogin}
-                        className="w-full flex items-center justify-center py-2.5 bg-[#0A66C2] text-white font-bold rounded-lg hover:bg-[#004182] transition-colors shadow-sm"
+                        onClick={() => {
+                            // 1. Force a refresh to clear any cached "auth-required" layouts
+                            router.refresh();
+                            // 2. Small delay ensures the refresh signal is processed before navigation
+                            setTimeout(() => {
+                                router.push('/');
+                            }, 100);
+                        }}
+                        className="w-full flex items-center justify-center py-2.5 bg-slate-100 text-slate-600 font-bold rounded-lg hover:bg-slate-200 transition-colors shadow-sm"
                     >
-                        <span className="mr-2 font-serif font-bold text-lg">in</span>
-                        Continue with LinkedIn
+                        👀 Browse without logging in
                     </button>
                 </div>
 

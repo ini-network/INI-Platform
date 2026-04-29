@@ -1,7 +1,10 @@
+"use client"; // Add this to use hooks
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/Header"; // <-- Import the new Header
+import Header from "@/components/Header";
+import { usePathname } from "next/navigation"; // Import usePathname
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,36 +16,24 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Updated to your actual project details
-export const metadata: Metadata = {
-  title: "INI Civic Network",
-  description: "CUNY Civic Innovation Network",
-};
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pathname = usePathname();
+  const isLoginPage = pathname === "/login"; // Check if path is /login
+
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-    >
-      {/* h-screen and overflow-hidden are critical here.
-        They lock the window size so your Workspace and Map components
-        can handle their own internal scrolling cleanly.
-      */}
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
       <body className="flex flex-col h-screen overflow-hidden bg-slate-50 text-slate-900 font-sans">
 
-        {/* THE GLOBAL HEADER */}
-        <Header />
+        {/* Only render Header if NOT on the login page */}
+        {!isLoginPage && <Header />}
 
-        {/* THE PAGE CONTENT */}
         <main className="flex-1 overflow-hidden relative">
           {children}
         </main>
-
       </body>
     </html>
   );
