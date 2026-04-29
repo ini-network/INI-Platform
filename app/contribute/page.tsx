@@ -7,7 +7,7 @@ export default function ContributorsHub() {
   const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/1VXaj8YPklVva7zJ92ZBA7EZg3Aw2LGhZ5PMiuNFMQyc/edit?ts=69de7307";
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8 font-sans text-black">
+    <div className="h-full overflow-y-auto bg-slate-50 p-8 font-sans text-black">
       {/* Top Navigation */}
       <div className="max-w-4xl mx-auto flex justify-between items-center mb-12">
         <h1 className="text-2xl font-bold text-slate-800">🤝 Join the Discovery Network</h1>
@@ -16,7 +16,7 @@ export default function ContributorsHub() {
         </Link>
       </div>
 
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto space-y-8 pb-24">
 
         {/* Mission Statement */}
         <div className="bg-blue-600 text-white p-8 rounded-2xl shadow-md">
