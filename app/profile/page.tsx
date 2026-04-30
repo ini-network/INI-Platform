@@ -4,7 +4,7 @@ import Link from "next/link";
 import {useState, useEffect} from "react";
 import {createClient} from "@/utils/supabase/client";
 import MiniMapModal from "@/components/MiniMapModal";
-import { ContactProfile } from "@/components/ProfileModal";
+import {ContactProfile} from "@/components/ProfileModal";
 
 // --- CORE DATA CONSTANTS ---
 const CUNY_LOCATIONS = [
@@ -121,7 +121,7 @@ export default function ProfilePage() {
 
                 // 3. Fetch User's Profile Visibility Status AND Data
                 if (user.email) {
-                    setFormData(prev => ({ ...prev, email: user.email || "" })); // Lock email
+                    setFormData(prev => ({...prev, email: user.email || ""})); // Lock email
 
                     const {data: contactProfile} = await supabase
                         .from('contacts')
@@ -157,7 +157,9 @@ export default function ProfilePage() {
 
                         // Auto-fill Micro-Tags
                         if (contactProfile.contact_domains) {
-                            const existingProfileTags = contactProfile.contact_domains.map((cd: { domains: { domain_name: string } }) => cd.domains?.domain_name).filter(Boolean);
+                            const existingProfileTags = contactProfile.contact_domains.map((cd: {
+                                domains: { domain_name: string }
+                            }) => cd.domains?.domain_name).filter(Boolean);
                             setTags(existingProfileTags);
                         }
                     }
@@ -175,7 +177,7 @@ export default function ProfilePage() {
                 }
 
                 // 5. NEW: Fetch entire network directory to power the Mini-Map
-                const { data: allContactsData } = await supabase
+                const {data: allContactsData} = await supabase
                     .from('contacts')
                     .select(`*, contact_domains (domains (domain_name))`)
                     .eq('is_public', true);
@@ -235,7 +237,7 @@ export default function ProfilePage() {
 
         try {
             const supabase = createClient();
-            const { error } = await supabase
+            const {error} = await supabase
                 .from('saved_contacts')
                 .delete()
                 .eq('id', savedContactId);
@@ -260,9 +262,9 @@ export default function ProfilePage() {
             const supabase = createClient();
             const newVisibility = !isPublic;
 
-            const { data, error } = await supabase
+            const {data, error} = await supabase
                 .from('contacts')
-                .update({ is_public: newVisibility })
+                .update({is_public: newVisibility})
                 .eq('email_contact', formData.email) // Foolproof match against locked email
                 .select(); // Removed .single() to prevent crashes
 
@@ -330,7 +332,7 @@ export default function ProfilePage() {
 
                 if (tags.length > 0) {
                     const domainsToInsert = tags.map(t => ({domain_name: t}));
-                    const { error: domainErr } = await supabase.from('domains').upsert(domainsToInsert, {
+                    const {error: domainErr} = await supabase.from('domains').upsert(domainsToInsert, {
                         onConflict: 'domain_name',
                         ignoreDuplicates: true
                     });
@@ -348,15 +350,33 @@ export default function ProfilePage() {
                             domain_id: d.id
                         }));
                         // Just insert since we wiped the old ones clean
-                        const { error: bridgeErr } = await supabase.from('contact_domains').insert(bridgeInserts);
+                        const {error: bridgeErr} = await supabase.from('contact_domains').insert(bridgeInserts);
                         if (bridgeErr) throw new Error("Failed to link domains: " + bridgeErr.message);
                     }
                 }
             }
 
+            // --- NEW FIX: Link the profile to the user table ---
+            const {data: {user: currentUser}} = await supabase.auth.getUser();
+            if (currentUser && newContact) {
+                const {error: userUpdateError} = await supabase
+                    .from('users')
+                    .upsert({
+                        id: currentUser.id,
+                        linked_contact_id: newContact.id,
+                        email: currentUser.email, // Safe to include
+                        name: formData.contact_name // Optional, syncs their name
+                    });
+
+                if (userUpdateError) {
+                    console.error("Failed to link profile to user:", userUpdateError);
+                    // You might want to throw here, but logging is safer to not break the UI
+                }
+            }
+// ---------------------------------------------------
+
             setSubmitStatus("success");
             setHasProfile(true);
-            setIsPublic(true);
             if (newContact) setContactId(newContact.id);
 
             setFormData({
@@ -445,23 +465,27 @@ export default function ProfilePage() {
                                             <p className="text-sm font-medium text-slate-600 mb-2">{item.contact.campus} | {item.contact.role_title}</p>
 
                                             {item.contact.affiliation && <p className="text-sm text-slate-700"><span
-                                                className="font-semibold">🏢 Title:</span> {item.contact.affiliation}</p>}
+                                                className="font-semibold">🏢 Title:</span> {item.contact.affiliation}
+                                            </p>}
                                             {item.contact.contact_domains && item.contact.contact_domains.length > 0 &&
                                                 <p className="text-sm text-slate-700"><span
-                                                    className="font-semibold">🎯 Focus:</span> {item.contact.contact_domains.map(cd => cd.domains?.domain_name).filter(Boolean).join(", ")}</p>}
+                                                    className="font-semibold">🎯 Focus:</span> {item.contact.contact_domains.map(cd => cd.domains?.domain_name).filter(Boolean).join(", ")}
+                                                </p>}
 
                                             {item.contact.capabilities && <p className="text-sm text-slate-700"><span
-                                                className="font-semibold">🛠️ Skillset:</span> {item.contact.capabilities}</p>}
+                                                className="font-semibold">🛠️ Skillset:</span> {item.contact.capabilities}
+                                            </p>}
 
                                             {item.contact.notes && (
-                                                <div className="mt-3 bg-slate-50 p-3 rounded-lg border border-slate-100 mb-4">
+                                                <div
+                                                    className="mt-3 bg-slate-50 p-3 rounded-lg border border-slate-100 mb-4">
                                                     <p className="text-sm text-slate-600 italic">
                                                         <span
                                                             className="font-semibold not-italic text-slate-700">📝 Notes:</span> {item.contact.notes}
                                                     </p>
                                                 </div>
                                             )}
-                                            
+
                                             <div className="mt-auto pt-4 flex flex-wrap">
                                                 <button
                                                     onClick={() => handleRemoveSavedContact(item.id)}
@@ -569,7 +593,8 @@ export default function ProfilePage() {
                                                    className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"/>
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-700 mb-1">Email / LinkedIn *</label>
+                                            <label className="block text-xs font-bold text-slate-700 mb-1">Email /
+                                                LinkedIn *</label>
                                             <input required name="email" value={formData.email} readOnly
                                                    title="Change your email through your account settings."
                                                    className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-100 text-slate-500 outline-none cursor-not-allowed"/>
@@ -702,13 +727,18 @@ export default function ProfilePage() {
 
                                         {/* NEW: COMMUNITIES SERVED TAG SYSTEM */}
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-700 mb-1">Communities Served</label>
-                                            <p className="text-[10px] text-slate-500 mb-2">Type a demographic or community and press <b>Enter</b>.</p>
-                                            <div className="border border-slate-300 rounded-lg p-2 bg-white flex flex-wrap gap-2 focus-within:ring-2 focus-within:ring-purple-500 transition-all">
+                                            <label className="block text-xs font-bold text-slate-700 mb-1">Communities
+                                                Served</label>
+                                            <p className="text-[10px] text-slate-500 mb-2">Type a demographic or
+                                                community and press <b>Enter</b>.</p>
+                                            <div
+                                                className="border border-slate-300 rounded-lg p-2 bg-white flex flex-wrap gap-2 focus-within:ring-2 focus-within:ring-purple-500 transition-all">
                                                 {communities.map(comm => (
-                                                    <span key={comm} className="flex items-center gap-1 bg-purple-100 text-purple-800 px-2.5 py-1 rounded text-xs font-bold shadow-sm">
+                                                    <span key={comm}
+                                                          className="flex items-center gap-1 bg-purple-100 text-purple-800 px-2.5 py-1 rounded text-xs font-bold shadow-sm">
                                                         {comm}
-                                                        <button type="button" onClick={() => removeCommunity(comm)} className="hover:text-red-600 focus:outline-none">✕</button>
+                                                        <button type="button" onClick={() => removeCommunity(comm)}
+                                                                className="hover:text-red-600 focus:outline-none">✕</button>
                                                     </span>
                                                 ))}
                                                 <input
@@ -763,11 +793,11 @@ export default function ProfilePage() {
                     onSaveContact={async (id) => {
                         try {
                             const supabase = createClient();
-                            const { data: { user } } = await supabase.auth.getUser();
+                            const {data: {user}} = await supabase.auth.getUser();
 
                             if (!user) return alert("You must be logged in to save contacts.");
 
-                            const { data: existing } = await supabase
+                            const {data: existing} = await supabase
                                 .from('saved_contacts')
                                 .select('id')
                                 .eq('contact_id', id)
@@ -776,7 +806,10 @@ export default function ProfilePage() {
 
                             if (existing) return alert(`⭐ This contact is already in your vault!`);
 
-                            const { error } = await supabase.from('saved_contacts').insert([{ contact_id: id, user_id: user.id }]);
+                            const {error} = await supabase.from('saved_contacts').insert([{
+                                contact_id: id,
+                                user_id: user.id
+                            }]);
                             if (error) throw error;
                             alert(`⭐ Saved contact to your vault!`);
                         } catch (e) {
