@@ -35,6 +35,21 @@ interface Contact {
     domains: string[];
 }
 
+// --- TOOLTIP COMPONENT FOR PROGRESSIVE DISCLOSURE ---
+const InfoTooltip = ({ text }: { text: string }) => {
+    return (
+        <div className="group relative inline-flex items-center justify-center ml-2 align-middle">
+            <button type="button" className="w-4 h-4 rounded-full bg-slate-200 text-slate-500 text-[10px] font-bold flex items-center justify-center hover:bg-blue-100 hover:text-blue-600 transition-colors">
+                ?
+            </button>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 p-2.5 bg-slate-800 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[9999] text-center pointer-events-none font-normal">
+                {text}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-800"></div>
+            </div>
+        </div>
+    );
+};
+
 // --- CUSTOM COLLAPSIBLE FOLDER DROPDOWN ---
 const FolderDropdown = ({groups, selected, onChange}: {
     groups: Record<string, string[]>,
@@ -132,6 +147,22 @@ export default function Home() {
     // State for the Micro Map & Modal
     const [activeMapContact, setActiveMapContact] = useState<Contact | null>(null);
 
+    // --- TUTORIAL / ONBOARDING STATE ---
+    const [tourStep, setTourStep] = useState<number>(-1);
+
+    useEffect(() => {
+        const hasSeen = localStorage.getItem("hasSeenTutorial");
+        if (!hasSeen) {
+            setTourStep(0); // Show Welcome Modal
+        }
+    }, []);
+
+    const startTour = () => setTourStep(1);
+    const endTour = () => {
+        setTourStep(-1);
+        localStorage.setItem("hasSeenTutorial", "true");
+    };
+
     // --- INITIAL DATA FETCH ---
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -228,54 +259,98 @@ export default function Home() {
             <div className="w-full h-full p-8 overflow-y-auto bg-white">
 
                 {/* Filter UI */}
-                <div className="grid grid-cols-4 gap-4 mb-6">
-                    <div className="flex flex-col">
-                        <label className="text-xs font-bold uppercase text-slate-400 mb-1">Campus</label>
-                        <select
-                            className="border border-slate-200 rounded-lg p-2 text-sm bg-white"
-                            value={selectedCampus}
-                            onChange={(e) => setSelectedCampus(e.target.value)}
-                        >
-                            <option value="All">All CUNY Campuses</option>
-                            {uniqueCampuses.map(campus => (
-                                <option key={campus as string} value={campus as string}>{campus as string}</option>
-                            ))}
-                        </select>
-                    </div>
+                <div className={`relative rounded-xl transition-all duration-300 ${tourStep === 1 ? 'z-[100] bg-white p-4 shadow-2xl ring-4 ring-blue-400/50 -m-4 mb-2' : 'mb-6'}`}>
+                    <div className="grid grid-cols-4 gap-4">
+                        <div className="flex flex-col">
+                            <label className="text-xs font-bold uppercase text-slate-400 mb-1 flex items-center">
+                                Campus
+                                <InfoTooltip text="Filter the directory to only show contacts affiliated with a specific CUNY campus." />
+                            </label>
+                            <select
+                                className="border border-slate-200 rounded-lg p-2 text-sm bg-white"
+                                value={selectedCampus}
+                                onChange={(e) => setSelectedCampus(e.target.value)}
+                            >
+                                <option value="All">All CUNY Campuses</option>
+                                {uniqueCampuses.map(campus => (
+                                    <option key={campus as string} value={campus as string}>{campus as string}</option>
+                                ))}
+                            </select>
+                        </div>
 
-                    <div className="flex flex-col">
-                        <label className="text-xs font-bold uppercase text-slate-400 mb-1">Focus Area</label>
-                        <FolderDropdown
-                            groups={groupedFocusAreas}
-                            selected={selectedFocus}
-                            onChange={setSelectedFocus}
-                        />
-                    </div>
+                        <div className="flex flex-col">
+                            <label className="text-xs font-bold uppercase text-slate-400 mb-1 flex items-center">
+                                Focus Area
+                                <InfoTooltip text="Select a primary field of work or interest to find specialized professionals." />
+                            </label>
+                            <FolderDropdown
+                                groups={groupedFocusAreas}
+                                selected={selectedFocus}
+                                onChange={setSelectedFocus}
+                            />
+                        </div>
 
-                    <div className="col-span-2 flex flex-col">
-                        <label className="text-xs font-bold uppercase text-slate-400 mb-1">Keyword Search</label>
-                        <input
-                            type="text"
-                            placeholder="Search names, orgs, or notes..."
-                            className="border border-slate-200 rounded-lg p-2 text-sm"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
+                        <div className="col-span-2 flex flex-col">
+                            <label className="text-xs font-bold uppercase text-slate-400 mb-1 flex items-center">
+                                Keyword Search
+                                <InfoTooltip text="Search across names, organizations, capabilities, and notes to find exact matches." />
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Search names, orgs, or notes..."
+                                className="border border-slate-200 rounded-lg p-2 text-sm"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
                     </div>
+                    
+                    {tourStep === 1 && (
+                        <div className="absolute top-full left-0 mt-4 bg-white rounded-xl shadow-xl p-5 w-80 z-[101] animate-in fade-in slide-in-from-top-4 border border-blue-100">
+                            <h3 className="font-bold text-blue-900 mb-2">1. Powerful Filters</h3>
+                            <p className="text-sm text-slate-600 mb-4">Quickly narrow down the directory by selecting a specific campus, focus area, or typing keywords.</p>
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs font-semibold text-slate-400">Step 1 of 3</span>
+                                <div className="flex gap-2">
+                                    <button onClick={endTour} className="text-xs font-medium text-slate-500 hover:text-slate-700 px-2">Skip</button>
+                                    <button onClick={() => setTourStep(2)} className="text-xs font-medium text-white bg-blue-600 px-3 py-1.5 rounded hover:bg-blue-700">Next</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                <h2 className="text-xl font-semibold mb-4 text-slate-700">🗂️ Civic Directory</h2>
+                {/* Directory Container */}
+                <div className={`relative rounded-xl transition-all duration-300 ${tourStep === 2 ? 'z-[100] bg-white p-4 shadow-2xl ring-4 ring-blue-400/50 -m-4' : ''}`}>
+                    <h2 className="text-xl font-semibold mb-4 text-slate-700 flex items-center">
+                        🗂️ Civic Directory
+                        <InfoTooltip text="This is the main list of contacts matching your filters. You can save them to your vault or view their network map." />
+                    </h2>
 
-                {/* Render Directory Cards */}
-                {displayedContacts.length === 0 ? (
-                    <div className="bg-slate-50 border border-slate-200 text-slate-600 p-6 rounded-xl text-center">
-                        <p className="font-medium">No contacts match your filters.</p>
-                    </div>
-                ) : (
-                    <div className="space-y-4 pb-8">
-                        <p className="text-sm text-slate-500">Showing {displayedContacts.length} Matches</p>
+                    {tourStep === 2 && (
+                        <div className="absolute top-0 right-0 -mt-4 bg-white rounded-xl shadow-xl p-5 w-80 z-[101] animate-in fade-in slide-in-from-right-4 border border-blue-100">
+                            <h3 className="font-bold text-blue-900 mb-2">2. Discover & Connect</h3>
+                            <p className="text-sm text-slate-600 mb-4">Browse profiles, save important contacts to your personal vault, or reach out directly to collaborate.</p>
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs font-semibold text-slate-400">Step 2 of 3</span>
+                                <div className="flex gap-2">
+                                    <button onClick={endTour} className="text-xs font-medium text-slate-500 hover:text-slate-700 px-2">Skip</button>
+                                    <button onClick={() => setTourStep(3)} className="text-xs font-medium text-white bg-blue-600 px-3 py-1.5 rounded hover:bg-blue-700">Next</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
-                        {displayedContacts.slice(0, 50).map((person, index) => (
+                    {/* Render Directory Cards */}
+                    {displayedContacts.length === 0 ? (
+                        <div className="bg-slate-50 border border-slate-200 text-slate-600 p-6 rounded-xl text-center">
+                            <p className="font-medium">No contacts match your filters.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4 pb-8">
+                            <p className="text-sm text-slate-500">Showing {displayedContacts.length} Matches</p>
+
+                            {displayedContacts.slice(0, 50).map((person, index) => (
                             <div key={index}
                                  className="p-5 border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
                                 <h3 className="text-lg font-bold text-blue-900">{person.name}</h3>
@@ -358,15 +433,30 @@ export default function Home() {
                         ))}
                     </div>
                 )}
+                </div>
             </div>
 
             {/* NEW FLOATING COPILOT */}
-            <Copilot onInspectProfile={(name) => {
-                const found = allContacts.find(c => c.name === name);
-                if (found) {
-                    setActiveMapContact(found); // Opens the modal
-                }
-            }}/>
+            <div className={`relative transition-all duration-300 ${tourStep === 3 ? 'z-[100]' : 'z-50'}`}>
+                {tourStep === 3 && (
+                    <div className="fixed bottom-24 right-8 bg-white rounded-xl shadow-2xl p-5 w-80 z-[101] animate-in fade-in slide-in-from-bottom-4 border border-blue-400 ring-4 ring-blue-400/20">
+                        <h3 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
+                            <span>🤖</span> 3. AI Copilot
+                        </h3>
+                        <p className="text-sm text-slate-600 mb-4">Need help finding someone specific? Ask the AI Copilot to analyze the network and suggest the best connections.</p>
+                        <div className="flex justify-between items-center">
+                            <span className="text-xs font-semibold text-slate-400">Step 3 of 3</span>
+                            <button onClick={endTour} className="text-xs font-medium text-white bg-blue-600 px-3 py-1.5 rounded hover:bg-blue-700">Finish Tour</button>
+                        </div>
+                    </div>
+                )}
+                <Copilot onInspectProfile={(name) => {
+                    const found = allContacts.find(c => c.name === name);
+                    if (found) {
+                        setActiveMapContact(found); // Opens the modal
+                    }
+                }}/>
+            </div>
 
             {/* MAP MODAL OVERLAY */}
             {activeMapContact && (
@@ -404,6 +494,48 @@ export default function Home() {
                     }}
                 />
             )}
+
+            {/* TOUR BACKDROP */}
+            {tourStep > 0 && (
+                <div className="fixed inset-0 z-[90] bg-slate-900/40 pointer-events-none transition-opacity duration-300" />
+            )}
+
+            {/* WELCOME MODAL */}
+            {tourStep === 0 && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 fade-in duration-200">
+                        <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl mb-4">
+                            👋
+                        </div>
+                        <h2 className="text-2xl font-bold text-slate-800 mb-3">Welcome to INI Civic Network!</h2>
+                        <p className="text-slate-600 mb-6 leading-relaxed">
+                            This platform helps you discover, connect, and collaborate with civic professionals across the CUNY network. 
+                            <br/><br/>
+                            Would you like a quick tour to see how everything works?
+                        </p>
+                        <div className="flex gap-3 justify-end">
+                            <button onClick={endTour} className="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors">
+                                Skip for now
+                            </button>
+                            <button onClick={startTour} className="px-5 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm transition-colors">
+                                Start Tour
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* RESTART TOUR BUTTON */}
+            <button 
+                onClick={() => setTourStep(0)}
+                className="fixed bottom-6 left-6 z-40 flex items-center justify-center w-12 h-12 bg-white border border-slate-200 text-slate-600 rounded-full shadow-lg hover:bg-blue-50 hover:text-blue-600 hover:scale-105 transition-all group"
+                title="Restart Tutorial"
+            >
+                <span className="text-xl">❓</span>
+                <span className="absolute left-full ml-3 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible whitespace-nowrap transition-all pointer-events-none">
+                    Restart Tutorial
+                </span>
+            </button>
         </div>
     );
 }
