@@ -30,6 +30,21 @@ interface CollaborationPost {
     };
 }
 
+// --- TOOLTIP COMPONENT FOR PROGRESSIVE DISCLOSURE ---
+const InfoTooltip = ({ text }: { text: string }) => {
+    return (
+        <div className="group relative inline-flex items-center justify-center ml-2 align-middle">
+            <button type="button" className="w-4 h-4 rounded-full bg-slate-200 text-slate-500 text-[10px] font-bold flex items-center justify-center hover:bg-blue-100 hover:text-blue-600 transition-colors">
+                ?
+            </button>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 p-2.5 bg-slate-800 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[9999] text-center pointer-events-none font-normal">
+                {text}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-800"></div>
+            </div>
+        </div>
+    );
+};
+
 export default function CollaborationHub() {
     // Feed State
     const [posts, setPosts] = useState<CollaborationPost[]>([]);
@@ -61,6 +76,20 @@ export default function CollaborationHub() {
     const uniqueFocusAreas = Object.keys(INTEREST_BUCKETS);
 
     const [currentUserContactId, setCurrentUserContactId] = useState<string | null>(null);
+
+    // --- TUTORIAL / ONBOARDING STATE ---
+    const [tourStep, setTourStep] = useState<number>(-1);
+
+    useEffect(() => {
+        const hasSeen = localStorage.getItem("hasSeenCollabTutorial");
+        if (!hasSeen) setTourStep(0); // Show Welcome Modal
+    }, []);
+
+    const startTour = () => setTourStep(1);
+    const endTour = () => {
+        setTourStep(-1);
+        localStorage.setItem("hasSeenCollabTutorial", "true");
+    };
 
     // --- INITIAL DATA FETCH ---
     useEffect(() => {
@@ -213,9 +242,12 @@ export default function CollaborationHub() {
                 <div className="max-w-5xl mx-auto">
 
                     {/* PAGE HEADER & CONTROLS */}
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+                    <div className={`relative transition-all duration-300 ${tourStep === 3 ? 'z-[100] bg-white p-4 rounded-xl shadow-2xl ring-4 ring-blue-400/50 -m-4 mb-4' : 'mb-8'} flex flex-col md:flex-row justify-between items-start md:items-end gap-4`}>
                         <div>
-                            <h2 className="text-3xl font-black text-slate-800 tracking-tight">Active Opportunities</h2>
+                            <h2 className="text-3xl font-black text-slate-800 tracking-tight flex items-center">
+                                Active Opportunities
+                                <InfoTooltip text="This hub displays real-time needs and offers from across the network. Filter, post, or connect directly." />
+                            </h2>
                             <p className="text-slate-500 font-medium mt-1">Discover calls for collaboration or offer
                                 your expertise.</p>
                         </div>
@@ -225,11 +257,21 @@ export default function CollaborationHub() {
                         >
                             + Create Post
                         </button>
+                        
+                        {tourStep === 3 && (
+                            <div className="absolute top-full right-0 mt-4 bg-white rounded-xl shadow-xl p-5 w-80 z-[101] animate-in fade-in slide-in-from-top-4 border border-blue-100 text-left">
+                                <h3 className="font-bold text-blue-900 mb-2 flex items-center gap-2"><span>📢</span> 3. Share With The Network</h3>
+                                <p className="text-sm text-slate-600 mb-4 whitespace-normal">Have an opportunity or need help? Click "Create Post" to broadcast it to the community. Posts automatically expire after your chosen duration.</p>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs font-semibold text-slate-400">Step 3 of 3</span>
+                                    <button onClick={endTour} className="text-xs font-medium text-white bg-blue-600 px-3 py-1.5 rounded hover:bg-blue-700">Finish Tour</button>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* FILTER BAR */}
-                    <div
-                        className="flex flex-wrap gap-4 mb-8 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                    <div className={`relative transition-all duration-300 ${tourStep === 1 ? 'z-[100] bg-white p-4 rounded-2xl shadow-2xl ring-4 ring-blue-400/50 -mx-4 mb-8' : 'bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-8'} flex flex-wrap gap-4`}>
                         <div className="flex bg-slate-100 p-1 rounded-xl w-full md:w-auto">
                             <button onClick={() => setTypeFilter("All")}
                                     className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all ${typeFilter === "All" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>All
@@ -251,9 +293,24 @@ export default function CollaborationHub() {
                             <option value="All">Filter by Focus Area...</option>
                             {uniqueFocusAreas.map(focus => <option key={focus} value={focus}>{focus}</option>)}
                         </select>
+
+                        {tourStep === 1 && (
+                            <div className="absolute top-full left-0 mt-4 bg-white rounded-xl shadow-xl p-5 w-80 z-[101] animate-in fade-in slide-in-from-top-4 border border-blue-100">
+                                <h3 className="font-bold text-blue-900 mb-2">1. Filter Opportunities</h3>
+                                <p className="text-sm text-slate-600 mb-4">Toggle between "Needs" and "Offers", or select a specific focus area to quickly find relevant posts.</p>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs font-semibold text-slate-400">Step 1 of 3</span>
+                                    <div className="flex gap-2">
+                                        <button onClick={endTour} className="text-xs font-medium text-slate-500 hover:text-slate-700 px-2">Skip</button>
+                                        <button onClick={() => setTourStep(2)} className="text-xs font-medium text-white bg-blue-600 px-3 py-1.5 rounded hover:bg-blue-700">Next</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* THE FEED */}
+                    <div className={`relative transition-all duration-300 ${tourStep === 2 ? 'z-[100] bg-white p-4 rounded-2xl shadow-2xl ring-4 ring-blue-400/50 -mx-4' : ''}`}>
                     {isLoading ? (
                         <div className="flex justify-center p-12">
                             <div className="animate-pulse text-slate-400 font-bold">Loading Opportunities...</div>
@@ -347,6 +404,21 @@ export default function CollaborationHub() {
                             ))}
                         </div>
                     )}
+                    
+                    {tourStep === 2 && (
+                        <div className="absolute top-0 right-0 -mt-4 bg-white rounded-xl shadow-xl p-5 w-80 z-[101] animate-in fade-in slide-in-from-right-4 border border-blue-100">
+                            <h3 className="font-bold text-blue-900 mb-2">2. Browse & Connect</h3>
+                            <p className="text-sm text-slate-600 mb-4">Review active posts. You can inspect the author's full profile or click "Express Interest" to email them directly.</p>
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs font-semibold text-slate-400">Step 2 of 3</span>
+                                <div className="flex gap-2">
+                                    <button onClick={endTour} className="text-xs font-medium text-slate-500 hover:text-slate-700 px-2">Skip</button>
+                                    <button onClick={() => setTourStep(3)} className="text-xs font-medium text-white bg-blue-600 px-3 py-1.5 rounded hover:bg-blue-700">Next</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    </div>
                 </div>
             </div>
 
@@ -511,6 +583,40 @@ export default function CollaborationHub() {
                     }}
                 />
             )}
+
+            {/* TOUR BACKDROP */}
+            {tourStep > 0 && (
+                <div className="fixed inset-0 z-[90] bg-slate-900/60 pointer-events-none transition-opacity duration-300" />
+            )}
+
+            {/* WELCOME MODAL */}
+            {tourStep === 0 && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 fade-in duration-200">
+                        <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl mb-4">🤝</div>
+                        <h2 className="text-2xl font-bold text-slate-800 mb-3">Welcome to the Collab Hub!</h2>
+                        <p className="text-slate-600 mb-6 leading-relaxed">
+                            This is the space to find active project needs, offer your expertise, and build meaningful partnerships across the civic network.
+                            <br/><br/>
+                            Would you like a quick tour?
+                        </p>
+                        <div className="flex gap-3 justify-end">
+                            <button onClick={endTour} className="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors">Skip for now</button>
+                            <button onClick={startTour} className="px-5 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm transition-colors">Start Tour</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* RESTART TOUR BUTTON */}
+            <button 
+                onClick={() => setTourStep(0)} 
+                className="fixed bottom-6 left-6 z-40 flex items-center justify-center w-12 h-12 bg-white border border-slate-200 text-slate-600 rounded-full shadow-lg hover:bg-blue-50 hover:text-blue-600 hover:scale-105 transition-all group" 
+                title="Restart Tutorial"
+            >
+                <span className="text-xl">❓</span>
+                <span className="absolute left-full ml-3 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible whitespace-nowrap transition-all pointer-events-none">Restart Tutorial</span>
+            </button>
 
         </div>
     );

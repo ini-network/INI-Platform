@@ -43,6 +43,21 @@ interface GraphLink {
   target: string | number;
 }
 
+// --- TOOLTIP COMPONENT FOR PROGRESSIVE DISCLOSURE ---
+const InfoTooltip = ({ text }: { text: string }) => {
+  return (
+    <div className="group relative inline-flex items-center justify-center ml-2 align-middle">
+      <button type="button" className="w-4 h-4 rounded-full bg-slate-200 text-slate-500 text-[10px] font-bold flex items-center justify-center hover:bg-blue-100 hover:text-blue-600 transition-colors">
+        ?
+      </button>
+      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 p-2.5 bg-slate-800 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[9999] text-center pointer-events-none font-normal">
+        {text}
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-800"></div>
+      </div>
+    </div>
+  );
+};
+
 const CUNY_LIST = [
   "Borough of Manhattan Community College", "BMCC", "Baruch",
   "Bronx Community College", "Brooklyn College", "City College", "CCNY",
@@ -205,6 +220,20 @@ export default function ExploreMap() {
   const [activeContact, setActiveContact] = useState<Contact | null>(null);
   const [isGlobalExpanded, setIsGlobalExpanded] = useState(false);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+
+  // --- TUTORIAL / ONBOARDING STATE ---
+  const [tourStep, setTourStep] = useState<number>(-1);
+
+  useEffect(() => {
+    const hasSeen = localStorage.getItem("hasSeenExploreTutorial");
+    if (!hasSeen) setTourStep(0); // Show Welcome Modal
+  }, []);
+
+  const startTour = () => setTourStep(1);
+  const endTour = () => {
+    setTourStep(-1);
+    localStorage.setItem("hasSeenExploreTutorial", "true");
+  };
 
   useEffect(() => {
     const savedSidebarState = localStorage.getItem("exploreSidebarOpen");
@@ -461,10 +490,13 @@ export default function ExploreMap() {
     <div className="flex h-screen w-full bg-slate-900 overflow-hidden font-sans">
 
       {/* LEFT SIDEBAR */}
-      <div className={`${isSidebarOpen ? "w-1/4" : "hidden"} h-full bg-white border-r border-slate-200 flex flex-col z-10 shadow-xl transition-all duration-300 flex-shrink-0`}>
+      <div className={`${isSidebarOpen ? "w-1/4" : "hidden"} h-full bg-white border-r border-slate-200 flex flex-col ${tourStep === 1 ? 'z-[100]' : 'z-10'} shadow-xl transition-all duration-300 flex-shrink-0`}>
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-start">
               <div>
-                  <h1 className="text-2xl font-bold text-slate-800 mb-1">🔭 Explorer</h1>
+                  <h1 className="text-2xl font-bold text-slate-800 mb-1 flex items-center">
+                      🔭 Explorer
+                      <InfoTooltip text="The Explorer allows you to visually map and traverse the civic network using an interactive force-directed graph." />
+                  </h1>
                   <Link href="/" className="text-sm text-blue-600 hover:underline font-medium">
                       ← Back to Workspace
                   </Link>
@@ -480,8 +512,8 @@ export default function ExploreMap() {
         <div className="p-6 flex-1 overflow-y-auto space-y-8">
 
           {/* UPDATED: 2x2 Toggle Grid including Global View */}
-          <div>
-            <div className="flex flex-col space-y-2 bg-slate-100 p-1.5 rounded-xl">
+          <div className={`relative transition-all duration-300 ${tourStep === 1 ? 'bg-white p-3 rounded-xl shadow-2xl ring-4 ring-blue-400/50 -m-3 mb-2' : ''}`}>
+            <div className="flex flex-col space-y-2 bg-slate-100 p-1.5 rounded-xl relative z-10">
               <div className="flex space-x-1">
                 <button onClick={() => { setViewType("location"); setSelectedLocation(""); setIsGlobalExpanded(false); setExpandedNodes(new Set()); }} className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${viewType === "location" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
                   By Location
@@ -499,6 +531,20 @@ export default function ExploreMap() {
                 </button>
               </div>
             </div>
+
+            {tourStep === 1 && (
+              <div className="absolute top-full left-0 mt-4 bg-white rounded-xl shadow-xl p-5 w-80 z-[101] animate-in fade-in slide-in-from-top-4 border border-blue-100">
+                <h3 className="font-bold text-blue-900 mb-2">1. Choose Your View</h3>
+                <p className="text-sm text-slate-600 mb-4">Start by selecting how you want to center the network: by location, specific interest, person, or observing the entire global ecosystem at once.</p>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-semibold text-slate-400">Step 1 of 3</span>
+                  <div className="flex gap-2">
+                    <button onClick={endTour} className="text-xs font-medium text-slate-500 hover:text-slate-700 px-2">Skip</button>
+                    <button onClick={() => setTourStep(2)} className="text-xs font-medium text-white bg-blue-600 px-3 py-1.5 rounded hover:bg-blue-700">Next</button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {viewType === "global" && (
@@ -528,7 +574,10 @@ export default function ExploreMap() {
           {viewType === "location" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-left-2">
               <div>
-                <label className="text-xs font-bold uppercase text-slate-400 mb-3 block">Location Type</label>
+                <label className="text-xs font-bold uppercase text-slate-400 mb-3 flex items-center">
+                  Location Type
+                  <InfoTooltip text="Filter the search list to either CUNY campuses or external community partner organizations." />
+                </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button onClick={() => { setLocationSubFilter("cuny"); setSelectedLocation(""); setIsGlobalExpanded(false); setExpandedNodes(new Set()); }} className={`py-2 text-xs font-bold border-2 rounded-lg ${locationSubFilter === "cuny" ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-100 text-slate-400"}`}>
                     CUNY Campuses
@@ -539,7 +588,10 @@ export default function ExploreMap() {
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold uppercase text-slate-400 mb-2 block">Search Location</label>
+                <label className="text-xs font-bold uppercase text-slate-400 mb-2 flex items-center">
+                  Search Location
+                  <InfoTooltip text="Select a specific location to view all associated people and their focus areas." />
+                </label>
                 <SearchableDropdown options={locationSubFilter === "cuny" ? cunyOptions : partnerOptions} value={selectedLocation} onChange={setSelectedLocation} placeholder="Type to search locations..." />
               </div>
             </div>
@@ -598,7 +650,7 @@ export default function ExploreMap() {
       </div>
 
       {/* RIGHT PANE: THE GRAPH */}
-      <div className={`h-full relative flex flex-col bg-slate-900 transition-all duration-300 ${isSidebarOpen ? "w-3/4" : "w-full"}`}>
+      <div className={`h-full relative flex flex-col bg-slate-900 transition-all duration-300 ${isSidebarOpen ? "w-3/4" : "w-full"} ${tourStep === 2 ? 'z-[100] ring-inset ring-4 ring-blue-400/50 shadow-2xl' : 'z-0'}`}>
         {!isSidebarOpen && (
           <button onClick={toggleSidebar} className="absolute top-6 left-6 z-20 bg-slate-800/90 text-white px-4 py-2 rounded-lg shadow-lg backdrop-blur border border-slate-700 hover:bg-slate-700 transition-colors font-bold flex items-center space-x-2">
             <span>▶</span><span className="text-sm uppercase tracking-wide">Show Controls</span>
@@ -702,6 +754,21 @@ export default function ExploreMap() {
             />
           </div>
         )}
+
+        {tourStep === 2 && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl p-6 w-96 z-[101] animate-in zoom-in-95 border border-blue-100 text-center">
+            <div className="text-4xl mb-3">🕸️</div>
+            <h3 className="font-bold text-blue-900 mb-2 text-lg">2. Interactive Network Map</h3>
+            <p className="text-sm text-slate-600 mb-6">Nodes represent people, locations, and interests. Click on nodes to expand their connections, pan around, and zoom in/out to explore the ecosystem visually.</p>
+            <div className="flex justify-between items-center text-left">
+              <span className="text-xs font-semibold text-slate-400">Step 2 of 3</span>
+              <div className="flex gap-2">
+                <button onClick={endTour} className="text-xs font-medium text-slate-500 hover:text-slate-700 px-2">Skip</button>
+                <button onClick={() => setTourStep(3)} className="text-xs font-medium text-white bg-blue-600 px-3 py-1.5 rounded hover:bg-blue-700">Next</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* INSPECT CARD OVERLAY (Traverse Flow) */}
@@ -764,10 +831,54 @@ export default function ExploreMap() {
       )}
 
       {/* FLOATING COPILOT */}
-      <Copilot onInspectProfile={(name) => {
-        const found = allContacts.find(c => c.name === name);
-        if (found) setActiveContact(found);
-      }} />
+      <div className={`relative transition-all duration-300 ${tourStep === 3 ? 'z-[100]' : 'z-50'}`}>
+        {tourStep === 3 && (
+          <div className="fixed bottom-24 right-8 bg-white rounded-xl shadow-2xl p-5 w-80 z-[101] animate-in fade-in slide-in-from-bottom-4 border border-blue-400 ring-4 ring-blue-400/20">
+            <h3 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
+              <span>🤖</span> 3. AI Copilot
+            </h3>
+            <p className="text-sm text-slate-600 mb-4">Need help analyzing the map? Ask the Copilot to find specific people, organizations, or skills within the current network.</p>
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-semibold text-slate-400">Step 3 of 3</span>
+              <button onClick={endTour} className="text-xs font-medium text-white bg-blue-600 px-3 py-1.5 rounded hover:bg-blue-700">Finish Tour</button>
+            </div>
+          </div>
+        )}
+        <Copilot onInspectProfile={(name) => {
+          const found = allContacts.find(c => c.name === name);
+          if (found) setActiveContact(found);
+        }} />
+      </div>
+
+      {/* TOUR BACKDROP */}
+      {tourStep > 0 && (
+        <div className="fixed inset-0 z-[90] bg-slate-900/60 pointer-events-none transition-opacity duration-300" />
+      )}
+
+      {/* WELCOME MODAL */}
+      {tourStep === 0 && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 fade-in duration-200">
+            <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-2xl mb-4">🗺️</div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-3">Welcome to the Explorer!</h2>
+            <p className="text-slate-600 mb-6 leading-relaxed">
+              This visual map allows you to discover how people, locations, and interests are connected across the civic network.
+              <br/><br/>
+              Would you like a quick tour to learn how to navigate the graph?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={endTour} className="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors">Skip for now</button>
+              <button onClick={startTour} className="px-5 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm transition-colors">Start Tour</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* RESTART TOUR BUTTON */}
+      <button onClick={() => setTourStep(0)} className="fixed bottom-6 left-6 z-40 flex items-center justify-center w-12 h-12 bg-white border border-slate-200 text-slate-600 rounded-full shadow-lg hover:bg-blue-50 hover:text-blue-600 hover:scale-105 transition-all group" title="Restart Tutorial">
+        <span className="text-xl">❓</span>
+        <span className="absolute left-full ml-3 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible whitespace-nowrap transition-all pointer-events-none">Restart Tutorial</span>
+      </button>
     </div>
   );
 }
