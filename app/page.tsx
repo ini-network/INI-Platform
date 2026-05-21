@@ -11,8 +11,8 @@ export default function HomePage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      // In production, this routes to your directory/map page with the applied filter
-      router.push(`/explore?q=${encodeURIComponent(searchQuery)}`);
+      // Route to your directory page with the applied keyword search filter
+      router.push(`/directory?q=${encodeURIComponent(searchQuery)}`);
     }
   };
 

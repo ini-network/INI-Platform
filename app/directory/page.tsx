@@ -1,6 +1,7 @@
 "use client";
 
-import {useState, useEffect, useMemo, useRef} from "react";
+import {useState, useEffect, useMemo, useRef, Suspense} from "react";
+import {useSearchParams} from "next/navigation";
 import MiniMapModal from "@/components/MiniMapModal";
 import {createClient} from '@/utils/supabase/client';
 import Copilot from "@/components/Copilot";
@@ -136,13 +137,21 @@ const FolderDropdown = ({groups, selected, onChange}: {
     );
 };
 
-export default function Home() {
+function DirectoryContent() {
+    const searchParams = useSearchParams();
+    const query = searchParams.get("q") || "";
 
     // Master List & Filters
     const [allContacts, setAllContacts] = useState<Contact[]>([]);
-    const [searchQuery, setSearchQuery] = useState("");
+    const [searchQuery, setSearchQuery] = useState(query);
     const [selectedCampus, setSelectedCampus] = useState("All");
     const [selectedFocus, setSelectedFocus] = useState("All");
+
+    useEffect(() => {
+        if (query) {
+            setSearchQuery(query);
+        }
+    }, [query]);
 
     // State for the Micro Map & Modal
     const [activeMapContact, setActiveMapContact] = useState<Contact | null>(null);
@@ -537,5 +546,17 @@ export default function Home() {
                 </span>
             </button>
         </div>
+    );
+}
+
+export default function Home() {
+    return (
+        <Suspense fallback={
+            <div className="flex h-screen w-full items-center justify-center bg-slate-50 font-sans p-8">
+                <div className="text-slate-500 text-sm font-medium animate-pulse">Loading Directory...</div>
+            </div>
+        }>
+            <DirectoryContent />
+        </Suspense>
     );
 }
