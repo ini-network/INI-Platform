@@ -5,27 +5,34 @@ import os
 from dotenv import load_dotenv
 
 # ---------------------------------------------------------
-# CONFIGURATION
+# CONFIGURATION & PROVIDER ROUTING
 # ---------------------------------------------------------
+# Read local environment configurations and setup LLM engine provider
 load_dotenv(dotenv_path=".env.local")
 PROVIDER = 'GEMINI'
 
 if PROVIDER == 'OLLAMA':
+    # Local developer fallback utilizing Ollama
     client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
     MODEL_NAME = "llama3"
 elif PROVIDER == 'OPENAI':
+    # Standard OpenAI endpoint configuration
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     MODEL_NAME = "gpt-4o-mini"
 elif PROVIDER == 'GEMINI':
+    # Upgraded Google Gemini implementation using standard OpenAI API compatibility layer
     client = OpenAI(
         base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-        # UPGRADED: Uses standard OS environment variables instead of Streamlit
         api_key=os.getenv("GEMINI_API_KEY")
     )
     MODEL_NAME = "gemini-2.5-flash"
 
 
 def parse_discovery_query(query):
+    """
+    Translates a natural language user query into structured search parameters using Gemini.
+    Returns a dictionary of classified query parameters matching database categories.
+    """
     system_prompt = "You are a Civic Discovery Agent. You MUST output a valid JSON object."
 
     user_prompt = f"""
@@ -52,7 +59,7 @@ def parse_discovery_query(query):
             response_format={"type": "json_object"}
         )
 
-        # Robust JSON cleaning for Gemini responses
+        # Robust markdown block stripping/cleaning specifically addressing Gemini response formats
         raw_content = response.choices[0].message.content.strip()
         if raw_content.startswith('```json'):
             raw_content = raw_content[7:-3].strip()
@@ -66,9 +73,14 @@ def parse_discovery_query(query):
 
 
 def search_civic_network(query, df):
+    """
+    Core local search engine applying LLM-extracted structured filters over the pandas DataFrame.
+    Returns a filtered pandas DataFrame and the active dictionary of query filters.
+    """
     filters = parse_discovery_query(query)
     results = df.copy()
 
+    # Mapping from LLM JSON keys to SQLite/Pandas physical column names
     col_map = {
         "domains": "Civic Domains",
         "communities": "Communities Served",
@@ -79,16 +91,17 @@ def search_civic_network(query, df):
     if not filters:
         return pd.DataFrame(), {}
 
-    # Handle standard category filters
+    # Step 1: Handle structured categorization filters via regular expression matching
     for key, values in filters.items():
         if key == "names": continue
 
         target_col = col_map.get(key)
         if target_col and target_col in df.columns and values:
+            # Concatenate list of query strings using regex OR operator (|) for robust parsing
             pattern = '|'.join(values)
             results = results[results[target_col].fillna('').str.contains(pattern, case=False)]
 
-    # Handle keyword/name search across the primary database fields
+    # Step 2: Handle keyword and named entity matches across multiple composite text columns
     if "names" in filters and filters["names"]:
         pattern = '|'.join(filters["names"])
         results['search_text'] = results['Contact Name'].fillna('') + " " + results['Notes / Insights'].fillna(
@@ -102,11 +115,13 @@ def search_civic_network(query, df):
 
 def generate_civic_insight(query, matches):
     """
-    Takes the filtered data and generates a natural language answer
-    using the RAW NOTES and METADATA from the Database.
+    RAG (Retrieval-Augmented Generation) Pipeline.
+    Takes matching contact records and constructs a dense context dump.
+    Feeds this grounding context into Gemini alongside explicit civic synthesis instructions.
+    Falls back on structured guidance questions if no data exists or the query is entirely out of domain.
     """
 
-    # 1. Helpful guidance text for broad or unanswerable queries
+    # Static guidance boilerplate fallback
     guidance_text = """Could you please provide more context or specify what you're looking for? For instance:
 
 * Are you interested in finding a specific individual or organization?
@@ -116,11 +131,11 @@ def generate_civic_insight(query, matches):
 
 Once I have a better understanding of your inquiry, I'll do my best to provide a helpful response using the provided database records."""
 
-    # 2. If no data matched at all (Empty Quick Search), return the guide immediately
+    # Fallback to guidance immediately if matches are empty (to prevent hallucination)
     if matches.empty:
         return guidance_text
 
-    # Build Rich Context
+    # Synthesize structured textual block from matched contacts
     context_text = ""
     for idx, row in matches.iterrows():
         context_text += f"""
@@ -132,7 +147,6 @@ Once I have a better understanding of your inquiry, I'll do my best to provide a
         TAGS: {row.get('Civic Domains', '')}
         """
 
-    # 3. Instruct the AI to scan everything and use the guide if the question is too broad
     system_prompt = "You are a CUNY Civic Insight Analyst. You are given a massive database dump. You MUST scan the ENTIRE text below to find the answer."
 
     user_prompt = f"""

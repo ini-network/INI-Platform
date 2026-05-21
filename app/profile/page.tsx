@@ -53,9 +53,22 @@ interface SavedContact {
     };
 }
 
+
+/**
+ * ProfilePage component manages the user's dashboard interface.
+ * Features:
+ * 1. Edit Profile: Form interface that binds to 'contacts' and integrates a multi-table database relation for micro-tags and communities.
+ * 2. Saved Contacts: A secure curated vault storage sync'd with the user's supabase auth account.
+ * 
+ * Target Audience: Junior developers. Assumes a baseline 4-year CS degree. Focuses on illustrating
+ * data normalization, Supabase's non-blocking transaction patterns, caching, and state synchronization.
+ */
 export default function ProfilePage() {
+    // Curated contact entries saved by the logged-in user in their private vault.
     const [savedContacts, setSavedContacts] = useState<SavedContact[]>([]);
+    // Full directory profile list used to initialize local node-edge relations in the MiniMap modal.
     const [allContacts, setAllContacts] = useState<ContactProfile[]>([]);
+    // Holds the selected contact mapped onto the active MiniMap overlay view.
     const [activeMapContact, setActiveMapContact] = useState<ContactProfile | null>(null);
     const [isLoadingContacts, setIsLoadingContacts] = useState(true);
 
@@ -64,31 +77,39 @@ export default function ProfilePage() {
     const [contactId, setContactId] = useState<string | null>(null);
     const [isPublic, setIsPublic] = useState(true);
 
-    // Dashboard State
+    // Dashboard State switching: controls Edit Profile vs. Saved Contacts vault layout.
     const [activeTab, setActiveTab] = useState<"form" | "vault">("form");
 
-    // Form State
+    // Form submission processing feedback states.
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
     const [errorMessage, setErrorMessage] = useState("");
 
-    // Smart Tag State
+    // Smart Tag Taxonomy System State (micro-interests and skills catalog).
     const [tags, setTags] = useState<string[]>([]);
     const [tagInput, setTagInput] = useState("");
     const [existingTags, setExistingTags] = useState<string[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
 
-    // Communities Served State
+    // Communities Served demographic tags.
     const [communities, setCommunities] = useState<string[]>([]);
     const [communityInput, setCommunityInput] = useState("");
 
-    // Standard Form Fields
+    // Normalized React Form State bindings matching the 'contacts' Supabase table layout.
     const [formData, setFormData] = useState({
         contact_name: "", email: "", campus: "", role_title: "", affiliation: "",
         url: "", capabilities: "", communities_served: "", needs_challenges: "",
         opportunity_ideas: "", notes: "", interest_category: ""
     });
 
+    /**
+     * Lifecyle hook executing asynchronous initialization sequences:
+     * 1. Fetches current session security credentials to shield against rogue route updates.
+     * 2. Resolves private saved list from relational bridge table 'saved_contacts'.
+     * 3. Syncs current user's profile card from 'contacts' (locking profile data to session email).
+     * 4. Populates suggestions autocomplete buffer from central 'domains' taxonomy table.
+     * 5. Pulls full directory to build the cached dataset for the mini-map network visualizer.
+     */
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -103,7 +124,7 @@ export default function ProfilePage() {
                     return; // Graceful exit if logged out
                 }
 
-                // 2. Fetch the User's Vault Contacts
+                // 2. Fetch the User's Vault Contacts (Relational inner-join query mapping bridge to master records)
                 const {data: savedData, error: savedError} = await supabase
                     .from('saved_contacts')
                     .select(`
@@ -165,7 +186,7 @@ export default function ProfilePage() {
                     }
                 }
 
-                // 4. NEW: Fetch all existing domains for the autofill system
+                // 4. NEW: Fetch all existing domains for the autofill system to drive input autocomplete UI
                 const {data: domainsData} = await supabase
                     .from('domains')
                     .select('domain_name');
@@ -252,7 +273,10 @@ export default function ProfilePage() {
         }
     };
 
-    // --- TOGGLE VISIBILITY HANDLER ---
+    /**
+     * Toggles the user profile card's visibility state (`is_public`) in the public contacts directory.
+     * Prevents database corruption or session mismatches by querying against the locked authenticated email.
+     */
     const handleToggleVisibility = async () => {
         if (!formData.email) return;
         setIsSubmitting(true);
@@ -283,7 +307,18 @@ export default function ProfilePage() {
         }
     };
 
-    // --- SUBMIT HANDLER ---
+    /**
+     * Profile Update Form Submission pipeline.
+     * Implements a transactional synchronizer using a secure sequential pipeline:
+     * 1. Compiles secondary fields (Needs, Challenges, Opportunities) into the single 'notes' text block.
+     * 2. Upserts the 'contacts' record (using onConflict: id).
+     * 3. Executes the "Wipe-and-Replace" tag synchronization strategy for relational micro-tags:
+     *    a) Wipes all old bridge associations in 'contact_domains' for the 'contact_id'.
+     *    b) Upserts new domains to the shared lookup directory 'domains', ignoring duplicate names.
+     *    c) Fetches resolved IDs from the global 'domains' table matching current tag lists.
+     *    d) Bulks inserts linking rows back into 'contact_domains' mapping 'contact_id' -> 'domain_id'.
+     * 4. Auto-links the created profile record inside the auth metadata 'users' table via 'linked_contact_id'.
+     */
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.interest_category) {
@@ -406,6 +441,7 @@ export default function ProfilePage() {
         setTagInput("");
         setShowSuggestions(false);
     };
+
 
     return (
         // UPDATED: h-screen to h-full

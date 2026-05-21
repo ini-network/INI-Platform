@@ -302,6 +302,20 @@ export default function ExploreMap() {
   const handleFitMap = () => { fgRef.current?.zoomToFit(400, 50); };
 
   // --- UPGRADED "PERSON-CENTRIC" GRAPH ALGORITHM ---
+  /**
+   * DYNAMIC SUB-GRAPH GENERATION PIPELINE
+   * 
+   * Leverages React `useMemo` to construct a dynamic bipartite graph structure (nodes & links)
+   * tailored to the active filter state and chosen `viewType`. Memoization is critical here
+   * to prevent expensive sub-graph regeneration computations and force-graph engine resets
+   * during slider interactions or cursor hover events.
+   * 
+   * Resolves four distinctive visualization hierarchies:
+   * 1. Person Centric: Center Person -> Shared Interests -> Collateral Peer Researchers.
+   * 2. Location Centric: Institution Hub -> Affiliated Researchers -> Auxiliary Interests.
+   * 3. Topic Centric: Interest Hub -> Active Researchers -> Auxiliary Interests.
+   * 4. Global Ecosystem: Macro scale bird's-eye view linking campus/partner nodes to major topics.
+   */
   const { nodes, links, hiddenCount } = useMemo(() => {
     let filteredContacts = allContacts;
     if (copilotSearch) {
@@ -310,11 +324,17 @@ export default function ExploreMap() {
 
     const graphNodes: LibNode[] = [];
     const graphLinks: GraphLink[] = [];
+    
+    // Deduplication sets to prevent redundant coordinate computation or rendering crashes in react-force-graph
     const addedNodes = new Set<string>();
     const addedLinks = new Set<string>();
     let currentlyHiddenContacts = 0;
 
     // --- NEW: HTML Tooltip Generator ---
+    /**
+     * Generates a premium dark-themed HTML tooltip for nodes.
+     * Injects context-relevant metadata (locale, affiliation, and focus tags) for progressive disclosure.
+     */
     const createPersonTooltip = (c: Contact, isCenter = false) => {
       const parts = [];
       if (c.campus) parts.push(`Locale: ${c.campus}`);
@@ -324,6 +344,11 @@ export default function ExploreMap() {
       return `<div style="text-align: center; font-family: sans-serif; padding: 2px;">${prefix}<strong>${c.name}</strong>${details}</div>`;
     };
 
+    /**
+     * Prevents duplicate bidirectional linkages in D3's link array.
+     * Ensures consistent link mapping (e.g., 'A -> B' and 'B -> A' are unified) which avoids
+     * force simulation coordinate calculation loop bugs or double-rendering links.
+     */
     const safeAddLink = (s: string, t: string) => {
       const key = `${s}->${t}`;
       const reverseKey = `${t}->${s}`;
@@ -333,16 +358,21 @@ export default function ExploreMap() {
       }
     };
 
+    /**
+     * State gate controlling dynamic depth expansion.
+     * Auto-expands secondary branches if the target node is globally expanded, explicitly clicked/expanded,
+     * or if the total localized sub-graph is small enough (<= 25 items) to display without visual clutter.
+     */
     const shouldExpandChildren = (parentNodeId: string, isSmallNetwork: boolean) => {
       return isGlobalExpanded || expandedNodes.has(parentNodeId) || isSmallNetwork;
     };
 
-    // 1. PERSON VIEW (Center Person -> Topics -> Other People)
+    // --- 1. PERSON VIEW (Center Person -> Topics -> Other People) ---
     if (viewType === "person" && selectedPerson) {
       const centerPerson = filteredContacts.find(c => c.name === selectedPerson);
       if (!centerPerson) return { nodes: graphNodes, links: graphLinks, hiddenCount: 0 };
 
-      // Add Center Person
+      // Append Center Anchor (highest weight, designated with a premium amber center marker)
       graphNodes.push({ id: centerPerson.id, name: centerPerson.name, group: "center", val: 12, color: "#fbbf24", title: createPersonTooltip(centerPerson, true) });
       addedNodes.add(centerPerson.id);
 
@@ -350,14 +380,14 @@ export default function ExploreMap() {
       const isSmallNetwork = networkContacts.length <= 25;
 
       centerPerson.domains?.forEach(topic => {
-        // Add Their Topics
+        // Map connecting topics as immediate primary orbits
         if (!addedNodes.has(topic)) {
           graphNodes.push({ id: topic, name: topic, group: "topic_hub", val: 8, color: "#0ea5e9", title: `<div style="text-align: center;"><strong>${topic}</strong></div>` });
           addedNodes.add(topic);
         }
         safeAddLink(centerPerson.id, topic);
 
-        // Add Other People sharing the topic
+        // Map secondary orbits: Peer researchers sharing this specific topic hub
         filteredContacts.forEach(other => {
           if (other.id === centerPerson.id || !other.domains?.includes(topic)) return;
 
@@ -374,7 +404,7 @@ export default function ExploreMap() {
       });
     }
 
-    /// 2. LOCATION VIEW
+    // --- 2. LOCATION VIEW (Center Location -> Affiliated People -> Their Topics) ---
     else if (viewType === "location" && selectedLocation) {
       const locId = `loc_${selectedLocation}`;
       graphNodes.push({ id: locId, name: selectedLocation, group: "center", val: 12, color: "#ec4899", title: `<div style="text-align: center;"><strong>${selectedLocation}</strong></div>` });
@@ -404,7 +434,7 @@ export default function ExploreMap() {
       });
     }
 
-    // 3. TOPIC VIEW
+    // --- 3. TOPIC VIEW (Center Topic -> Subscribed People -> Other Topics) ---
     else if (viewType === "topic" && selectedSpecificFocus) {
       const topicId = selectedSpecificFocus;
       graphNodes.push({ id: topicId, name: topicId, group: "center", val: 12, color: "#0ea5e9", title: `<div style="text-align: center;"><strong>${topicId}</strong></div>` });
@@ -436,7 +466,7 @@ export default function ExploreMap() {
       });
     }
 
-    // 4. GLOBAL ECOSYSTEM VIEW
+    // --- 4. GLOBAL ECOSYSTEM VIEW (All Hubs -> People -> Topics) ---
     else if (viewType === "global") {
       let globalContacts = filteredContacts;
       if (globalSubFilter === "cuny") {
@@ -739,15 +769,24 @@ export default function ExploreMap() {
               linkDirectionalParticleSpeed={0.005}
               nodeCanvasObject={(node: LibNode, ctx: CanvasRenderingContext2D, globalScale: number) => {
                 if (node.x === undefined || node.y === undefined || node.val === undefined) return;
+                
+                // --- CUSTOM circular node canvas drawing routine ---
                 ctx.beginPath();
+                // Draw circle: arc(x, y, radius, startAngle, endAngle, counterclockwise)
                 ctx.arc(node.x, node.y, node.val + 1, 0, 2 * Math.PI, false);
                 ctx.fillStyle = node.color || "#cccccc";
                 ctx.fill();
 
+                // --- ADAPTIVE TYPOGRAPHY OVERLAP CHECKER & LABEL DRAWING ---
+                // Only render text labels for primary/important hubs (val >= 6) OR when zoomed in enough (globalScale > 1.5).
+                // Prevents dense visual clutter/collisions when viewing the whole network at a distance.
                 if (node.val >= 6 || globalScale > 1.5) {
+                  // Normalize font size dynamically relative to camera zoom to maintain readable pixel height.
                   ctx.font = `${Math.max(12 / globalScale, 2)}px Sans-Serif`;
-                  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+                  ctx.textAlign = 'center'; 
+                  ctx.textBaseline = 'top';
                   ctx.fillStyle = '#ffffff';
+                  // Offset label text slightly below the node circle boundary radius to prevent overlap
                   ctx.fillText(node.name || "", node.x, node.y + node.val + 4);
                 }
               }}

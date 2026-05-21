@@ -3,6 +3,13 @@
 import NetworkMap, { ForceGraphMethods } from "@/components/NetworkMap";
 import { useState, useRef } from "react";
 
+// --- TYPESCRIPT SCHEMAS & CONTRACTS ---
+
+/**
+ * Node structure for the mini-graph visualizer.
+ * Incorporates D3 physics simulation optional coordinates (x, y) 
+ * projected onto a 2D Euclidean coordinate space during calculation.
+ */
 export interface GraphNode {
   id: string;
   name: string;
@@ -19,6 +26,9 @@ export interface GraphLink {
   target: string;
 }
 
+/**
+ * Standard public directory profile DTO.
+ */
 export interface ContactProfile {
   id: string;
   name: string;
@@ -36,18 +46,24 @@ export interface ContactProfile {
 interface ProfileModalProps {
   contact: ContactProfile;
   onClose: () => void;
-  onSaveContact?: (contactId: string) => Promise<void> | void;
-  onRecenter?: (contact: ContactProfile) => void;
-  showGraph?: boolean;
+  onSaveContact?: (contactId: string) => Promise<void> | void; // Vault bookmarking callback
+  onRecenter?: (contact: ContactProfile) => void;               // Redraws the main network around this focus
+  showGraph?: boolean;                                          // Controls 2-pane visualizer split screen layout
   graphData?: { nodes: GraphNode[]; links: GraphLink[] };
   onNodeClick?: (node: GraphNode) => void;
   isGraphExpanded?: boolean;
   onToggleGraph?: () => void;
   hiddenCount?: number;
   isNodeExpanded?: boolean;
-  onToggleExpandNode?: () => void;
+  onToggleExpandNode?: () => void;                              // Multi-tier lazy loading map toggle
 }
 
+/**
+ * ProfileModal Component
+ * Renders a full side-draw profile detail overlay. If showGraph is active,
+ * splits the view to render an isolated local subgraph focusing exclusively on the 
+ * selected contact's immediate network connections.
+ */
 export default function ProfileModal({
   contact,
   onClose,
@@ -67,7 +83,14 @@ export default function ProfileModal({
     if (onSaveContact) onSaveContact(contact.id);
   };
 
-  // --- NEW: Express Interest Logic ---
+  /**
+   * INITIATE DIRECT INBOX REACHOUT (MAILTO TRIGGER)
+   * 
+   * Assembles a structured mailto link using URI-escaped variables.
+   * Prompts the browser to launch the user's default OS desktop/web email app.
+   * Pre-populates the subject and message body with contextual civic network references
+   * to lower interaction barriers and improve collaboration velocity.
+   */
   const handleExpressInterest = () => {
     if (!contact.email_contact) {
       alert(`No public email address is listed for ${contact.name}.`);
@@ -76,10 +99,11 @@ export default function ProfileModal({
     const subject = encodeURIComponent(`Connecting via INI Civic Network`);
     const body = encodeURIComponent(`Hi ${contact.name},\n\nI found your profile on the INI Civic Network and would love to connect to discuss potential collaboration.\n\nBest,\n[Your Name]`);
 
-    // Triggers the default mail client
+    // Assigning location.href triggers browser navigation to mailto scheme handler
     window.location.href = `mailto:${contact.email_contact}?subject=${subject}&body=${body}`;
   };
 
+  // Imperative controllers for D3 force map viewport manipulations
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<ForceGraphMethods | null>(null);
   const handleZoomIn = () => { mapRef.current?.zoom(1.5, 400); };
@@ -223,6 +247,19 @@ export default function ProfileModal({
                 height={600}
                 linkColor={() => "rgba(255, 255, 255, 0.4)"}
                 linkWidth={1.5}
+                
+                /**
+                 * HIGH-PERFORMANCE 2D GRAPHICS CONTEXT DRAWER
+                 * 
+                 * To maximize framerate performance on physics ticks, we draw individual node
+                 * shapes directly using HTML5 Canvas 2D Context primitives rather than heavy DOM/SVG objects.
+                 * 
+                 * Calculates exact coordinate offsets on tick shifts:
+                 * 1. ctx.arc draws a circle centered at n.x, n.y with a customized size based on n.val.
+                 * 2. Labels are conditionally drawn only at high zoom thresholds (globalScale >= 1.5) 
+                 *    to prevent label overlap clutter when zoomed far away.
+                 * 3. Font scaling math (12 / globalScale) ensures uniform relative label sizing.
+                 */
                 nodeCanvasObject={(node: unknown, ctx: CanvasRenderingContext2D, globalScale: number) => {
                   const n = node as GraphNode & { x: number; y: number };
                   const size = n.val + 1;
@@ -231,6 +268,7 @@ export default function ProfileModal({
                   ctx.fillStyle = n.color || "#94a3b8";
                   ctx.fill();
 
+                  // Progressive disclosure for labels: hide text labels if zoomed out to save graphics compute cycles
                   if (globalScale >= 1.5) {
                     const label = n.name;
                     const fontSize = Math.max(12 / globalScale, 2);
@@ -238,6 +276,7 @@ export default function ProfileModal({
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'top';
                     ctx.fillStyle = '#ffffff';
+                    // Offset label below circle by node radius + padding (4px)
                     ctx.fillText(label, n.x, n.y + size + 4);
                   }
                 }}

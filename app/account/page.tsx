@@ -6,6 +6,12 @@ import {User} from "@supabase/supabase-js";
 import {useRouter} from "next/navigation";
 import {deleteUserAccount} from "@/app/actions/authActions";
 
+/**
+ * AccountSettingsPage
+ * Provides authenticated users with a secure management interface to update profile names,
+ * request secure email changes, rotate passwords, invalidate concurrent session states,
+ * and permanently purge account credentials from both auth and public schemas.
+ */
 export default function AccountSettingsPage() {
     const [user, setUser] = useState<User | null>(null);
     const router = useRouter();
@@ -17,10 +23,16 @@ export default function AccountSettingsPage() {
     const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [fullName, setFullName] = useState("");
-    // Modal State
+    
+    // Modal & Deletion Validation State
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteConfirmation, setDeleteConfirmation] = useState("");
 
+    /**
+     * INITIAL USER SESSION RESOLVER
+     * Mount lifecycle hook retrieving session context via the browser-safe Supabase Client.
+     * Wipes state dependencies once the user is authenticated.
+     */
     useEffect(() => {
         const fetchUserData = async () => {
             const supabase = createClient();
@@ -35,7 +47,8 @@ export default function AccountSettingsPage() {
         fetchUserData();
     }, []);
 
-    // --- PASSWORD STRENGTH LOGIC ---
+    // --- PASSWORD STRENGTH CRITERIA & VALIDATION MATRIX ---
+    // Multi-criteria regular expressions enforcing a strong entropy threshold for accounts.
     const passwordRequirements = [
         {id: "length", text: "At least 8 characters", regex: /.{8,}/},
         {id: "uppercase", text: "One uppercase letter", regex: /[A-Z]/},
@@ -43,10 +56,16 @@ export default function AccountSettingsPage() {
         {id: "number", text: "One number", regex: /[0-9]/},
         {id: "special", text: "One special character (e.g., !@#$%^&*)", regex: /[^A-Za-z0-9]/},
     ];
+    // Computes strength verification eagerly; true if every criterion regex matches.
     const isPasswordStrong = passwordRequirements.every((req) => req.regex.test(newPassword));
 
-    // --- ACTIONS ---
+    // --- SECURE WORKFLOW ACTIONS ---
 
+    /**
+     * FULL NAME METADATA UPSERT
+     * Updates full_name nested inside Supabase auth.users' JSONB user_metadata column.
+     * Accessible within client sessions without executing external database joins.
+     */
     const handleUpdateName = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsProcessing(true);
@@ -63,6 +82,12 @@ export default function AccountSettingsPage() {
         setIsProcessing(false);
     };
 
+    /**
+     * EMAIL CONFLICT PROTECTION & VERIFICATION RE-ROUTING
+     * Updates user login email address. Supabase's default security flow requires 
+     * DOUBLE-VERIFICATION (sending validation links to both the existing/old email 
+     * AND the proposed new email) before updating the records. This prevents account hijacking.
+     */
     const handleUpdateEmail = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsProcessing(true);
@@ -77,6 +102,10 @@ export default function AccountSettingsPage() {
         setIsProcessing(false);
     };
 
+    /**
+     * PASSWORD ROTATION
+     * Dispatches hashed credential changes to auth.users using Supabase client API.
+     */
     const handleUpdatePassword = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -105,7 +134,10 @@ export default function AccountSettingsPage() {
         setIsProcessing(false);
     };
 
-    // NEW: Sign out of other devices
+    /**
+     * CONCURRENT SESSION TERMINATION (OTHERS SCOPE)
+     * Revokes active JWT refresh tokens on all devices except the current client browser.
+     */
     const handleSignOutOthers = async () => {
         setIsProcessing(true);
         setStatusMessage(null);
@@ -121,7 +153,18 @@ export default function AccountSettingsPage() {
         setIsProcessing(false);
     };
 
-    // Secure Account Deletion
+    /**
+     * CASCADING ADMINISTRATIVE ACCOUNT PURGE
+     * Wipes user profiles securely. Due to Row-Level Security (RLS) and constraints, a user cannot 
+     * drop their auth.users record directly via the client SDK (requires service_role access).
+     * 
+     * Steps:
+     * 1. Retrieve the client's current JWT access token.
+     * 2. Call the server-side Server Action `deleteUserAccount(token, userId)` which runs 
+     *    in a trusted node environment, validates user identity, and cascades deletions 
+     *    across public profiles and secure authentication tables in a secure transaction.
+     * 3. Terminate local storage sessions and redirect to /login.
+     */
     const handleDeleteAccount = async () => {
         if (!user) return;
         setIsProcessing(true);

@@ -6,6 +6,12 @@ import {INTEREST_BUCKETS} from "@/lib/taxonomy";
 import ProfileModal, {ContactProfile} from "@/components/ProfileModal";
 
 // --- INTERFACES ---
+
+/**
+ * Interface representing a structured collaboration feed item.
+ * Utilizes a nested `author` dictionary mapping to relational Supabase joins 
+ * between 'collaboration_posts' and 'contacts' tables.
+ */
 interface CollaborationPost {
     id: string;
     author_id: string;
@@ -16,7 +22,7 @@ interface CollaborationPost {
     campus: string | null;
     expires_at: string;
     created_at: string;
-    // This comes from the Supabase join
+    // Nesting resolved relational values loaded via Supabase's inner joins
     author: {
         id: string;
         name: string;
@@ -45,6 +51,12 @@ const InfoTooltip = ({ text }: { text: string }) => {
     );
 };
 
+/**
+ * CollaborationHub Component
+ * Manages the civic needs and offers feed. Features active search filtering,
+ * post creation gates based on active directory profiles, and a step-by-step 
+ * state-machine driving the first-time user onboarding tour.
+ */
 export default function CollaborationHub() {
     // Feed State
     const [posts, setPosts] = useState<CollaborationPost[]>([]);
@@ -77,12 +89,13 @@ export default function CollaborationHub() {
 
     const [currentUserContactId, setCurrentUserContactId] = useState<string | null>(null);
 
-    // --- TUTORIAL / ONBOARDING STATE ---
+    // --- TUTORIAL / ONBOARDING STATE MACHINE ---
+    // Controls step progression for guided walkthrough overlay. Saves state locally in localStorage.
     const [tourStep, setTourStep] = useState<number>(-1);
 
     useEffect(() => {
         const hasSeen = localStorage.getItem("hasSeenCollabTutorial");
-        if (!hasSeen) setTourStep(0); // Show Welcome Modal
+        if (!hasSeen) setTourStep(0); // Launch Welcome Modal
     }, []);
 
     const startTour = () => setTourStep(1);
@@ -91,17 +104,25 @@ export default function CollaborationHub() {
         localStorage.setItem("hasSeenCollabTutorial", "true");
     };
 
-    // --- INITIAL DATA FETCH ---
+    /**
+     * INITIAL DATA RETRIEVAL PIPELINE
+     * 
+     * Orchestrates two asynchronous processes:
+     * 1. Auth check: Fetch current user, look up their profile link `linked_contact_id`
+     *    inside `public.users` schema. Blocks post authorship unless a public profile is linked.
+     * 2. Opportunities Feed: Retrieves unexpired collaboration items with a complex join filter,
+     *    ensuring the author's public publishing flag is toggled on (`contacts.is_public == true`).
+     */
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true);
             try {
                 const supabase = createClient();
 
-                // -- NEW AUTH LOGIC --
+                // Check secure user session details
                 const {data: {user}} = await supabase.auth.getUser();
                 if (user) {
-                    // Look up their linked profile in the public.users table
+                    // Match auth context with directory contacts database records
                     const {data: userData} = await supabase
                         .from('users')
                         .select('linked_contact_id')
@@ -110,12 +131,12 @@ export default function CollaborationHub() {
 
                     if (userData?.linked_contact_id) {
                         setCurrentUserContactId(userData.linked_contact_id);
-                        // Automatically set the form's author_id to their linked profile
+                        // Auto-fill author ID parameters
                         setFormData(prev => ({...prev, author_id: userData.linked_contact_id}));
                     }
                 }
 
-                // 1. Fetch Posts (Only unexpired, sorted newest first)
+                // 1. Fetch unexpired feed posts using nested Supabase join mappings
                 const {data: postData, error: postError} = await supabase
                     .from('collaboration_posts')
                     .select(`
@@ -125,18 +146,18 @@ export default function CollaborationHub() {
               contact_domains ( domains ( domain_name ) )
             )
           `)
-                    .eq('contacts.is_public', true) // <-- ADDED FILTER (Requires !inner above)
+                    .eq('contacts.is_public', true) // <-- Ensure author directory card is active
                     .gt('expires_at', new Date().toISOString())
                     .order('created_at', {ascending: false});
 
                 if (postError) throw postError;
                 setPosts(postData as CollaborationPost[]);
 
-                // 2. Fetch lightweight contacts list for the "Post As" demo dropdown
+                // 2. Fetch lightweight directory index mapping names to IDs for author bindings
                 const {data: contactData} = await supabase
                     .from('contacts')
                     .select('id, name')
-                    .eq('is_public', true) // <-- ADDED FILTER
+                    .eq('is_public', true)
                     .order('name');
 
                 if (contactData) setAllContacts(contactData);

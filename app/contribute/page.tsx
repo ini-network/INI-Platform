@@ -2,8 +2,16 @@
 
 import Link from "next/link";
 
+/**
+ * ContributorsHub Component
+ * 
+ * Serves as the primary onboarding and recruitment portal for the INI Discovery Network.
+ * Lists specialized roles (UX Designers, Community Checkers, Campus Ambassadors, Project Leads)
+ * and directs prospective contributors to an external, validated Google Form funnel.
+ * Designed to act as a lightweight, static intake page for cross-CUNY collaboration.
+ */
 export default function ContributorsHub() {
-  // Replace the URL below with your actual Google Form link
+  // Static external onboarding form target. Handled as a secure blank-target redirect.
   const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/1VXaj8YPklVva7zJ92ZBA7EZg3Aw2LGhZ5PMiuNFMQyc/edit?ts=69de7307";
 
   return (

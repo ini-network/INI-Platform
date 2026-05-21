@@ -3,10 +3,20 @@
 import { useState } from "react";
 import Link from "next/link";
 
+/**
+ * AdminDashboard Page
+ * Renders a local administrative control room. Uses a temporary client-side password guard 
+ * to authorize layout unlocking before future integration with Supabase RBAC / FastAPI scopes is completed.
+ */
 export default function AdminDashboard() {
   const [password, setPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  /**
+   * LOCAL ADMINISTRATIVE CREDENTIAL GATE
+   * Evaluates the entered string against the statically configured temporary administrative password.
+   * If authorized, flips the client-side state boundary (`isAuthenticated`) to unlock the full view.
+   */
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (password === "INI_ADMIN_2026") {
@@ -50,7 +60,7 @@ export default function AdminDashboard() {
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
               <h2 className="text-lg font-bold mb-2">👥 Registered Users</h2>
               <p className="text-sm text-slate-500 mb-4">We will connect this to FastAPI to load live user data soon.</p>
-              {/* Placeholder table */}
+              {/* Placeholder table - Future home of FastAPI fetch requests */}
               <div className="h-40 bg-slate-100 rounded border border-dashed border-slate-300 flex items-center justify-center text-slate-400">
                 Live Data Table Goes Here
               </div>
