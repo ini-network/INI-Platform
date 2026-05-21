@@ -27,7 +27,8 @@ export default function Header() {
   }, [supabase.auth]);
 
   const navLinks = [
-    { name: "Workspace", href: "/" },
+    { name: "Home", href: "/" },
+    { name: "Directory", href: "/directory" },
     { name: "Map Explorer", href: "/explore" },
     { name: "Collaboration Hub", href: "/collab" },
     { name: "Join Us", href: "/contribute" },

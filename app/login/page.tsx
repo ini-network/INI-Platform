@@ -88,6 +88,21 @@ export default function LoginPage() {
         setIsLoading(false);
     };
 
+    const handleLinkedInSignIn = async () => {
+        setIsLoading(true);
+        setErrorMessage("");
+        setSuccessMessage("");
+
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'linkedin',
+            options: {
+                redirectTo: getRedirectUrl(),
+            },
+        });
+        if (error) setErrorMessage(error.message);
+        setIsLoading(false);
+    };
+
     return (
         <div className="flex min-h-screen items-center justify-center bg-slate-900 p-4 font-sans">
             <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl relative">
@@ -204,6 +219,18 @@ export default function LoginPage() {
                         {isLoading ? "Processing..." : view === "sign-in" ? "Sign In" : "Create Account"}
                     </button>
                 </form>
+
+                {/* LinkedIn Login Button */}
+                <div className="mt-6 border-t border-slate-100 pt-6">
+                    <button
+                        type="button"
+                        onClick={handleLinkedInSignIn}
+                        disabled={isLoading}
+                        className="w-full flex items-center justify-center py-2.5 bg-[#0A66C2] text-white font-bold rounded-lg hover:bg-[#004182] transition-colors shadow-sm disabled:opacity-50"
+                    >
+                        Sign in with LinkedIn
+                    </button>
+                </div>
 
                 {/* Updated Anonymous Browsing Button */}
                 <div className="mt-6 border-t border-slate-100 pt-6">
