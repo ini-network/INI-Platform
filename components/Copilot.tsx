@@ -4,17 +4,26 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 
 interface CopilotProps {
+  // Callback triggered when a user clicks on an AI-suggested collaborator's profile tag in the chat window
   onInspectProfile?: (contactName: string) => void;
 }
 
 type ChatMessage = {
   role: string;
   content: string;
+  // Optional array containing metadata of matched profiles resolved by the Python NLP Discovery Engine
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   matches?: any[];
 };
 
+/**
+ * Copilot Component
+ * Implements a floating AI assistant sidebar that interfaces with the local FastAPI microservice (/api/copilot).
+ * Features automatic personalized greetings based on Supabase user metadata and dynamic quick-access buttons 
+ * for NLP-derived search recommendations.
+ */
 export default function Copilot({ onInspectProfile }: CopilotProps) {
+  // Sidebar visibility and API loading states
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [input, setInput] = useState("");
@@ -24,7 +33,9 @@ export default function Copilot({ onInspectProfile }: CopilotProps) {
     { role: "assistant", content: "Hi there! I'm your AI Copilot. Ask me anything about the CUNY Civic Network or your data." }
   ]);
 
-  // --- NEW: Fetch User Data for Greeting ---
+  // --- Fetch User Data for Greeting ---
+  // Queries the local Supabase client on mount to resolve a personalized greeting name.
+  // Prioritizes OAuth metadata full_name over standard email handles, with safe fallbacks.
   useEffect(() => {
     const fetchUserGreeting = async () => {
       const supabase = createClient();
@@ -55,6 +66,11 @@ export default function Copilot({ onInspectProfile }: CopilotProps) {
     fetchUserGreeting();
   }, []);
 
+  /**
+   * Dispatches the chat prompt to the FastAPI microservice.
+   * Performs an asynchronous POST request, parses the returned RAG insights and fuzzy matches, 
+   * and appends both to the interactive message thread.
+   */
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;

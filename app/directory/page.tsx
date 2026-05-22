@@ -1,11 +1,25 @@
 "use client";
 
+/**
+ * Directory Page
+ * 
+ * Implements a searchable and filterable database view of CUNY and Community Partner contacts.
+ * Incorporates:
+ * 1. URL search parameter extraction ('?q=...') to pre-fill search terms.
+ * 2. Supabase Integration for real-time contact retrieval.
+ * 3. HSL customized folder dropdown filtering based on hierarchical focus domains.
+ * 4. Progressive disclosure modals featuring 2D force-directed interactive connection maps.
+ * 5. Persistent local-storage onboarding guides.
+ */
+
+import Link from "next/link";
 import {useState, useEffect, useMemo, useRef, Suspense} from "react";
 import {useSearchParams} from "next/navigation";
 import MiniMapModal from "@/components/MiniMapModal";
 import {createClient} from '@/utils/supabase/client';
 import Copilot from "@/components/Copilot";
 
+// Mapping dictionary for keywords to group miscellaneous skills and domains into standard folder buckets
 const INTEREST_BUCKETS: Record<string, string[]> = {
     "Education & Student Success": ["Education", "Youth", "Mentorship", "K-12", "Curriculum", "Pedagogy", "Schools", "Student", "Teaching", "Learning"],
     "Government, Policy & Law": ["Justice", "Policy", "Government", "Law", "Advocacy", "Human Rights", "Criminal", "Immigration", "Police", "Voting", "Civic"],
@@ -21,7 +35,7 @@ const INTEREST_BUCKETS: Record<string, string[]> = {
     "Media, Journalism & Storytelling": []
 };
 
-// 1. UPDATED INTERFACE
+// Strongly-typed interface representing the database schema for a network contact
 interface Contact {
     id: string;
     name: string;
@@ -36,7 +50,10 @@ interface Contact {
     domains: string[];
 }
 
-// --- TOOLTIP COMPONENT FOR PROGRESSIVE DISCLOSURE ---
+/**
+ * InfoTooltip Component
+ * Implements modern micro-interactions (hover, transitions) providing rich contextual guidance.
+ */
 const InfoTooltip = ({ text }: { text: string }) => {
     return (
         <div className="group relative inline-flex items-center justify-center ml-2 align-middle">
@@ -51,7 +68,10 @@ const InfoTooltip = ({ text }: { text: string }) => {
     );
 };
 
-// --- CUSTOM COLLAPSIBLE FOLDER DROPDOWN ---
+/**
+ * FolderDropdown Component
+ * Implements a collapsible multi-level dropdown resembling directory files and folders.
+ */
 const FolderDropdown = ({groups, selected, onChange}: {
     groups: Record<string, string[]>,
     selected: string,
@@ -61,6 +81,7 @@ const FolderDropdown = ({groups, selected, onChange}: {
     const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
     const dropdownRef = useRef<HTMLDivElement>(null);
 
+    // Event listener capturing document clicks to close dropdown instances when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) setIsOpen(false);
@@ -70,7 +91,7 @@ const FolderDropdown = ({groups, selected, onChange}: {
     }, []);
 
     const toggleFolder = (folder: string, e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevents the dropdown from closing when clicking a folder
+        e.stopPropagation(); // Prevents close behaviors bubbling to parent triggers
         setExpandedFolders(prev => {
             const next = new Set(prev);
             if (next.has(folder)) next.delete(folder);
@@ -89,7 +110,7 @@ const FolderDropdown = ({groups, selected, onChange}: {
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-white text-left flex justify-between items-center focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full border-[1.5px] border-slate-500 rounded-lg p-2.5 text-sm bg-white text-slate-900 text-left flex justify-between items-center focus:ring-2 focus:ring-blue-500 outline-none"
             >
                 <span className="truncate font-medium">{selected === "All" ? "All Focus Areas" : selected}</span>
                 <span className="text-xs text-slate-400">▼</span>
@@ -97,7 +118,7 @@ const FolderDropdown = ({groups, selected, onChange}: {
 
             {isOpen && (
                 <div
-                    className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-80 overflow-y-auto animate-in fade-in slide-in-from-top-2">
+                    className="absolute z-50 w-full mt-1 bg-white border-[1.5px] border-slate-500 rounded-lg shadow-xl max-h-80 overflow-y-auto animate-in fade-in slide-in-from-top-2">
                     <button
                         onClick={() => handleSelect("All")}
                         className={`w-full text-left p-3 text-sm font-bold border-b border-slate-100 hover:bg-slate-50 transition-colors ${selected === "All" ? "text-blue-600 bg-blue-50/50" : "text-slate-700"}`}
@@ -137,32 +158,59 @@ const FolderDropdown = ({groups, selected, onChange}: {
     );
 };
 
+/**
+ * DirectoryContent Component
+ * Main search, filter, and rendering logic block.
+ * Encapsulated to run safely below dynamic URL routing boundaries.
+ */
 function DirectoryContent() {
     const searchParams = useSearchParams();
+    
+    // Read the query parameter 'q' to pre-load queries from the landing page
     const query = searchParams.get("q") || "";
 
-    // Master List & Filters
+    // master list state storing un-filtered network records fetched from Supabase
     const [allContacts, setAllContacts] = useState<Contact[]>([]);
+    
+    // Filtering states
     const [searchQuery, setSearchQuery] = useState(query);
     const [selectedCampus, setSelectedCampus] = useState("All");
     const [selectedFocus, setSelectedFocus] = useState("All");
 
-    useEffect(() => {
-        if (query) {
-            setSearchQuery(query);
-        }
-    }, [query]);
-
-    // State for the Micro Map & Modal
+    // Tracks selected contact to map on interactive Modal
     const [activeMapContact, setActiveMapContact] = useState<Contact | null>(null);
 
-    // --- TUTORIAL / ONBOARDING STATE ---
+    // Tour onboarding step tracking (-1 represents not visible, 0 is welcome, >0 is active steps)
     const [tourStep, setTourStep] = useState<number>(-1);
 
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    // Track active user login state dynamically
     useEffect(() => {
+        const supabase = createClient();
+        const checkUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setIsLoggedIn(!!user);
+        };
+        checkUser();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            (_event, session) => {
+                setIsLoggedIn(!!session?.user);
+            }
+        );
+        return () => subscription.unsubscribe();
+    }, []);
+
+    // Initial effect executing local-storage onboarding logic checks
+    useEffect(() => {
+        const hasVisitedBefore = localStorage.getItem("hasVisitedBefore");
         const hasSeen = localStorage.getItem("hasSeenTutorial");
-        if (!hasSeen) {
-            setTourStep(0); // Show Welcome Modal
+        if (!hasVisitedBefore) {
+            localStorage.setItem("hasVisitedBefore", "true");
+            if (!hasSeen) {
+                setTourStep(0); // Prompt modal only if it is the very first visit/session
+            }
         }
     }, []);
 
@@ -172,21 +220,28 @@ function DirectoryContent() {
         localStorage.setItem("hasSeenTutorial", "true");
     };
 
-    // --- INITIAL DATA FETCH ---
+    // Synchronizes searchQuery when navigating or when the query parameters update in the browser URL bar
+    useEffect(() => {
+        if (query) {
+            setSearchQuery(query);
+        }
+    }, [query]);
+
+    // Fetch primary contact directory records on component mount
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
                 const supabase = createClient();
+                // Query active database contacts joining relative relational tags/domains
                 const {data, error} = await supabase
                     .from('contacts')
                     .select(`*, contact_domains (domains (domain_name))`)
                     .eq('is_public', true);
                 if (error) throw error;
 
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                // Restructure raw Supabase arrays into typed Contact definitions
                 const formattedData: Contact[] = (data as any[]).map((c) => ({
                     ...c,
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     domains: c.contact_domains.map((cd: any) => cd.domains.domain_name)
                 }));
                 setAllContacts(formattedData);
@@ -197,7 +252,7 @@ function DirectoryContent() {
         fetchInitialData();
     }, []);
 
-    // --- DYNAMIC FILTERING ---
+    // Perform filter computations client-side. Memoized to optimize render frequencies
     const displayedContacts = useMemo(() => {
         return allContacts.filter((person) => {
             const keywordMatch = searchQuery === "" ||
@@ -209,7 +264,6 @@ function DirectoryContent() {
 
             let focusMatch = selectedFocus === "All";
             if (selectedFocus !== "All" && person.domains && person.domains.length > 0) {
-                // Now it just does a direct, exact match check against the database strings
                 focusMatch = person.domains.includes(selectedFocus);
             }
 
@@ -217,10 +271,11 @@ function DirectoryContent() {
         });
     }, [allContacts, searchQuery, selectedCampus, selectedFocus]);
 
+    // Extract unique campuses and focus domains from the dataset dynamically to generate UI selectors
     const uniqueCampuses = Array.from(new Set(allContacts.map(c => c.campus).filter(Boolean))).sort();
     const uniqueFocusAreas = Array.from(new Set(allContacts.flatMap(c => c.domains))).filter(Boolean).sort();
 
-    // --- CATEGORIZATION LOGIC ---
+    // Categorization logic parsing focus domains into hierarchical folders
     const groupedFocusAreas = useMemo(() => {
         const groups: Record<string, string[]> = {
             "Education & Student Success": [],
@@ -240,7 +295,7 @@ function DirectoryContent() {
 
         uniqueFocusAreas.forEach(focus => {
             let placed = false;
-            // Check the focus string against each bucket's keywords defined in INTEREST_BUCKETS
+            // Iterate over standard interest categories searching for keyword inclusions
             for (const [category, keywords] of Object.entries(INTEREST_BUCKETS)) {
                 if (keywords.some(kw => (focus as string).toLowerCase().includes(kw.toLowerCase()))) {
                     groups[category].push(focus as string);
@@ -253,7 +308,7 @@ function DirectoryContent() {
             }
         });
 
-        // Clean up empty folders
+        // Filter out categories that didn't receive any dynamic matching records
         Object.keys(groups).forEach(key => {
             if (groups[key].length === 0) delete groups[key];
         });
@@ -264,10 +319,10 @@ function DirectoryContent() {
     return (
         <div className="flex h-full w-full bg-slate-50 overflow-hidden font-sans relative">
 
-            {/* DIRECTORY */}
+            {/* DIRECTORY LISTING */}
             <div className="w-full h-full p-8 overflow-y-auto bg-white">
 
-                {/* Filter UI */}
+                {/* Filters Input Panel */}
                 <div className={`relative rounded-xl transition-all duration-300 ${tourStep === 1 ? 'z-[100] bg-white p-4 shadow-2xl ring-4 ring-blue-400/50 -m-4 mb-2' : 'mb-6'}`}>
                     <div className="grid grid-cols-4 gap-4">
                         <div className="flex flex-col">
@@ -329,7 +384,7 @@ function DirectoryContent() {
                     )}
                 </div>
 
-                {/* Directory Container */}
+                {/* Main Cards Listing container */}
                 <div className={`relative rounded-xl transition-all duration-300 ${tourStep === 2 ? 'z-[100] bg-white p-4 shadow-2xl ring-4 ring-blue-400/50 -m-4' : ''}`}>
                     <h2 className="text-xl font-semibold mb-4 text-slate-700 flex items-center">
                         🗂️ Civic Directory
@@ -350,7 +405,7 @@ function DirectoryContent() {
                         </div>
                     )}
 
-                    {/* Render Directory Cards */}
+                    {/* Directory Cards Rendering Pipeline */}
                     {displayedContacts.length === 0 ? (
                         <div className="bg-slate-50 border border-slate-200 text-slate-600 p-6 rounded-xl text-center">
                             <p className="font-medium">No contacts match your filters.</p>
@@ -359,93 +414,124 @@ function DirectoryContent() {
                         <div className="space-y-4 pb-8">
                             <p className="text-sm text-slate-500">Showing {displayedContacts.length} Matches</p>
 
-                            {displayedContacts.slice(0, 50).map((person, index) => (
-                            <div key={index}
-                                 className="p-5 border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                                <h3 className="text-lg font-bold text-blue-900">{person.name}</h3>
-                                <p className="text-sm text-slate-600 font-medium mb-2">{person.campus} | {person.role_title}</p>
-                                {person.affiliation && <p className="text-sm text-slate-700"><span
-                                    className="font-semibold">🏢 Title:</span> {person.affiliation}</p>}
-                                {person.domains && person.domains.length > 0 &&
-                                    <p className="text-sm text-slate-700"><span
-                                        className="font-semibold">🎯 Focus:</span> {person.domains.join(", ")}</p>}
+                            {displayedContacts.slice(0, isLoggedIn ? 50 : 6).map((person, index) => {
+                                 if (!isLoggedIn && index === 5) {
+                                     return (
+                                         <div key="premium-gate-card" className="relative overflow-hidden bg-slate-900 text-white rounded-2xl p-8 shadow-xl flex flex-col items-center justify-center text-center border border-slate-800 min-h-[320px] transition-all hover:shadow-2xl">
+                                             {/* Decorative Background Shapes */}
+                                             <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-900 to-indigo-900/40 opacity-70 pointer-events-none" />
+                                             <div className="absolute -top-16 -right-16 w-36 h-36 rounded-full bg-blue-500/10 blur-xl pointer-events-none" />
+                                             <div className="absolute -bottom-16 -left-16 w-36 h-36 rounded-full bg-indigo-500/10 blur-xl pointer-events-none" />
+                                             
+                                             <div className="relative z-10 max-w-lg flex flex-col items-center">
+                                                 <div className="w-16 h-16 bg-blue-500/10 text-blue-400 rounded-full flex items-center justify-center text-3xl mb-4 border border-blue-500/20 shadow-inner animate-pulse">
+                                                     🔒
+                                                 </div>
+                                                 <h3 className="text-2xl font-black tracking-tight mb-2 bg-gradient-to-r from-blue-200 to-indigo-200 bg-clip-text text-transparent">Unlock the Civic Directory</h3>
+                                                 <p className="text-slate-300 text-sm mb-6 leading-relaxed">
+                                                     You are viewing a guest preview of the network. Log in or create a free account to browse all <span className="font-bold text-blue-300">{displayedContacts.length} available contacts</span>, access secure connection maps, and connect directly with civic leaders.
+                                                 </p>
+                                                 <Link
+                                                     href="/login"
+                                                     className="inline-flex items-center justify-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-sm font-extrabold px-8 py-3 rounded-xl transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95"
+                                                 >
+                                                     Log In / Sign Up
+                                                 </Link>
+                                             </div>
+                                         </div>
+                                     );
+                                 }
 
-                                {person.capabilities && <p className="text-sm text-slate-700"><span
-                                    className="font-semibold">🛠️ Skillset:</span> {person.capabilities}</p>}
+                                 return (
+                                     <div key={index}
+                                          className="p-5 border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                                         <h3 className="text-lg font-bold text-blue-900">{person.name}</h3>
+                                         <p className="text-sm text-slate-600 font-medium mb-2">{person.campus} | {person.role_title}</p>
+                                         {person.affiliation && <p className="text-sm text-slate-700"><span
+                                             className="font-semibold">🏢 Title:</span> {person.affiliation}</p>}
+                                         {person.domains && person.domains.length > 0 &&
+                                             <p className="text-sm text-slate-700"><span
+                                                 className="font-semibold">🎯 Focus:</span> {person.domains.join(", ")}</p>}
 
-                                {person.notes && (
-                                    <div className="mt-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                                        <p className="text-sm text-slate-600 italic">
-                                            <span
-                                                className="font-semibold not-italic text-slate-700">📝 Notes:</span> {person.notes}
-                                        </p>
-                                    </div>
-                                )}
+                                         {person.capabilities && <p className="text-sm text-slate-700"><span
+                                             className="font-semibold">🛠️ Skillset:</span> {person.capabilities}</p>}
 
-                                {/* FULLY RESTORED SAVE CONTACT BUTTON */}
-                                <button
-                                    onClick={async () => {
-                                        try {
-                                            const supabase = createClient();
-                                            const { data: { user } } = await supabase.auth.getUser();
+                                         {person.notes && (
+                                             <div className="mt-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                                 <p className="text-sm text-slate-600 italic">
+                                                     <span
+                                                         className="font-semibold not-italic text-slate-700">📝 Notes:</span> {person.notes}
+                                                 </p>
+                                             </div>
+                                         )}
 
-                                            if (!user) {
-                                                alert("You must be logged in to save contacts.");
-                                                return;
-                                            }
+                                         {/* Save Bookmark Action */}
+                                         <button
+                                             onClick={async () => {
+                                                 try {
+                                                     const supabase = createClient();
+                                                     const { data: { user } } = await supabase.auth.getUser();
 
-                                            const {error} = await supabase
-                                                .from('saved_contacts')
-                                                .insert([{contact_id: person.id, user_id: user.id}]);
+                                                     if (!user) {
+                                                         alert("You must be logged in to save contacts.");
+                                                         return;
+                                                     }
 
-                                            if (error) {
-                                                if (error.code === '23505') {
-                                                    alert(`⭐ ${person.name} is already in your vault!`);
-                                                    return;
-                                                }
-                                                throw error;
-                                            }
-                                            alert(`⭐ Saved ${person.name} to your vault!`);
-                                        } catch (e) {
-                                            console.error("Failed to save contact", e);
-                                            alert("Could not save contact right now.");
-                                        }
-                                    }}
-                                    className="mt-4 mr-2 text-sm text-slate-700 bg-slate-100 border border-slate-200 px-4 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white font-semibold transition-all"
-                                >
-                                    ⭐ Save Contact
-                                </button>
+                                                     // Insert save record, checking Supabase unique constraint violations
+                                                     const {error} = await supabase
+                                                         .from('saved_contacts')
+                                                         .insert([{contact_id: person.id, user_id: user.id}]);
 
-                                {/* NEW: DIRECT EMAIL BUTTON */}
-                                <button
-                                    onClick={() => {
-                                        if (!person.email_contact) {
-                                            alert(`No public email address is listed for ${person.name}.`);
-                                            return;
-                                        }
-                                        const subject = encodeURIComponent(`Connecting via INI Civic Network`);
-                                        const body = encodeURIComponent(`Hi ${person.name},\n\nI found your profile on the INI Civic Network and would love to connect to discuss potential collaboration.\n\nBest,\n[Your Name]`);
-                                        window.location.href = `mailto:${person.email_contact}?subject=${subject}&body=${body}`;
-                                    }}
-                                    className="mt-4 mr-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-1.5 rounded-lg hover:bg-emerald-600 hover:text-white font-semibold transition-all"
-                                >
-                                    ✉️ Connect
-                                </button>
+                                                     if (error) {
+                                                         if (error.code === '23505') {
+                                                             alert(`⭐ ${person.name} is already in your vault!`);
+                                                             return;
+                                                         }
+                                                         throw error;
+                                                     }
+                                                     alert(`⭐ Saved ${person.name} to your vault!`);
+                                                 } catch (e) {
+                                                     console.error("Failed to save contact", e);
+                                                     alert("Could not save contact right now.");
+                                                 }
+                                             }}
+                                             className="mt-4 mr-2 text-sm text-slate-700 bg-slate-100 border border-slate-200 px-4 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white font-semibold transition-all"
+                                         >
+                                             ⭐ Save Contact
+                                         </button>
 
-                                <button
-                                    onClick={() => setActiveMapContact(person)}
-                                    className="mt-4 text-sm text-blue-600 bg-blue-50 border border-blue-100 px-4 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white font-semibold transition-all"
-                                >
-                                    🗺️ View Connections Map
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                )}
+                                         {/* Direct Mail Integration */}
+                                         <button
+                                             onClick={() => {
+                                                 if (!person.email_contact) {
+                                                     alert(`No public email address is listed for ${person.name}.`);
+                                                     return;
+                                                 }
+                                                 const subject = encodeURIComponent(`Connecting via INI Civic Network`);
+                                                 const body = encodeURIComponent(`Hi ${person.name},\n\nI found your profile on the INI Civic Network and would love to connect to discuss potential collaboration.\n\nBest,\n[Your Name]`);
+                                                 window.location.href = `mailto:${person.email_contact}?subject=${subject}&body=${body}`;
+                                             }}
+                                             className="mt-4 mr-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-1.5 rounded-lg hover:bg-emerald-600 hover:text-white font-semibold transition-all"
+                                         >
+                                             ✉️ Connect
+                                         </button>
+
+                                         {/* Trigger connection mapping overlay */}
+                                         <button
+                                             onClick={() => setActiveMapContact(person)}
+                                             className="mt-4 text-sm text-blue-600 bg-blue-50 border border-blue-100 px-4 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white font-semibold transition-all"
+                                         >
+                                             🗺️ View Connections Map
+                                         </button>
+                                     </div>
+                                 );
+                             })}
+                         </div>
+                    )}
                 </div>
             </div>
 
-            {/* NEW FLOATING COPILOT */}
+            {/* AI Copilot Panel */}
             <div className={`relative transition-all duration-300 ${tourStep === 3 ? 'z-[100]' : 'z-50'}`}>
                 {tourStep === 3 && (
                     <div className="fixed bottom-24 right-8 bg-white rounded-xl shadow-2xl p-5 w-80 z-[101] animate-in fade-in slide-in-from-bottom-4 border border-blue-400 ring-4 ring-blue-400/20">
@@ -462,12 +548,12 @@ function DirectoryContent() {
                 <Copilot onInspectProfile={(name) => {
                     const found = allContacts.find(c => c.name === name);
                     if (found) {
-                        setActiveMapContact(found); // Opens the modal
+                        setActiveMapContact(found); // Open inspection connection modal
                     }
                 }}/>
             </div>
 
-            {/* MAP MODAL OVERLAY */}
+            {/* Visual force connection map Overlay */}
             {activeMapContact && (
                 <MiniMapModal
                     initialContact={activeMapContact}
@@ -504,12 +590,12 @@ function DirectoryContent() {
                 />
             )}
 
-            {/* TOUR BACKDROP */}
+            {/* Active Tour Background Blur mask */}
             {tourStep > 0 && (
                 <div className="fixed inset-0 z-[90] bg-slate-900/40 pointer-events-none transition-opacity duration-300" />
             )}
 
-            {/* WELCOME MODAL */}
+            {/* Initial Welcome Modal */}
             {tourStep === 0 && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 fade-in duration-200">
@@ -534,7 +620,7 @@ function DirectoryContent() {
                 </div>
             )}
 
-            {/* RESTART TOUR BUTTON */}
+            {/* Restart Tour button indicator */}
             <button 
                 onClick={() => setTourStep(0)}
                 className="fixed bottom-6 left-6 z-40 flex items-center justify-center w-12 h-12 bg-white border border-slate-200 text-slate-600 rounded-full shadow-lg hover:bg-blue-50 hover:text-blue-600 hover:scale-105 transition-all group"

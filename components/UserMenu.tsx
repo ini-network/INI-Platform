@@ -6,13 +6,27 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { User } from "@supabase/supabase-js";
 
+/**
+ * UserMenu Component
+ * Renders the primary user avatar, dropdown options, and handles Supabase auth sessions.
+ * Implements a click-outside detection boundary and invalidates cache states upon sign-out.
+ */
 export default function UserMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fetch user and listen for auth changes
+  /**
+   * SUPABASE AUTH LIFECYCLE LISTENERS
+   * 
+   * Retrieves the current user's session data upon component mount.
+   * Registers a client-side Supabase authentication state observer (`onAuthStateChange`)
+   * to dynamically react to login, registration, and logout operations.
+   * 
+   * Returns a cleanup function that unsubscribes the observer to prevent memory 
+   * leaks and double-firing on React hot-reloading / route transition lifecycles.
+   */
   useEffect(() => {
     const supabase = createClient();
 
@@ -31,7 +45,15 @@ export default function UserMenu() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Close dropdown if user clicks outside of it
+  /**
+   * CLICK-OUTSIDE DETECTOR BOUNDARY
+   * 
+   * Registers a global listener for the document mousedown event.
+   * When a click event fires, we check if the clicked target DOM element lies *outside*
+   * our dropdown element container (`dropdownRef`). If it's outside, we close the dropdown menu.
+   * 
+   * Includes standard teardown on unmount to prevent stale document-level click callbacks.
+   */
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -42,12 +64,20 @@ export default function UserMenu() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  /**
+   * SECURE LOGOUT FLOW
+   * 
+   * Invokes Supabase's sign-out routine to destroy the user session cookies/tokens.
+   * Redirects the client route explicitly to /login.
+   * Calls router.refresh() to force-invalidate all aggressive Next.js layout and page caches,
+   * triggering navbar re-evaluation instantly.
+   */
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
     setIsOpen(false);
     router.push("/login");
-    router.refresh(); // Forces Next.js to update the page state
+    router.refresh(); // Forces Next.js to update the page state and drop layout caches
   };
 
   // --- LOGGED OUT STATE ---

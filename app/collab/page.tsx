@@ -6,6 +6,12 @@ import {INTEREST_BUCKETS} from "@/lib/taxonomy";
 import ProfileModal, {ContactProfile} from "@/components/ProfileModal";
 
 // --- INTERFACES ---
+
+/**
+ * Interface representing a structured collaboration feed item.
+ * Utilizes a nested `author` dictionary mapping to relational Supabase joins 
+ * between 'collaboration_posts' and 'contacts' tables.
+ */
 interface CollaborationPost {
     id: string;
     author_id: string;
@@ -16,7 +22,7 @@ interface CollaborationPost {
     campus: string | null;
     expires_at: string;
     created_at: string;
-    // This comes from the Supabase join
+    // Nesting resolved relational values loaded via Supabase's inner joins
     author: {
         id: string;
         name: string;
@@ -45,6 +51,12 @@ const InfoTooltip = ({ text }: { text: string }) => {
     );
 };
 
+/**
+ * CollaborationHub Component
+ * Manages the civic needs and offers feed. Features active search filtering,
+ * post creation gates based on active directory profiles, and a step-by-step 
+ * state-machine driving the first-time user onboarding tour.
+ */
 export default function CollaborationHub() {
     // Feed State
     const [posts, setPosts] = useState<CollaborationPost[]>([]);
@@ -77,12 +89,39 @@ export default function CollaborationHub() {
 
     const [currentUserContactId, setCurrentUserContactId] = useState<string | null>(null);
 
-    // --- TUTORIAL / ONBOARDING STATE ---
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+    // Track active user login state dynamically
+    useEffect(() => {
+        const supabase = createClient();
+        const checkUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setIsLoggedIn(!!user);
+        };
+        checkUser();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            (_event, session) => {
+                setIsLoggedIn(!!session?.user);
+            }
+        );
+        return () => subscription.unsubscribe();
+    }, []);
+
+    // --- TUTORIAL / ONBOARDING STATE MACHINE ---
+    // Controls step progression for guided walkthrough overlay. Saves state locally in localStorage.
     const [tourStep, setTourStep] = useState<number>(-1);
 
     useEffect(() => {
+        const hasVisitedBefore = localStorage.getItem("hasVisitedCollabBefore");
         const hasSeen = localStorage.getItem("hasSeenCollabTutorial");
-        if (!hasSeen) setTourStep(0); // Show Welcome Modal
+        if (!hasVisitedBefore) {
+            localStorage.setItem("hasVisitedCollabBefore", "true");
+            if (!hasSeen) {
+                setTourStep(0); // Launch Welcome Modal only if it is the very first visit/session
+            }
+        }
     }, []);
 
     const startTour = () => setTourStep(1);
@@ -91,17 +130,25 @@ export default function CollaborationHub() {
         localStorage.setItem("hasSeenCollabTutorial", "true");
     };
 
-    // --- INITIAL DATA FETCH ---
+    /**
+     * INITIAL DATA RETRIEVAL PIPELINE
+     * 
+     * Orchestrates two asynchronous processes:
+     * 1. Auth check: Fetch current user, look up their profile link `linked_contact_id`
+     *    inside `public.users` schema. Blocks post authorship unless a public profile is linked.
+     * 2. Opportunities Feed: Retrieves unexpired collaboration items with a complex join filter,
+     *    ensuring the author's public publishing flag is toggled on (`contacts.is_public == true`).
+     */
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true);
             try {
                 const supabase = createClient();
 
-                // -- NEW AUTH LOGIC --
+                // Check secure user session details
                 const {data: {user}} = await supabase.auth.getUser();
                 if (user) {
-                    // Look up their linked profile in the public.users table
+                    // Match auth context with directory contacts database records
                     const {data: userData} = await supabase
                         .from('users')
                         .select('linked_contact_id')
@@ -110,12 +157,12 @@ export default function CollaborationHub() {
 
                     if (userData?.linked_contact_id) {
                         setCurrentUserContactId(userData.linked_contact_id);
-                        // Automatically set the form's author_id to their linked profile
+                        // Auto-fill author ID parameters
                         setFormData(prev => ({...prev, author_id: userData.linked_contact_id}));
                     }
                 }
 
-                // 1. Fetch Posts (Only unexpired, sorted newest first)
+                // 1. Fetch unexpired feed posts using nested Supabase join mappings
                 const {data: postData, error: postError} = await supabase
                     .from('collaboration_posts')
                     .select(`
@@ -125,18 +172,18 @@ export default function CollaborationHub() {
               contact_domains ( domains ( domain_name ) )
             )
           `)
-                    .eq('contacts.is_public', true) // <-- ADDED FILTER (Requires !inner above)
+                    .eq('contacts.is_public', true) // <-- Ensure author directory card is active
                     .gt('expires_at', new Date().toISOString())
                     .order('created_at', {ascending: false});
 
                 if (postError) throw postError;
                 setPosts(postData as CollaborationPost[]);
 
-                // 2. Fetch lightweight contacts list for the "Post As" demo dropdown
+                // 2. Fetch lightweight directory index mapping names to IDs for author bindings
                 const {data: contactData} = await supabase
                     .from('contacts')
                     .select('id, name')
-                    .eq('is_public', true) // <-- ADDED FILTER
+                    .eq('is_public', true)
                     .order('name');
 
                 if (contactData) setAllContacts(contactData);
@@ -252,7 +299,13 @@ export default function CollaborationHub() {
                                 your expertise.</p>
                         </div>
                         <button
-                            onClick={() => setIsCreateOpen(true)}
+                            onClick={() => {
+                                if (!isLoggedIn) {
+                                    setShowLoginPrompt(true);
+                                } else {
+                                    setIsCreateOpen(true);
+                                }
+                            }}
                             className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl shadow-lg transition-all hover:shadow-xl hover:-translate-y-0.5"
                         >
                             + Create Post
@@ -340,6 +393,10 @@ export default function CollaborationHub() {
 
                                         <button
                                             onClick={() => {
+                                                if (!isLoggedIn) {
+                                                    setShowLoginPrompt(true);
+                                                    return;
+                                                }
                                                 // Map the complex domain structure to a flat array for the ProfileModal
                                                 const mappedContact: ContactProfile = {
                                                     ...post.author,
@@ -386,6 +443,10 @@ export default function CollaborationHub() {
 
                                         <button
                                             onClick={() => {
+                                                if (!isLoggedIn) {
+                                                    setShowLoginPrompt(true);
+                                                    return;
+                                                }
                                                 if (!post.author.email_contact) {
                                                     alert(`No email address is listed for ${post.author.name}.`);
                                                     return;
@@ -582,6 +643,42 @@ export default function CollaborationHub() {
                         }
                     }}
                 />
+            )}
+
+            {/* PREMIUM GATE MODAL */}
+            {showLoginPrompt && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
+                    <div className="relative overflow-hidden bg-slate-900 border border-slate-800 text-white rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
+                        {/* Background elements */}
+                        <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full bg-blue-500/10 blur-2xl pointer-events-none" />
+                        <div className="absolute -bottom-24 -left-24 w-48 h-48 rounded-full bg-indigo-500/10 blur-2xl pointer-events-none" />
+
+                        <div className="relative z-10 flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-blue-500/10 text-blue-400 rounded-full flex items-center justify-center text-3xl mb-4 border border-blue-500/20 shadow-inner">
+                                🤝
+                            </div>
+                            <h2 className="text-2xl font-black tracking-tight mb-2 bg-gradient-to-r from-blue-200 to-indigo-200 bg-clip-text text-transparent">Connect & Collaborate</h2>
+                            <p className="text-slate-300 text-sm mb-6 leading-relaxed">
+                                Ready to join forces on civic projects? Log in or create a free account to inspect profiles, express interest in posts, and share your own opportunities with the network.
+                            </p>
+                            
+                            <div className="flex flex-col gap-3 w-full">
+                                <Link
+                                    href="/login"
+                                    className="inline-flex items-center justify-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-sm font-extrabold px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95 w-full"
+                                >
+                                    Log In / Sign Up
+                                </Link>
+                                <button
+                                    onClick={() => setShowLoginPrompt(false)}
+                                    className="py-3 text-slate-400 hover:text-white text-sm font-semibold transition-colors"
+                                >
+                                    Close & Keep Browsing
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* TOUR BACKDROP */}

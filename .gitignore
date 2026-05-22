@@ -43,3 +43,21 @@ yarn-error.log*
 next-env.d.ts
 /ini_local.py
 /CUNY INI NLP Data Untransformed.csv
+/data.sql
+/app/explore/explorepage.tsx
+/CUNY INI NLP Data Transformed.csv
+/CUNY_INI_Ready_For_Supabase.csv
+/retag_domains.py
+/CUNY INI NLP Data Untransformed.csv
+/CUNY_INI_MicroTagged_Final.csv
+/cloud_migration.py
+/CUNY_INI_MicroTagged_Ready.csv
+/schema.sql
+/Proposed_Taxonomy.json
+/app/contribute/contributepage.tsx
+/app/collab/collabpage.tsx
+/.aiexclude
+/taxonomy_explorer.py
+/fix_csv.py
+/roles.sql
+/CUNY_INI_Standardized_Final.csv

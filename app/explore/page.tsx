@@ -224,9 +224,37 @@ export default function ExploreMap() {
   // --- TUTORIAL / ONBOARDING STATE ---
   const [tourStep, setTourStep] = useState<number>(-1);
 
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [guestInspectCount, setGuestInspectCount] = useState(0);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+  // Dynamic user auth state tracking
   useEffect(() => {
+    const supabase = createClient();
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsLoggedIn(!!user);
+    };
+    checkUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setIsLoggedIn(!!session?.user);
+      }
+    );
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Show onboarding tutorial only on the user's first visit/session
+  useEffect(() => {
+    const hasVisitedBefore = localStorage.getItem("hasVisitedExploreBefore");
     const hasSeen = localStorage.getItem("hasSeenExploreTutorial");
-    if (!hasSeen) setTourStep(0); // Show Welcome Modal
+    if (!hasVisitedBefore) {
+      localStorage.setItem("hasVisitedExploreBefore", "true");
+      if (!hasSeen) {
+        setTourStep(0); // Show Welcome Modal only on first session
+      }
+    }
   }, []);
 
   const startTour = () => setTourStep(1);
@@ -246,6 +274,17 @@ export default function ExploreMap() {
     const newState = !isSidebarOpen;
     setIsSidebarOpen(newState);
     localStorage.setItem("exploreSidebarOpen", String(newState));
+  };
+
+  const handleInspectContact = (contact: Contact) => {
+    if (!isLoggedIn) {
+      if (guestInspectCount >= 2) {
+        setShowLoginPrompt(true);
+        return;
+      }
+      setGuestInspectCount(prev => prev + 1);
+    }
+    setActiveContact(contact);
   };
 
   useEffect(() => {
@@ -302,6 +341,20 @@ export default function ExploreMap() {
   const handleFitMap = () => { fgRef.current?.zoomToFit(400, 50); };
 
   // --- UPGRADED "PERSON-CENTRIC" GRAPH ALGORITHM ---
+  /**
+   * DYNAMIC SUB-GRAPH GENERATION PIPELINE
+   * 
+   * Leverages React `useMemo` to construct a dynamic bipartite graph structure (nodes & links)
+   * tailored to the active filter state and chosen `viewType`. Memoization is critical here
+   * to prevent expensive sub-graph regeneration computations and force-graph engine resets
+   * during slider interactions or cursor hover events.
+   * 
+   * Resolves four distinctive visualization hierarchies:
+   * 1. Person Centric: Center Person -> Shared Interests -> Collateral Peer Researchers.
+   * 2. Location Centric: Institution Hub -> Affiliated Researchers -> Auxiliary Interests.
+   * 3. Topic Centric: Interest Hub -> Active Researchers -> Auxiliary Interests.
+   * 4. Global Ecosystem: Macro scale bird's-eye view linking campus/partner nodes to major topics.
+   */
   const { nodes, links, hiddenCount } = useMemo(() => {
     let filteredContacts = allContacts;
     if (copilotSearch) {
@@ -310,11 +363,17 @@ export default function ExploreMap() {
 
     const graphNodes: LibNode[] = [];
     const graphLinks: GraphLink[] = [];
+    
+    // Deduplication sets to prevent redundant coordinate computation or rendering crashes in react-force-graph
     const addedNodes = new Set<string>();
     const addedLinks = new Set<string>();
     let currentlyHiddenContacts = 0;
 
     // --- NEW: HTML Tooltip Generator ---
+    /**
+     * Generates a premium dark-themed HTML tooltip for nodes.
+     * Injects context-relevant metadata (locale, affiliation, and focus tags) for progressive disclosure.
+     */
     const createPersonTooltip = (c: Contact, isCenter = false) => {
       const parts = [];
       if (c.campus) parts.push(`Locale: ${c.campus}`);
@@ -324,6 +383,11 @@ export default function ExploreMap() {
       return `<div style="text-align: center; font-family: sans-serif; padding: 2px;">${prefix}<strong>${c.name}</strong>${details}</div>`;
     };
 
+    /**
+     * Prevents duplicate bidirectional linkages in D3's link array.
+     * Ensures consistent link mapping (e.g., 'A -> B' and 'B -> A' are unified) which avoids
+     * force simulation coordinate calculation loop bugs or double-rendering links.
+     */
     const safeAddLink = (s: string, t: string) => {
       const key = `${s}->${t}`;
       const reverseKey = `${t}->${s}`;
@@ -333,16 +397,21 @@ export default function ExploreMap() {
       }
     };
 
+    /**
+     * State gate controlling dynamic depth expansion.
+     * Auto-expands secondary branches if the target node is globally expanded, explicitly clicked/expanded,
+     * or if the total localized sub-graph is small enough (<= 25 items) to display without visual clutter.
+     */
     const shouldExpandChildren = (parentNodeId: string, isSmallNetwork: boolean) => {
       return isGlobalExpanded || expandedNodes.has(parentNodeId) || isSmallNetwork;
     };
 
-    // 1. PERSON VIEW (Center Person -> Topics -> Other People)
+    // --- 1. PERSON VIEW (Center Person -> Topics -> Other People) ---
     if (viewType === "person" && selectedPerson) {
       const centerPerson = filteredContacts.find(c => c.name === selectedPerson);
       if (!centerPerson) return { nodes: graphNodes, links: graphLinks, hiddenCount: 0 };
 
-      // Add Center Person
+      // Append Center Anchor (highest weight, designated with a premium amber center marker)
       graphNodes.push({ id: centerPerson.id, name: centerPerson.name, group: "center", val: 12, color: "#fbbf24", title: createPersonTooltip(centerPerson, true) });
       addedNodes.add(centerPerson.id);
 
@@ -350,14 +419,14 @@ export default function ExploreMap() {
       const isSmallNetwork = networkContacts.length <= 25;
 
       centerPerson.domains?.forEach(topic => {
-        // Add Their Topics
+        // Map connecting topics as immediate primary orbits
         if (!addedNodes.has(topic)) {
           graphNodes.push({ id: topic, name: topic, group: "topic_hub", val: 8, color: "#0ea5e9", title: `<div style="text-align: center;"><strong>${topic}</strong></div>` });
           addedNodes.add(topic);
         }
         safeAddLink(centerPerson.id, topic);
 
-        // Add Other People sharing the topic
+        // Map secondary orbits: Peer researchers sharing this specific topic hub
         filteredContacts.forEach(other => {
           if (other.id === centerPerson.id || !other.domains?.includes(topic)) return;
 
@@ -374,7 +443,7 @@ export default function ExploreMap() {
       });
     }
 
-    /// 2. LOCATION VIEW
+    // --- 2. LOCATION VIEW (Center Location -> Affiliated People -> Their Topics) ---
     else if (viewType === "location" && selectedLocation) {
       const locId = `loc_${selectedLocation}`;
       graphNodes.push({ id: locId, name: selectedLocation, group: "center", val: 12, color: "#ec4899", title: `<div style="text-align: center;"><strong>${selectedLocation}</strong></div>` });
@@ -404,7 +473,7 @@ export default function ExploreMap() {
       });
     }
 
-    // 3. TOPIC VIEW
+    // --- 3. TOPIC VIEW (Center Topic -> Subscribed People -> Other Topics) ---
     else if (viewType === "topic" && selectedSpecificFocus) {
       const topicId = selectedSpecificFocus;
       graphNodes.push({ id: topicId, name: topicId, group: "center", val: 12, color: "#0ea5e9", title: `<div style="text-align: center;"><strong>${topicId}</strong></div>` });
@@ -436,7 +505,7 @@ export default function ExploreMap() {
       });
     }
 
-    // 4. GLOBAL ECOSYSTEM VIEW
+    // --- 4. GLOBAL ECOSYSTEM VIEW (All Hubs -> People -> Topics) ---
     else if (viewType === "global") {
       let globalContacts = filteredContacts;
       if (globalSubFilter === "cuny") {
@@ -716,7 +785,7 @@ export default function ExploreMap() {
 
                 if (node.group === "person" || node.group === "center") {
                   const pData = allContacts.find(c => c.id === nodeId || c.name === node.name);
-                  if (pData) setActiveContact(pData);
+                  if (pData) handleInspectContact(pData);
                 }
                 else if (node.group === "topic_hub" || node.group === "location_hub") {
                   setExpandedNodes(prev => {
@@ -739,15 +808,24 @@ export default function ExploreMap() {
               linkDirectionalParticleSpeed={0.005}
               nodeCanvasObject={(node: LibNode, ctx: CanvasRenderingContext2D, globalScale: number) => {
                 if (node.x === undefined || node.y === undefined || node.val === undefined) return;
+                
+                // --- CUSTOM circular node canvas drawing routine ---
                 ctx.beginPath();
+                // Draw circle: arc(x, y, radius, startAngle, endAngle, counterclockwise)
                 ctx.arc(node.x, node.y, node.val + 1, 0, 2 * Math.PI, false);
                 ctx.fillStyle = node.color || "#cccccc";
                 ctx.fill();
 
+                // --- ADAPTIVE TYPOGRAPHY OVERLAP CHECKER & LABEL DRAWING ---
+                // Only render text labels for primary/important hubs (val >= 6) OR when zoomed in enough (globalScale > 1.5).
+                // Prevents dense visual clutter/collisions when viewing the whole network at a distance.
                 if (node.val >= 6 || globalScale > 1.5) {
+                  // Normalize font size dynamically relative to camera zoom to maintain readable pixel height.
                   ctx.font = `${Math.max(12 / globalScale, 2)}px Sans-Serif`;
-                  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+                  ctx.textAlign = 'center'; 
+                  ctx.textBaseline = 'top';
                   ctx.fillStyle = '#ffffff';
+                  // Offset label text slightly below the node circle boundary radius to prevent overlap
                   ctx.fillText(node.name || "", node.x, node.y + node.val + 4);
                 }
               }}
@@ -846,7 +924,7 @@ export default function ExploreMap() {
         )}
         <Copilot onInspectProfile={(name) => {
           const found = allContacts.find(c => c.name === name);
-          if (found) setActiveContact(found);
+          if (found) handleInspectContact(found);
         }} />
       </div>
 
@@ -869,6 +947,43 @@ export default function ExploreMap() {
             <div className="flex gap-3 justify-end">
               <button onClick={endTour} className="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors">Skip for now</button>
               <button onClick={startTour} className="px-5 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm transition-colors">Start Tour</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* PREMIUM GATE MODAL */}
+      {showLoginPrompt && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="relative overflow-hidden bg-slate-900 border border-slate-800 text-white rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
+            {/* Background elements */}
+            <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full bg-blue-500/10 blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-24 -left-24 w-48 h-48 rounded-full bg-indigo-500/10 blur-2xl pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-blue-500/10 text-blue-400 rounded-full flex items-center justify-center text-3xl mb-4 border border-blue-500/20 shadow-inner">
+                🔒
+              </div>
+              <h2 className="text-2xl font-black tracking-tight mb-2 bg-gradient-to-r from-blue-200 to-indigo-200 bg-clip-text text-transparent">Unlock Network Connections</h2>
+              <p className="text-slate-300 text-sm mb-6 leading-relaxed">
+                You've reached the free guest limit for profile details. Log in or create a free account to unlock unlimited profile views, direct emails, bookmarking, and custom interactive pathways.
+              </p>
+              
+              <div className="flex flex-col gap-3 w-full">
+                <Link
+                  href="/login"
+                  className="inline-flex items-center justify-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-sm font-extrabold px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95 w-full"
+                >
+                  Log In / Sign Up
+                </Link>
+                <button
+                  onClick={() => setShowLoginPrompt(false)}
+                  className="py-3 text-slate-400 hover:text-white text-sm font-semibold transition-colors"
+                >
+                  Close & Keep Exploring
+                </button>
+              </div>
             </div>
           </div>
         </div>

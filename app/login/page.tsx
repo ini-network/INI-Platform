@@ -4,14 +4,22 @@ import {createClient} from '@/utils/supabase/client';
 import {useEffect, useState} from 'react';
 import {useRouter} from 'next/navigation';
 
+/**
+ * LoginPage Component
+ * 
+ * Orchestrates client-side user authentication workflows bridging Supabase Auth and Next.js.
+ * Supports standard dynamic Sign-In, Sign-Up (with strict pre-flight password criteria validation),
+ * third-party OAuth redirection (LinkedIn integration), and an anonymous guest bypass route.
+ * Employs cache invalidation techniques (router.refresh()) to ensure correct navigation states.
+ */
 export default function LoginPage() {
     const supabase = createClient();
     const router = useRouter();
 
-    // View State
+    // View State: Swaps between Login and Account Registration forms
     const [view, setView] = useState<"sign-in" | "sign-up">("sign-in");
 
-    // Form State
+    // Form and Loading State
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -19,6 +27,13 @@ export default function LoginPage() {
     const [successMessage, setSuccessMessage] = useState("");
     const [fullName, setFullName] = useState("");
 
+    /**
+     * DYNAMIC OAUTH / EMAIL VERIFICATION REDIRECT HOST RESOLVER
+     * 
+     * Dynamically computes the correct callback endpoint at runtime based on the client window.
+     * Prevents configuration desyncs when transitioning between local development (localhost),
+     * staging branches, and the live production hostname.
+     */
     const getRedirectUrl = () => {
         if (typeof window !== 'undefined') {
             return `${window.location.origin}/auth/callback`;
@@ -26,17 +41,26 @@ export default function LoginPage() {
         return '';
     };
 
+    /**
+     * SUPABASE AUTH LIFECYCLE MONITOR
+     * 
+     * Subscribes to Supabase's authentication state observer (`onAuthStateChange`).
+     * Instantly captures login events (e.g. following successful credentials or OAuth callback redirection),
+     * triggers router.refresh() to clear Next.js's layout cache, and redirects to the dashboard root.
+     * 
+     * Returns a teardown function that unsubscribes the observer to prevent memory leak closures.
+     */
     useEffect(() => {
         const {data: {subscription}} = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN' && session) {
-                router.refresh(); // Fix for the layout cache issue
+                router.refresh(); // Invalidate Next.js cache so layout header correctly evaluates new session
                 router.push('/');
             }
         });
         return () => subscription.unsubscribe();
     }, [router, supabase.auth]);
 
-    // --- PASSWORD STRENGTH LOGIC (Only used for Sign Up) ---
+    // --- PASSWORD STRENGTH LOGIC (Strict pre-flight check before Sign Up) ---
     const passwordRequirements = [
         {id: "length", text: "At least 8 characters", regex: /.{8,}/},
         {id: "uppercase", text: "One uppercase letter", regex: /[A-Z]/},
@@ -44,9 +68,16 @@ export default function LoginPage() {
         {id: "number", text: "One number", regex: /[0-9]/},
         {id: "special", text: "One special character (e.g., !@#$%^&*)", regex: /[^A-Za-z0-9]/},
     ];
+    // Check if password satisfies all regular expression patterns
     const isPasswordStrong = passwordRequirements.every((req) => req.regex.test(password));
 
-    // --- AUTH ACTIONS ---
+    /**
+     * CREDENTIAL AUTH ACTION HANDLER
+     * 
+     * Handles both local registration (Supabase signUp) and session creation (signInWithPassword).
+     * Automatically feeds additional user metadata (e.g. full_name) to the auth database profile
+     * upon registration. Restores correct page rendering state by clearing Next.js layout caches on success.
+     */
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -88,6 +119,12 @@ export default function LoginPage() {
         setIsLoading(false);
     };
 
+    /**
+     * LINKEDIN OAUTH SINGLE SIGN-ON FLOW
+     * 
+     * Delegates auth credentials verification to LinkedIn OIDC, passing down our dynamic origin callback.
+     * Supabase handles the low-level state validation and translates the authentication token in /auth/callback.
+     */
     const handleLinkedInSignIn = async () => {
         setIsLoading(true);
         setErrorMessage("");
@@ -237,9 +274,14 @@ export default function LoginPage() {
                     <button
                         type="button"
                         onClick={() => {
-                            // 1. Force a refresh to clear any cached "auth-required" layouts
+                            // 1. ANONYMOUS BYPASS CACHE RESET
+                            // Force-invalidates server-side layout and router caches which might have
+                            // cached an "auth-required" state from a previously failed session.
                             router.refresh();
-                            // 2. Small delay ensures the refresh signal is processed before navigation
+                            
+                            // 2. JS EVENT LOOP YIELD STRATEGY
+                            // Yields execution to the next tick (100ms delay) to guarantee the Next.js router
+                            // processes and records the refresh state before we commit to the homepage redirect.
                             setTimeout(() => {
                                 router.push('/');
                             }, 100);
