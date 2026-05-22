@@ -5,7 +5,7 @@ import {usePathname} from "next/navigation";
 import UserMenu from "./UserMenu";
 import {useEffect, useState} from "react";
 import {createClient} from "@/utils/supabase/client"; // Handles browser-side Supabase client initialization
-import { User } from "@supabase/supabase-js";
+import {User} from "@supabase/supabase-js";
 
 /**
  * Header Component
@@ -44,7 +44,7 @@ export default function Header() {
         {name: "Directory", href: "/directory"},
         {name: "Map Explorer", href: "/explore"},
         {name: "Collaboration Hub", href: "/collab"},
-        {name: "Partners", href: "/partners"},
+        {name: "Join Us", href: "/partners"},
         {name: "About", href: "/about"},
     ];
 
