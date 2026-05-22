@@ -17,7 +17,6 @@ import {useState, useEffect, useMemo, useRef, Suspense} from "react";
 import {useSearchParams} from "next/navigation";
 import MiniMapModal from "@/components/MiniMapModal";
 import {createClient} from '@/utils/supabase/client';
-import Copilot from "@/components/Copilot";
 
 // Mapping dictionary for keywords to group miscellaneous skills and domains into standard folder buckets
 const INTEREST_BUCKETS: Record<string, string[]> = {
@@ -201,6 +200,20 @@ function DirectoryContent() {
         );
         return () => subscription.unsubscribe();
     }, []);
+
+    // Listen for AI Copilot inspect-profile click requests globally
+    useEffect(() => {
+        const handleInspectEvent = (e: Event) => {
+            const customEvent = e as CustomEvent<{ name: string }>;
+            const name = customEvent.detail.name;
+            const found = allContacts.find(c => c.name === name);
+            if (found) {
+                setActiveMapContact(found);
+            }
+        };
+        window.addEventListener("inspect-profile", handleInspectEvent);
+        return () => window.removeEventListener("inspect-profile", handleInspectEvent);
+    }, [allContacts]);
 
     // Initial effect executing local-storage onboarding logic checks
     useEffect(() => {
@@ -545,12 +558,6 @@ function DirectoryContent() {
                         </div>
                     </div>
                 )}
-                <Copilot onInspectProfile={(name) => {
-                    const found = allContacts.find(c => c.name === name);
-                    if (found) {
-                        setActiveMapContact(found); // Open inspection connection modal
-                    }
-                }}/>
             </div>
 
             {/* Visual force connection map Overlay */}

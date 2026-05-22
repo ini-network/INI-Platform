@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { createClient } from '../../utils/supabase/client';
 import ProfileModal from "@/components/ProfileModal";
-import Copilot from "@/components/Copilot";
 import NetworkMap, { ForceGraphMethods } from "@/components/NetworkMap";
 
 // --- STRICT TYPESCRIPT INTERFACES ---
@@ -244,6 +243,20 @@ export default function ExploreMap() {
     );
     return () => subscription.unsubscribe();
   }, []);
+
+  // Listen for AI Copilot inspect-profile click requests globally
+  useEffect(() => {
+    const handleInspectEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ name: string }>;
+      const name = customEvent.detail.name;
+      const found = allContacts.find(c => c.name === name);
+      if (found) {
+        handleInspectContact(found);
+      }
+    };
+    window.addEventListener("inspect-profile", handleInspectEvent);
+    return () => window.removeEventListener("inspect-profile", handleInspectEvent);
+  }, [allContacts, isLoggedIn, guestInspectCount]);
 
   // Show onboarding tutorial only on the user's first visit/session
   useEffect(() => {
@@ -922,10 +935,6 @@ export default function ExploreMap() {
             </div>
           </div>
         )}
-        <Copilot onInspectProfile={(name) => {
-          const found = allContacts.find(c => c.name === name);
-          if (found) handleInspectContact(found);
-        }} />
       </div>
 
       {/* TOUR BACKDROP */}
