@@ -89,13 +89,39 @@ export default function CollaborationHub() {
 
     const [currentUserContactId, setCurrentUserContactId] = useState<string | null>(null);
 
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+    // Track active user login state dynamically
+    useEffect(() => {
+        const supabase = createClient();
+        const checkUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setIsLoggedIn(!!user);
+        };
+        checkUser();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            (_event, session) => {
+                setIsLoggedIn(!!session?.user);
+            }
+        );
+        return () => subscription.unsubscribe();
+    }, []);
+
     // --- TUTORIAL / ONBOARDING STATE MACHINE ---
     // Controls step progression for guided walkthrough overlay. Saves state locally in localStorage.
     const [tourStep, setTourStep] = useState<number>(-1);
 
     useEffect(() => {
+        const hasVisitedBefore = localStorage.getItem("hasVisitedCollabBefore");
         const hasSeen = localStorage.getItem("hasSeenCollabTutorial");
-        if (!hasSeen) setTourStep(0); // Launch Welcome Modal
+        if (!hasVisitedBefore) {
+            localStorage.setItem("hasVisitedCollabBefore", "true");
+            if (!hasSeen) {
+                setTourStep(0); // Launch Welcome Modal only if it is the very first visit/session
+            }
+        }
     }, []);
 
     const startTour = () => setTourStep(1);
@@ -273,7 +299,13 @@ export default function CollaborationHub() {
                                 your expertise.</p>
                         </div>
                         <button
-                            onClick={() => setIsCreateOpen(true)}
+                            onClick={() => {
+                                if (!isLoggedIn) {
+                                    setShowLoginPrompt(true);
+                                } else {
+                                    setIsCreateOpen(true);
+                                }
+                            }}
                             className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl shadow-lg transition-all hover:shadow-xl hover:-translate-y-0.5"
                         >
                             + Create Post
@@ -361,6 +393,10 @@ export default function CollaborationHub() {
 
                                         <button
                                             onClick={() => {
+                                                if (!isLoggedIn) {
+                                                    setShowLoginPrompt(true);
+                                                    return;
+                                                }
                                                 // Map the complex domain structure to a flat array for the ProfileModal
                                                 const mappedContact: ContactProfile = {
                                                     ...post.author,
@@ -407,6 +443,10 @@ export default function CollaborationHub() {
 
                                         <button
                                             onClick={() => {
+                                                if (!isLoggedIn) {
+                                                    setShowLoginPrompt(true);
+                                                    return;
+                                                }
                                                 if (!post.author.email_contact) {
                                                     alert(`No email address is listed for ${post.author.name}.`);
                                                     return;
@@ -603,6 +643,42 @@ export default function CollaborationHub() {
                         }
                     }}
                 />
+            )}
+
+            {/* PREMIUM GATE MODAL */}
+            {showLoginPrompt && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
+                    <div className="relative overflow-hidden bg-slate-900 border border-slate-800 text-white rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
+                        {/* Background elements */}
+                        <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full bg-blue-500/10 blur-2xl pointer-events-none" />
+                        <div className="absolute -bottom-24 -left-24 w-48 h-48 rounded-full bg-indigo-500/10 blur-2xl pointer-events-none" />
+
+                        <div className="relative z-10 flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-blue-500/10 text-blue-400 rounded-full flex items-center justify-center text-3xl mb-4 border border-blue-500/20 shadow-inner">
+                                🤝
+                            </div>
+                            <h2 className="text-2xl font-black tracking-tight mb-2 bg-gradient-to-r from-blue-200 to-indigo-200 bg-clip-text text-transparent">Connect & Collaborate</h2>
+                            <p className="text-slate-300 text-sm mb-6 leading-relaxed">
+                                Ready to join forces on civic projects? Log in or create a free account to inspect profiles, express interest in posts, and share your own opportunities with the network.
+                            </p>
+                            
+                            <div className="flex flex-col gap-3 w-full">
+                                <Link
+                                    href="/login"
+                                    className="inline-flex items-center justify-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-sm font-extrabold px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95 w-full"
+                                >
+                                    Log In / Sign Up
+                                </Link>
+                                <button
+                                    onClick={() => setShowLoginPrompt(false)}
+                                    className="py-3 text-slate-400 hover:text-white text-sm font-semibold transition-colors"
+                                >
+                                    Close & Keep Browsing
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* TOUR BACKDROP */}

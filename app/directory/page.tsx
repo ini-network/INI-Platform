@@ -12,6 +12,7 @@
  * 5. Persistent local-storage onboarding guides.
  */
 
+import Link from "next/link";
 import {useState, useEffect, useMemo, useRef, Suspense} from "react";
 import {useSearchParams} from "next/navigation";
 import MiniMapModal from "@/components/MiniMapModal";
@@ -109,7 +110,7 @@ const FolderDropdown = ({groups, selected, onChange}: {
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-white text-left flex justify-between items-center focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full border-[1.5px] border-slate-500 rounded-lg p-2.5 text-sm bg-white text-slate-900 text-left flex justify-between items-center focus:ring-2 focus:ring-blue-500 outline-none"
             >
                 <span className="truncate font-medium">{selected === "All" ? "All Focus Areas" : selected}</span>
                 <span className="text-xs text-slate-400">▼</span>
@@ -117,7 +118,7 @@ const FolderDropdown = ({groups, selected, onChange}: {
 
             {isOpen && (
                 <div
-                    className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-80 overflow-y-auto animate-in fade-in slide-in-from-top-2">
+                    className="absolute z-50 w-full mt-1 bg-white border-[1.5px] border-slate-500 rounded-lg shadow-xl max-h-80 overflow-y-auto animate-in fade-in slide-in-from-top-2">
                     <button
                         onClick={() => handleSelect("All")}
                         className={`w-full text-left p-3 text-sm font-bold border-b border-slate-100 hover:bg-slate-50 transition-colors ${selected === "All" ? "text-blue-600 bg-blue-50/50" : "text-slate-700"}`}
@@ -182,11 +183,34 @@ function DirectoryContent() {
     // Tour onboarding step tracking (-1 represents not visible, 0 is welcome, >0 is active steps)
     const [tourStep, setTourStep] = useState<number>(-1);
 
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    // Track active user login state dynamically
+    useEffect(() => {
+        const supabase = createClient();
+        const checkUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setIsLoggedIn(!!user);
+        };
+        checkUser();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            (_event, session) => {
+                setIsLoggedIn(!!session?.user);
+            }
+        );
+        return () => subscription.unsubscribe();
+    }, []);
+
     // Initial effect executing local-storage onboarding logic checks
     useEffect(() => {
+        const hasVisitedBefore = localStorage.getItem("hasVisitedBefore");
         const hasSeen = localStorage.getItem("hasSeenTutorial");
-        if (!hasSeen) {
-            setTourStep(0); // Prompt modal if tutorial has not been acknowledged yet
+        if (!hasVisitedBefore) {
+            localStorage.setItem("hasVisitedBefore", "true");
+            if (!hasSeen) {
+                setTourStep(0); // Prompt modal only if it is the very first visit/session
+            }
         }
     }, []);
 
@@ -390,90 +414,119 @@ function DirectoryContent() {
                         <div className="space-y-4 pb-8">
                             <p className="text-sm text-slate-500">Showing {displayedContacts.length} Matches</p>
 
-                            {displayedContacts.slice(0, 50).map((person, index) => (
-                            <div key={index}
-                                 className="p-5 border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                                <h3 className="text-lg font-bold text-blue-900">{person.name}</h3>
-                                <p className="text-sm text-slate-600 font-medium mb-2">{person.campus} | {person.role_title}</p>
-                                {person.affiliation && <p className="text-sm text-slate-700"><span
-                                    className="font-semibold">🏢 Title:</span> {person.affiliation}</p>}
-                                {person.domains && person.domains.length > 0 &&
-                                    <p className="text-sm text-slate-700"><span
-                                        className="font-semibold">🎯 Focus:</span> {person.domains.join(", ")}</p>}
+                            {displayedContacts.slice(0, isLoggedIn ? 50 : 6).map((person, index) => {
+                                 if (!isLoggedIn && index === 5) {
+                                     return (
+                                         <div key="premium-gate-card" className="relative overflow-hidden bg-slate-900 text-white rounded-2xl p-8 shadow-xl flex flex-col items-center justify-center text-center border border-slate-800 min-h-[320px] transition-all hover:shadow-2xl">
+                                             {/* Decorative Background Shapes */}
+                                             <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-900 to-indigo-900/40 opacity-70 pointer-events-none" />
+                                             <div className="absolute -top-16 -right-16 w-36 h-36 rounded-full bg-blue-500/10 blur-xl pointer-events-none" />
+                                             <div className="absolute -bottom-16 -left-16 w-36 h-36 rounded-full bg-indigo-500/10 blur-xl pointer-events-none" />
+                                             
+                                             <div className="relative z-10 max-w-lg flex flex-col items-center">
+                                                 <div className="w-16 h-16 bg-blue-500/10 text-blue-400 rounded-full flex items-center justify-center text-3xl mb-4 border border-blue-500/20 shadow-inner animate-pulse">
+                                                     🔒
+                                                 </div>
+                                                 <h3 className="text-2xl font-black tracking-tight mb-2 bg-gradient-to-r from-blue-200 to-indigo-200 bg-clip-text text-transparent">Unlock the Civic Directory</h3>
+                                                 <p className="text-slate-300 text-sm mb-6 leading-relaxed">
+                                                     You are viewing a guest preview of the network. Log in or create a free account to browse all <span className="font-bold text-blue-300">{displayedContacts.length} available contacts</span>, access secure connection maps, and connect directly with civic leaders.
+                                                 </p>
+                                                 <Link
+                                                     href="/login"
+                                                     className="inline-flex items-center justify-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-sm font-extrabold px-8 py-3 rounded-xl transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95"
+                                                 >
+                                                     Log In / Sign Up
+                                                 </Link>
+                                             </div>
+                                         </div>
+                                     );
+                                 }
 
-                                {person.capabilities && <p className="text-sm text-slate-700"><span
-                                    className="font-semibold">🛠️ Skillset:</span> {person.capabilities}</p>}
+                                 return (
+                                     <div key={index}
+                                          className="p-5 border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                                         <h3 className="text-lg font-bold text-blue-900">{person.name}</h3>
+                                         <p className="text-sm text-slate-600 font-medium mb-2">{person.campus} | {person.role_title}</p>
+                                         {person.affiliation && <p className="text-sm text-slate-700"><span
+                                             className="font-semibold">🏢 Title:</span> {person.affiliation}</p>}
+                                         {person.domains && person.domains.length > 0 &&
+                                             <p className="text-sm text-slate-700"><span
+                                                 className="font-semibold">🎯 Focus:</span> {person.domains.join(", ")}</p>}
 
-                                {person.notes && (
-                                    <div className="mt-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                                        <p className="text-sm text-slate-600 italic">
-                                            <span
-                                                className="font-semibold not-italic text-slate-700">📝 Notes:</span> {person.notes}
-                                        </p>
-                                    </div>
-                                )}
+                                         {person.capabilities && <p className="text-sm text-slate-700"><span
+                                             className="font-semibold">🛠️ Skillset:</span> {person.capabilities}</p>}
 
-                                {/* Save Bookmark Action */}
-                                <button
-                                    onClick={async () => {
-                                        try {
-                                            const supabase = createClient();
-                                            const { data: { user } } = await supabase.auth.getUser();
+                                         {person.notes && (
+                                             <div className="mt-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                                 <p className="text-sm text-slate-600 italic">
+                                                     <span
+                                                         className="font-semibold not-italic text-slate-700">📝 Notes:</span> {person.notes}
+                                                 </p>
+                                             </div>
+                                         )}
 
-                                            if (!user) {
-                                                alert("You must be logged in to save contacts.");
-                                                return;
-                                            }
+                                         {/* Save Bookmark Action */}
+                                         <button
+                                             onClick={async () => {
+                                                 try {
+                                                     const supabase = createClient();
+                                                     const { data: { user } } = await supabase.auth.getUser();
 
-                                            // Insert save record, checking Supabase unique constraint violations
-                                            const {error} = await supabase
-                                                .from('saved_contacts')
-                                                .insert([{contact_id: person.id, user_id: user.id}]);
+                                                     if (!user) {
+                                                         alert("You must be logged in to save contacts.");
+                                                         return;
+                                                     }
 
-                                            if (error) {
-                                                if (error.code === '23505') {
-                                                    alert(`⭐ ${person.name} is already in your vault!`);
-                                                    return;
-                                                }
-                                                throw error;
-                                            }
-                                            alert(`⭐ Saved ${person.name} to your vault!`);
-                                        } catch (e) {
-                                            console.error("Failed to save contact", e);
-                                            alert("Could not save contact right now.");
-                                        }
-                                    }}
-                                    className="mt-4 mr-2 text-sm text-slate-700 bg-slate-100 border border-slate-200 px-4 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white font-semibold transition-all"
-                                >
-                                    ⭐ Save Contact
-                                </button>
+                                                     // Insert save record, checking Supabase unique constraint violations
+                                                     const {error} = await supabase
+                                                         .from('saved_contacts')
+                                                         .insert([{contact_id: person.id, user_id: user.id}]);
 
-                                {/* Direct Mail Integration */}
-                                <button
-                                    onClick={() => {
-                                        if (!person.email_contact) {
-                                            alert(`No public email address is listed for ${person.name}.`);
-                                            return;
-                                        }
-                                        const subject = encodeURIComponent(`Connecting via INI Civic Network`);
-                                        const body = encodeURIComponent(`Hi ${person.name},\n\nI found your profile on the INI Civic Network and would love to connect to discuss potential collaboration.\n\nBest,\n[Your Name]`);
-                                        window.location.href = `mailto:${person.email_contact}?subject=${subject}&body=${body}`;
-                                    }}
-                                    className="mt-4 mr-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-1.5 rounded-lg hover:bg-emerald-600 hover:text-white font-semibold transition-all"
-                                >
-                                    ✉️ Connect
-                                </button>
+                                                     if (error) {
+                                                         if (error.code === '23505') {
+                                                             alert(`⭐ ${person.name} is already in your vault!`);
+                                                             return;
+                                                         }
+                                                         throw error;
+                                                     }
+                                                     alert(`⭐ Saved ${person.name} to your vault!`);
+                                                 } catch (e) {
+                                                     console.error("Failed to save contact", e);
+                                                     alert("Could not save contact right now.");
+                                                 }
+                                             }}
+                                             className="mt-4 mr-2 text-sm text-slate-700 bg-slate-100 border border-slate-200 px-4 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white font-semibold transition-all"
+                                         >
+                                             ⭐ Save Contact
+                                         </button>
 
-                                {/* Trigger connection mapping overlay */}
-                                <button
-                                    onClick={() => setActiveMapContact(person)}
-                                    className="mt-4 text-sm text-blue-600 bg-blue-50 border border-blue-100 px-4 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white font-semibold transition-all"
-                                >
-                                    🗺️ View Connections Map
-                                </button>
-                            </div>
-                        ))}
-                        </div>
+                                         {/* Direct Mail Integration */}
+                                         <button
+                                             onClick={() => {
+                                                 if (!person.email_contact) {
+                                                     alert(`No public email address is listed for ${person.name}.`);
+                                                     return;
+                                                 }
+                                                 const subject = encodeURIComponent(`Connecting via INI Civic Network`);
+                                                 const body = encodeURIComponent(`Hi ${person.name},\n\nI found your profile on the INI Civic Network and would love to connect to discuss potential collaboration.\n\nBest,\n[Your Name]`);
+                                                 window.location.href = `mailto:${person.email_contact}?subject=${subject}&body=${body}`;
+                                             }}
+                                             className="mt-4 mr-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-1.5 rounded-lg hover:bg-emerald-600 hover:text-white font-semibold transition-all"
+                                         >
+                                             ✉️ Connect
+                                         </button>
+
+                                         {/* Trigger connection mapping overlay */}
+                                         <button
+                                             onClick={() => setActiveMapContact(person)}
+                                             className="mt-4 text-sm text-blue-600 bg-blue-50 border border-blue-100 px-4 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white font-semibold transition-all"
+                                         >
+                                             🗺️ View Connections Map
+                                         </button>
+                                     </div>
+                                 );
+                             })}
+                         </div>
                     )}
                 </div>
             </div>
