@@ -153,7 +153,13 @@ export default function Copilot({ onInspectProfile }: CopilotProps) {
                     return (
                       <button
                         key={i}
-                        onClick={() => onInspectProfile?.(name)}
+                        onClick={() => {
+                          if (onInspectProfile) {
+                            onInspectProfile(name);
+                          } else {
+                            window.dispatchEvent(new CustomEvent("inspect-profile", { detail: { name } }));
+                          }
+                        }}
                         className="text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full hover:bg-blue-600 hover:text-white transition-colors shadow-sm flex items-center gap-1"
                       >
                         <span>👤</span> {name}
