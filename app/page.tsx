@@ -69,7 +69,7 @@ export default function HomePage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search for 'Sustainability', 'Hunter College', skills..."
-                className="w-full py-3.5 px-4 text-slate-900 outline-none text-base bg-transparent placeholder:text-slate-400"
+                className="hero-search-input w-full py-3.5 px-4 text-slate-900 outline-none text-base bg-transparent placeholder:text-slate-400"
               />
               <button
                 type="submit"
