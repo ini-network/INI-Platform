@@ -41,6 +41,7 @@ export default function Header() {
     // Declares structural navigation paths
     const navLinks = [
         {name: "Home", href: "/"},
+        ...(user ? [{name: "My Matches", href: "/matches"}] : []),
         {name: "Directory", href: "/directory"},
         {name: "Map Explorer", href: "/explore"},
         {name: "Collaboration Hub", href: "/collab"},
