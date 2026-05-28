@@ -48,7 +48,6 @@ next-env.d.ts
 /CUNY INI NLP Data Transformed.csv
 /CUNY_INI_Ready_For_Supabase.csv
 /retag_domains.py
-/CUNY INI NLP Data Untransformed.csv
 /CUNY_INI_MicroTagged_Final.csv
 /cloud_migration.py
 /CUNY_INI_MicroTagged_Ready.csv
@@ -61,3 +60,4 @@ next-env.d.ts
 /fix_csv.py
 /roles.sql
 /CUNY_INI_Standardized_Final.csv
+/agentdocs/
