@@ -141,8 +141,8 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-slate-900 p-4 font-sans">
-            <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl relative">
+        <div className="flex h-full w-full overflow-y-auto items-center justify-center bg-slate-900 p-4 font-sans">
+            <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl relative my-auto">
 
                 {/* Header */}
                 <div className="mb-6 text-center">

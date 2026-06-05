@@ -3,7 +3,7 @@
 import Link from "next/link";
 import {usePathname} from "next/navigation";
 import UserMenu from "./UserMenu";
-import {useEffect, useState} from "react";
+import {useEffect, useState, useRef} from "react";
 import {createClient} from "@/utils/supabase/client"; // Handles browser-side Supabase client initialization
 import {User} from "@supabase/supabase-js";
 
@@ -17,6 +17,8 @@ export default function Header() {
     const pathname = usePathname(); // Resolves current URL path segment to highlight active nav link
     const supabase = createClient();
     const [user, setUser] = useState<User | null>(null);
+    const [isAdminOpen, setIsAdminOpen] = useState(false);
+    const adminDropdownRef = useRef<HTMLDivElement>(null);
 
     // --- Supabase Session Synchronization ---
     // Subscribes to authentication state changes on load to support dynamic auth transitions
@@ -37,6 +39,28 @@ export default function Header() {
         // 3. Clean up the listener subscription on component unmount to prevent memory leaks
         return () => subscription.unsubscribe();
     }, [supabase.auth]);
+
+    // Close admin dropdown when user clicks outside the menu
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (adminDropdownRef.current && !adminDropdownRef.current.contains(event.target as Node)) {
+                setIsAdminOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    // Check if current user is an authorized admin
+    const email = user?.email || "";
+    const isInternal = email.endsWith("@vngle.com");
+    const adminEmailsEnv = process.env.NEXT_PUBLIC_ADMIN_EMAILS || "riverajeremiah10@gmail.com";
+    const isAllowedAdmin = adminEmailsEnv
+        .split(",")
+        .map(e => e.trim().toLowerCase())
+        .filter(Boolean)
+        .includes(email.toLowerCase());
+    const isAdmin = !!user && (isInternal || isAllowedAdmin);
 
     // Declares structural navigation paths
     const navLinks = [
@@ -79,6 +103,60 @@ export default function Header() {
                                 </Link>
                             );
                         })}
+
+                        {/* Admin Portal Dropdown */}
+                        {isAdmin && (
+                            <div className="relative flex items-center" ref={adminDropdownRef}>
+                                <button
+                                    onClick={() => setIsAdminOpen(!isAdminOpen)}
+                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 focus:outline-none ${
+                                        pathname.startsWith("/admin")
+                                            ? "bg-white text-blue-700 shadow-sm"
+                                            : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                                    }`}
+                                >
+                                    <span>⚙️ Admin</span>
+                                    <svg
+                                        className={`w-3.5 h-3.5 transition-transform duration-200 ${isAdminOpen ? "rotate-180" : ""}`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+
+                                {isAdminOpen && (
+                                    <div className="absolute left-0 mt-2 top-full w-56 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 p-1.5 space-y-1">
+                                        <div className="px-3.5 py-2 border-b border-slate-100/50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                            Admin Tools
+                                        </div>
+                                        <Link
+                                            href="/admin/matches"
+                                            onClick={() => setIsAdminOpen(false)}
+                                            className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold rounded-xl transition-colors ${
+                                                pathname === "/admin/matches"
+                                                    ? "bg-blue-50 text-blue-700"
+                                                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                            }`}
+                                        >
+                                            <span className="text-sm">🤖</span> Matchmaker Admin
+                                        </Link>
+                                        <Link
+                                            href="/admin/marketing"
+                                            onClick={() => setIsAdminOpen(false)}
+                                            className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold rounded-xl transition-colors ${
+                                                pathname === "/admin/marketing"
+                                                    ? "bg-blue-50 text-blue-700"
+                                                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                            }`}
+                                        >
+                                            <span className="text-sm">📢</span> Marketing Broadcasts
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </nav>
 
                     {/* Authentication State Section */}

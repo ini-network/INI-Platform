@@ -96,6 +96,17 @@ export default function UserMenu() {
   // Grab the first letter of their email for the avatar (fallback to 'U')
   const initial = user.email ? user.email.charAt(0).toUpperCase() : "U";
 
+  // Check if current user is an authorized admin
+  const email = user.email || "";
+  const isInternal = email.endsWith("@vngle.com");
+  const adminEmailsEnv = process.env.NEXT_PUBLIC_ADMIN_EMAILS || "riverajeremiah10@gmail.com";
+  const isAllowedAdmin = adminEmailsEnv
+      .split(",")
+      .map(e => e.trim().toLowerCase())
+      .filter(Boolean)
+      .includes(email.toLowerCase());
+  const isAdmin = isInternal || isAllowedAdmin;
+
   return (
     <div className="relative" ref={dropdownRef}>
       {/* Avatar Button */}
@@ -133,6 +144,29 @@ export default function UserMenu() {
               <span className="mr-3 text-lg">⚙️</span> Account Settings
             </Link>
           </div>
+
+          {/* Admin Links */}
+          {isAdmin && (
+            <div className="p-2 border-t border-slate-100 bg-slate-50/20">
+              <div className="px-4 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                Admin Tools
+              </div>
+              <Link
+                href="/admin/matches"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center px-4 py-2.5 text-sm text-slate-600 font-bold rounded-xl hover:bg-slate-100 hover:text-slate-900 transition-colors"
+              >
+                <span className="mr-3 text-lg">🤖</span> Matchmaker Admin
+              </Link>
+              <Link
+                href="/admin/marketing"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center px-4 py-2.5 text-sm text-slate-600 font-bold rounded-xl hover:bg-slate-100 hover:text-slate-900 transition-colors"
+              >
+                <span className="mr-3 text-lg">📢</span> Marketing Broadcasts
+              </Link>
+            </div>
+          )}
 
           {/* Sign Out Footer */}
           <div className="p-2 border-t border-slate-100 bg-slate-50/50">
