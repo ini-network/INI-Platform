@@ -1,80 +1,43 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 
 /**
- * AdminDashboard Page
- * Renders a local administrative control room. Uses a temporary client-side password guard 
- * to authorize layout unlocking before future integration with Supabase RBAC / FastAPI scopes is completed.
+ * Disabled AdminDashboard
+ * Database editing and admin dashboard features have been disabled.
  */
 export default function AdminDashboard() {
-  const [password, setPassword] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  /**
-   * LOCAL ADMINISTRATIVE CREDENTIAL GATE
-   * Evaluates the entered string against the statically configured temporary administrative password.
-   * If authorized, flips the client-side state boundary (`isAuthenticated`) to unlock the full view.
-   */
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password === "INI_ADMIN_2026") {
-      setIsAuthenticated(true);
-    } else {
-      alert("⚠️ Unauthorized: Incorrect password.");
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-slate-50 p-8 font-sans">
-      {/* Top Navigation */}
-      <div className="max-w-5xl mx-auto flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold text-slate-800">📊 INI Admin Dashboard</h1>
-        <Link href="/" className="text-blue-600 hover:underline font-medium">
-          ← Back to Workspace
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 font-sans relative overflow-hidden">
+      {/* Background decorative glows */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-rose-500/10 rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "2s" }}></div>
+
+      <div className="max-w-md w-full bg-slate-900/40 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-8 shadow-2xl relative z-10 text-center animate-in fade-in zoom-in-95 duration-500">
+        {/* Secure Lock Icon Badge */}
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-4xl mb-6 shadow-inner">
+          🔒
+        </div>
+        
+        <h1 className="text-2xl font-black text-slate-100 tracking-tight mb-2">Dashboard Disabled</h1>
+        <p className="text-sm text-slate-400 mb-8 px-4">
+          The general administrative dashboard has been deprecated and disabled. Interactive database edits and user lists have been locked.
+        </p>
+
+        {/* Info Box */}
+        <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 mb-8 text-left text-xs text-slate-500 space-y-2">
+          <p className="font-bold text-slate-400 uppercase tracking-widest text-[10px] mb-1">Administrative Notice</p>
+          <p>• Direct database mutations must be executed securely through the Supabase Editor.</p>
+          <p>• To trigger AI Matchmaking or send emails, please use the dedicated <Link href="/admin/matches" className="text-blue-400 hover:underline">Matchmaker Admin</Link> dashboard.</p>
+        </div>
+
+        {/* Return Button */}
+        <Link
+          href="/"
+          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-blue-500/25 transition-all text-sm flex items-center justify-center gap-2"
+        >
+          🏠 Return to Network
         </Link>
-      </div>
-
-      <div className="max-w-5xl mx-auto">
-        {/* THE PASSWORD LOCK */}
-        {!isAuthenticated ? (
-          <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-200 max-w-md mx-auto mt-20">
-            <h2 className="text-xl font-bold mb-4 text-slate-800">Admin Access Required</h2>
-            <form onSubmit={handleLogin} className="flex flex-col space-y-4">
-              <input
-                type="password"
-                placeholder="Enter password..."
-                className="border border-slate-300 rounded-lg p-2"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <button type="submit" className="bg-slate-800 text-white font-bold py-2 rounded-lg hover:bg-slate-700">
-                Unlock Database
-              </button>
-            </form>
-          </div>
-        ) : (
-          /* THE ADMIN DASHBOARD (Unlocked) */
-          <div className="space-y-8">
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-              <h2 className="text-lg font-bold mb-2">👥 Registered Users</h2>
-              <p className="text-sm text-slate-500 mb-4">We will connect this to FastAPI to load live user data soon.</p>
-              {/* Placeholder table - Future home of FastAPI fetch requests */}
-              <div className="h-40 bg-slate-100 rounded border border-dashed border-slate-300 flex items-center justify-center text-slate-400">
-                Live Data Table Goes Here
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-              <h2 className="text-lg font-bold mb-2">🗂️ Manage Network Contacts</h2>
-              <p className="text-sm text-slate-500 mb-4">Live database editing interface will go here.</p>
-              <div className="h-64 bg-slate-100 rounded border border-dashed border-slate-300 flex items-center justify-center text-slate-400">
-                Interactive Datagrid Goes Here
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

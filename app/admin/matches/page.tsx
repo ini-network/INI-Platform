@@ -242,7 +242,7 @@ export default function MatchesDashboard() {
 
     if (authStatus === 'unauthorized') {
         return (
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 font-sans relative overflow-hidden">
+            <div className="h-full w-full overflow-y-auto bg-slate-950 flex items-center justify-center p-6 font-sans relative">
                 {/* Background decorative glows */}
                 <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-rose-500/10 rounded-full blur-3xl animate-pulse"></div>
                 <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
