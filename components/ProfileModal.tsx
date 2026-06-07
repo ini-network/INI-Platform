@@ -127,9 +127,9 @@ export default function ProfileModal({
           </button>
         </div>
 
-        <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+        <div className="flex flex-col md:flex-row flex-1 overflow-y-auto md:overflow-hidden">
           {/* SIDEBAR DETAILS */}
-          <div className={`w-full ${showGraph ? 'md:w-1/3 border-r' : 'md:w-full'} p-6 bg-slate-50 border-slate-100 flex flex-col space-y-6 overflow-y-auto`}>
+          <div className={`w-full ${showGraph ? 'md:w-1/3 border-b md:border-b-0 md:border-r' : 'md:w-full'} p-6 bg-slate-50 border-slate-200 flex flex-col space-y-6 md:overflow-y-auto shrink-0`}>
 
             {contact.affiliation && (
               <div>
@@ -201,7 +201,7 @@ export default function ProfileModal({
 
           {/* GRAPH VISUALIZATION */}
           {showGraph && (
-            <div className="hidden md:flex w-2/3 h-full relative bg-slate-900 overflow-hidden items-center justify-center">
+            <div className="flex w-full md:w-2/3 h-[400px] md:h-full relative bg-slate-900 overflow-hidden items-center justify-center shrink-0">
               <div className="absolute top-4 left-4 right-4 z-10 flex justify-between items-start pointer-events-none">
                 <div className="text-white/60 text-xs font-medium pointer-events-none bg-slate-800/50 p-2 rounded backdrop-blur">
                   Connections are bridged by shared Focus Areas.
@@ -243,8 +243,6 @@ export default function ProfileModal({
                 linkDirectionalParticleSpeed={0.005}
                 nodeLabel="title"
                 cooldownTime={3000}
-                width={800}
-                height={600}
                 linkColor={() => "rgba(255, 255, 255, 0.4)"}
                 linkWidth={1.5}
                 

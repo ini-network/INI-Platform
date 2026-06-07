@@ -173,7 +173,7 @@ function PartnersDashboardContent() {
             <div
                 className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col shrink-0 z-10">
                 <div
-                    className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between md:flex-col md:items-start md:space-y-4">
+                    className="hidden md:flex p-6 border-b border-slate-100 bg-slate-50 justify-between md:flex-col md:items-start md:space-y-4">
                     <div>
                         <h2 className="text-xl font-extrabold text-slate-800 tracking-tight">Engagement Hub</h2>
                         <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mt-1">Get Involved
