@@ -110,7 +110,7 @@ export default function Copilot({ onInspectProfile }: CopilotProps) {
     <>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-6 right-6 z-[100] p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-105 border border-white/20 flex items-center justify-center ${
+        className={`fixed bottom-6 left-6 md:left-auto md:right-6 z-[100] p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-105 border border-white/20 flex items-center justify-center ${
           isOpen ? "bg-slate-800 text-white rotate-90" : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
         }`}
         title="Toggle AI Copilot"

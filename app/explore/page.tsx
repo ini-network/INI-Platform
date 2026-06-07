@@ -785,10 +785,10 @@ export default function ExploreMap() {
         )}
 
         {nodes.length > 0 && (
-          <div className="absolute bottom-8 right-8 z-20 flex flex-col space-y-2 bg-slate-800/80 p-2 rounded-xl shadow-2xl backdrop-blur-md border border-slate-700">
-            <button onClick={handleZoomIn} className="text-white hover:bg-slate-700 p-3 rounded-lg font-bold text-lg leading-none" title="Zoom In">➕</button>
-            <button onClick={handleFitMap} className="text-white hover:bg-slate-700 p-3 rounded-lg font-bold text-lg leading-none" title="Fit to Screen">⛶</button>
-            <button onClick={handleZoomOut} className="text-white hover:bg-slate-700 p-3 rounded-lg font-bold text-lg leading-none" title="Zoom Out">➖</button>
+          <div className="absolute bottom-4 right-4 md:bottom-8 md:right-8 z-20 flex flex-col space-y-1.5 md:space-y-2 bg-slate-800/80 p-1 md:p-2 rounded-lg md:rounded-xl shadow-2xl backdrop-blur-md border border-slate-700">
+            <button onClick={handleZoomIn} className="text-white hover:bg-slate-700 p-2 md:p-3 rounded text-sm md:text-lg font-bold leading-none" title="Zoom In">➕</button>
+            <button onClick={handleFitMap} className="text-white hover:bg-slate-700 p-2 md:p-3 rounded text-sm md:text-lg font-bold leading-none" title="Fit to Screen">⛶</button>
+            <button onClick={handleZoomOut} className="text-white hover:bg-slate-700 p-2 md:p-3 rounded text-sm md:text-lg font-bold leading-none" title="Zoom Out">➖</button>
           </div>
         )}
 

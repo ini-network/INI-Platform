@@ -209,7 +209,8 @@ export default function ProfileModal({
                 {onToggleGraph && (
                   <div className="pointer-events-auto">
                     <button onClick={onToggleGraph} className={`px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-lg ${isGraphExpanded ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-pink-500 text-white hover:bg-pink-400'}`}>
-                      {isGraphExpanded ? "Collapse Contacts" : `Show Hidden Contacts (${hiddenCount})`}
+                      <span className="md:hidden">{isGraphExpanded ? "Collapse" : `Expand (${hiddenCount})`}</span>
+                      <span className="hidden md:inline">{isGraphExpanded ? "Collapse Contacts" : `Show Hidden Contacts (${hiddenCount})`}</span>
                     </button>
                   </div>
                 )}
@@ -281,10 +282,10 @@ export default function ProfileModal({
               />
 
               {graphData && graphData.nodes.length > 0 && (
-                <div className="absolute bottom-4 right-4 z-20 flex flex-col space-y-2 bg-slate-800/80 p-1.5 rounded-xl shadow-xl backdrop-blur-md border border-slate-700 pointer-events-auto">
-                  <button onClick={handleZoomIn} className="text-white hover:bg-slate-700 p-2.5 rounded-lg font-bold text-sm leading-none" title="Zoom In">➕</button>
-                  <button onClick={handleFitMap} className="text-white hover:bg-slate-700 p-2.5 rounded-lg font-bold text-sm leading-none" title="Fit to Box">⛶</button>
-                  <button onClick={handleZoomOut} className="text-white hover:bg-slate-700 p-2.5 rounded-lg font-bold text-sm leading-none" title="Zoom Out">➖</button>
+                <div className="absolute bottom-4 right-4 z-20 flex flex-col space-y-1.5 md:space-y-2 bg-slate-800/80 p-1 md:p-1.5 rounded-lg md:rounded-xl shadow-xl backdrop-blur-md border border-slate-700 pointer-events-auto">
+                  <button onClick={handleZoomIn} className="text-white hover:bg-slate-700 p-2 md:p-2.5 rounded text-xs md:text-sm font-bold leading-none" title="Zoom In">➕</button>
+                  <button onClick={handleFitMap} className="text-white hover:bg-slate-700 p-2 md:p-2.5 rounded text-xs md:text-sm font-bold leading-none" title="Fit to Box">⛶</button>
+                  <button onClick={handleZoomOut} className="text-white hover:bg-slate-700 p-2 md:p-2.5 rounded text-xs md:text-sm font-bold leading-none" title="Zoom Out">➖</button>
                 </div>
               )}
             </div>
