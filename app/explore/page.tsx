@@ -569,10 +569,10 @@ export default function ExploreMap() {
   }, [allContacts, copilotSearch, viewType, selectedLocation, selectedSpecificFocus, selectedPerson, isGlobalExpanded, expandedNodes]);
 
   return (
-    <div className="flex h-screen w-full bg-slate-900 overflow-hidden font-sans">
+    <div className="flex h-full w-full bg-slate-900 overflow-hidden font-sans">
 
       {/* LEFT SIDEBAR */}
-      <div className={`${isSidebarOpen ? "w-1/4" : "hidden"} h-full bg-white border-r border-slate-200 flex flex-col ${tourStep === 1 ? 'z-[100]' : 'z-10'} shadow-xl transition-all duration-300 flex-shrink-0`}>
+      <div className={`${isSidebarOpen ? "w-full md:w-1/4" : "hidden"} h-full bg-white border-r border-slate-200 flex flex-col ${tourStep === 1 ? 'z-[100]' : 'z-10'} shadow-xl transition-all duration-300 flex-shrink-0`}>
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-start">
               <div>
                   <h1 className="text-2xl font-bold text-slate-800 mb-1 flex items-center">
@@ -732,7 +732,7 @@ export default function ExploreMap() {
       </div>
 
       {/* RIGHT PANE: THE GRAPH */}
-      <div className={`h-full relative flex flex-col bg-slate-900 transition-all duration-300 ${isSidebarOpen ? "w-3/4" : "w-full"} ${tourStep === 2 ? 'z-[100] ring-inset ring-4 ring-blue-400/50 shadow-2xl' : 'z-0'}`}>
+      <div className={`h-full relative flex-col bg-slate-900 transition-all duration-300 ${isSidebarOpen ? "hidden md:flex md:w-3/4" : "flex w-full"} ${tourStep === 2 ? 'z-[100] ring-inset ring-4 ring-blue-400/50 shadow-2xl' : 'z-0'}`}>
         {!isSidebarOpen && (
           <button onClick={toggleSidebar} className="absolute top-6 left-6 z-20 bg-slate-800/90 text-white px-4 py-2 rounded-lg shadow-lg backdrop-blur border border-slate-700 hover:bg-slate-700 transition-colors font-bold flex items-center space-x-2">
             <span>▶</span><span className="text-sm uppercase tracking-wide">Show Controls</span>

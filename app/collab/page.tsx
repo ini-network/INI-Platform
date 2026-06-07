@@ -282,7 +282,7 @@ export default function CollaborationHub() {
     };
 
     return (
-        <div className="flex flex-col h-screen w-full bg-slate-50 overflow-hidden font-sans">
+        <div className="flex flex-col h-full w-full bg-slate-50 overflow-hidden font-sans">
 
             {/* MAIN CONTENT */}
             <div className="flex-1 overflow-y-auto p-8">
