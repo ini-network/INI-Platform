@@ -27,7 +27,7 @@ export default function RootLayout({
 
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-      <body className="flex flex-col h-screen overflow-hidden bg-slate-50 text-slate-900 font-sans">
+      <body className="flex flex-col h-dvh overflow-hidden bg-slate-50 text-slate-900 font-sans">
 
         {/* Only render Header if NOT on the login page */}
         {!isLoginPage && <Header />}

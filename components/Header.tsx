@@ -18,7 +18,13 @@ export default function Header() {
     const supabase = createClient();
     const [user, setUser] = useState<User | null>(null);
     const [isAdminOpen, setIsAdminOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const adminDropdownRef = useRef<HTMLDivElement>(null);
+
+    // Auto-close mobile menu when navigating
+    useEffect(() => {
+        setIsMobileMenuOpen(false);
+    }, [pathname]);
 
     // --- Supabase Session Synchronization ---
     // Subscribes to authentication state changes on load to support dynamic auth transitions
@@ -159,23 +165,96 @@ export default function Header() {
                         )}
                     </nav>
 
-                    {/* Authentication State Section */}
-                    <div className="flex items-center">
-                        {/* CONDITIONAL RENDERING: Show UserMenu if logged in, otherwise show Login link */}
-                        {user ? (
-                            <UserMenu/>
-                        ) : (
-                            <Link
-                                href="/login"
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors"
-                            >
-                                Sign In
-                            </Link>
-                        )}
+                    {/* Right Section: Auth & Mobile Menu Toggle */}
+                    <div className="flex items-center gap-2">
+                        {/* Authentication State Section */}
+                        <div className="flex items-center">
+                            {/* CONDITIONAL RENDERING: Show UserMenu if logged in, otherwise show Login link */}
+                            {user ? (
+                                <UserMenu/>
+                            ) : (
+                                <Link
+                                    href="/login"
+                                    className="px-3.5 py-1.5 md:px-4 md:py-2 bg-blue-600 text-white rounded-lg text-xs md:text-sm font-bold hover:bg-blue-700 transition-colors"
+                                >
+                                    Sign In
+                                </Link>
+                            )}
+                        </div>
+
+                        {/* Mobile Menu Toggle Button */}
+                        <button
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            className="inline-flex items-center justify-center p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 focus:outline-none md:hidden transition-colors border border-slate-100"
+                            aria-expanded={isMobileMenuOpen}
+                            aria-label="Toggle main menu"
+                        >
+                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                {isMobileMenuOpen ? (
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                ) : (
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
+                                )}
+                            </svg>
+                        </button>
                     </div>
 
                 </div>
             </div>
+
+            {/* Mobile Navigation Drawer (visible only on mobile when menu is open) */}
+            {isMobileMenuOpen && (
+                <div className="md:hidden border-t border-slate-200 bg-white/95 backdrop-blur-md shadow-xl animate-in slide-in-from-top duration-200 absolute w-full top-full left-0">
+                    <div className="px-4 pt-3 pb-6 space-y-1.5 max-h-[80vh] overflow-y-auto">
+                        {navLinks.map((link) => {
+                            const isActive = pathname === link.href;
+                            return (
+                                <Link
+                                    key={link.name}
+                                    href={link.href}
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={`block px-4 py-3 rounded-xl text-sm font-bold transition-all ${
+                                        isActive ? "bg-blue-50 text-blue-700 shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                    }`}
+                                >
+                                    {link.name}
+                                </Link>
+                            );
+                        })}
+
+                        {/* Admin Portal section inside Mobile Menu */}
+                        {isAdmin && (
+                            <div className="pt-4 mt-4 border-t border-slate-100 space-y-1.5">
+                                <div className="px-4 py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                    ⚙️ Admin Tools
+                                </div>
+                                <Link
+                                    href="/admin/matches"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={`flex items-center gap-2 px-4 py-3 text-sm font-bold rounded-xl transition-colors ${
+                                        pathname === "/admin/matches"
+                                            ? "bg-blue-50 text-blue-700 shadow-sm"
+                                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                    }`}
+                                >
+                                    <span className="text-sm">🤖</span> Matchmaker Admin
+                                </Link>
+                                <Link
+                                    href="/admin/marketing"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={`flex items-center gap-2 px-4 py-3 text-sm font-bold rounded-xl transition-colors ${
+                                        pathname === "/admin/marketing"
+                                            ? "bg-blue-50 text-blue-700 shadow-sm"
+                                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                    }`}
+                                >
+                                    <span className="text-sm">📢</span> Marketing Broadcasts
+                                </Link>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </header>
     );
 }

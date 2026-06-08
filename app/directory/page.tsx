@@ -337,7 +337,7 @@ function DirectoryContent() {
 
                 {/* Filters Input Panel */}
                 <div className={`relative rounded-xl transition-all duration-300 ${tourStep === 1 ? 'z-[100] bg-white p-4 shadow-2xl ring-4 ring-blue-400/50 -m-4 mb-2' : 'mb-6'}`}>
-                    <div className="grid grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="flex flex-col">
                             <label className="text-xs font-bold uppercase text-slate-400 mb-1 flex items-center">
                                 Campus
@@ -367,7 +367,7 @@ function DirectoryContent() {
                             />
                         </div>
 
-                        <div className="col-span-2 flex flex-col">
+                        <div className="col-span-1 md:col-span-2 flex flex-col">
                             <label className="text-xs font-bold uppercase text-slate-400 mb-1 flex items-center">
                                 Keyword Search
                                 <InfoTooltip text="Search across names, organizations, capabilities, and notes to find exact matches." />

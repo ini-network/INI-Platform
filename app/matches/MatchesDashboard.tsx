@@ -20,6 +20,7 @@ export default function MatchesDashboard({initialContact, allContacts, initialMa
     const [isGenerating, setIsGenerating] = useState(false);
     const [message, setMessage] = useState({text: "", type: ""});
     const [isGraphExpanded, setIsGraphExpanded] = useState(false);
+    const [isMobileMapView, setIsMobileMapView] = useState(false);
     const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
     const [activeMapContact, setActiveMapContact] = useState<any | null>(null);
 
@@ -143,11 +144,26 @@ export default function MatchesDashboard({initialContact, allContacts, initialMa
     };
 
     return (
-        <div className="flex h-[calc(100vh-4rem)] w-full bg-slate-50 overflow-hidden font-sans">
+        <div className="flex h-full flex-col md:flex-row w-full bg-slate-50 overflow-hidden font-sans">
+            {/* Mobile Tab Toggle */}
+            <div className="md:hidden flex bg-white border-b border-slate-200 shrink-0">
+                <button
+                    onClick={() => setIsMobileMapView(false)}
+                    className={`flex-1 py-3 text-sm font-bold text-center transition-colors ${!isMobileMapView ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50/50' : 'text-slate-500 hover:bg-slate-50'}`}
+                >
+                    Matches Feed
+                </button>
+                <button
+                    onClick={() => setIsMobileMapView(true)}
+                    className={`flex-1 py-3 text-sm font-bold text-center transition-colors ${isMobileMapView ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50/50' : 'text-slate-500 hover:bg-slate-50'}`}
+                >
+                    Network Map
+                </button>
+            </div>
 
             {/* LEFT SIDEBAR: AI Matches Feed */}
             <div
-                className="w-1/3 h-full bg-white border-r border-slate-200 flex flex-col z-10 shadow-xl overflow-hidden">
+                className={`${isMobileMapView ? "hidden md:flex" : "flex"} w-full md:w-1/3 h-full bg-white md:border-r border-slate-200 flex-col z-10 shadow-xl overflow-hidden`}>
                 <div className="p-6 border-b border-slate-100 bg-slate-50/50">
                     <h1 className="text-2xl font-black text-slate-800 mb-2">My Matches</h1>
                     <p className="text-sm text-slate-500 font-medium mb-4">
@@ -242,7 +258,7 @@ export default function MatchesDashboard({initialContact, allContacts, initialMa
             </div>
 
             {/* RIGHT PANE: Network Map */}
-            <div className="flex-1 h-full relative bg-slate-900">
+            <div className={`${isMobileMapView ? "flex" : "hidden md:flex"} flex-1 h-full relative bg-slate-900`}>
                 <div
                     className="absolute top-6 left-6 z-20 bg-slate-800/90 p-4 rounded-xl shadow-lg border border-slate-700 backdrop-blur">
                     <h2 className="text-white font-bold mb-1">Your Network Map</h2>

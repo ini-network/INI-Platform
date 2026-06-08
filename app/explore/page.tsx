@@ -277,6 +277,16 @@ export default function ExploreMap() {
   };
 
   useEffect(() => {
+    if (tourStep === 1) {
+      setIsSidebarOpen(true);
+    } else if (tourStep === 2) {
+      if (window.innerWidth < 768) {
+        setIsSidebarOpen(false);
+      }
+    }
+  }, [tourStep]);
+
+  useEffect(() => {
     const savedSidebarState = localStorage.getItem("exploreSidebarOpen");
     if (savedSidebarState !== null) {
       setTimeout(() => setIsSidebarOpen(savedSidebarState === "true"), 0);
@@ -569,10 +579,10 @@ export default function ExploreMap() {
   }, [allContacts, copilotSearch, viewType, selectedLocation, selectedSpecificFocus, selectedPerson, isGlobalExpanded, expandedNodes]);
 
   return (
-    <div className="flex h-screen w-full bg-slate-900 overflow-hidden font-sans">
+    <div className="flex h-full w-full bg-slate-900 overflow-hidden font-sans">
 
       {/* LEFT SIDEBAR */}
-      <div className={`${isSidebarOpen ? "w-1/4" : "hidden"} h-full bg-white border-r border-slate-200 flex flex-col ${tourStep === 1 ? 'z-[100]' : 'z-10'} shadow-xl transition-all duration-300 flex-shrink-0`}>
+      <div className={`${isSidebarOpen ? "w-full md:w-1/4" : "hidden"} h-full bg-white border-r border-slate-200 flex flex-col ${tourStep === 1 ? 'z-[100]' : 'z-10'} shadow-xl transition-all duration-300 flex-shrink-0`}>
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-start">
               <div>
                   <h1 className="text-2xl font-bold text-slate-800 mb-1 flex items-center">
@@ -732,7 +742,7 @@ export default function ExploreMap() {
       </div>
 
       {/* RIGHT PANE: THE GRAPH */}
-      <div className={`h-full relative flex flex-col bg-slate-900 transition-all duration-300 ${isSidebarOpen ? "w-3/4" : "w-full"} ${tourStep === 2 ? 'z-[100] ring-inset ring-4 ring-blue-400/50 shadow-2xl' : 'z-0'}`}>
+      <div className={`h-full relative flex-col bg-slate-900 transition-all duration-300 ${isSidebarOpen ? "hidden md:flex md:w-3/4" : "flex w-full"} ${tourStep === 2 ? 'z-[100] ring-inset ring-4 ring-blue-400/50 shadow-2xl' : 'z-0'}`}>
         {!isSidebarOpen && (
           <button onClick={toggleSidebar} className="absolute top-6 left-6 z-20 bg-slate-800/90 text-white px-4 py-2 rounded-lg shadow-lg backdrop-blur border border-slate-700 hover:bg-slate-700 transition-colors font-bold flex items-center space-x-2">
             <span>▶</span><span className="text-sm uppercase tracking-wide">Show Controls</span>
@@ -740,8 +750,8 @@ export default function ExploreMap() {
         )}
 
         {nodes.length > 0 && (
-          <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 flex gap-4 bg-slate-800/90 p-3 rounded-2xl border border-slate-700 shadow-2xl backdrop-blur">
-              <span className="text-white text-sm font-medium self-center px-2">
+          <div className="absolute top-4 md:top-6 left-1/2 -translate-x-1/2 z-20 flex flex-col md:flex-row gap-2 md:gap-4 bg-slate-800/90 p-2 md:p-3 rounded-xl md:rounded-2xl border border-slate-700 shadow-2xl backdrop-blur w-[90%] md:w-auto items-center text-center">
+              <span className="text-white text-xs md:text-sm font-medium self-center px-2">
                 {viewType === 'global' ? 'Hierarchy: Location ➔ Person ➔ Topic' :
                  `Hierarchy: ${viewType === 'person' ? 'Person ➔ Topic ➔ Shared Contact' : viewType === 'location' ? 'Location ➔ Person ➔ Topic' : 'Topic ➔ Person ➔ Other Topics'}`}
               </span>
@@ -756,9 +766,9 @@ export default function ExploreMap() {
                     }
                     setIsGlobalExpanded(true);
                   }}
-                  className="px-4 py-2 rounded-xl text-sm font-bold shadow-lg transition-all bg-pink-500 text-white hover:bg-pink-400"
+                  className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl text-xs md:text-sm font-bold shadow-lg transition-all bg-pink-500 text-white hover:bg-pink-400 w-full md:w-auto whitespace-nowrap"
                 >
-                  Expand All Contacts ({hiddenCount} Hidden)
+                  Expand All ({hiddenCount} Hidden)
                 </button>
               ) : (
                 <button
@@ -766,19 +776,19 @@ export default function ExploreMap() {
                     setIsGlobalExpanded(false);
                     setExpandedNodes(new Set());
                   }}
-                  className="px-4 py-2 rounded-xl text-sm font-bold shadow-lg transition-all bg-slate-700 text-white hover:bg-slate-600"
+                  className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl text-xs md:text-sm font-bold shadow-lg transition-all bg-slate-700 text-white hover:bg-slate-600 w-full md:w-auto whitespace-nowrap"
                 >
-                  Collapse All Contacts
+                  Collapse All
                 </button>
               )}
           </div>
         )}
 
         {nodes.length > 0 && (
-          <div className="absolute bottom-8 right-8 z-20 flex flex-col space-y-2 bg-slate-800/80 p-2 rounded-xl shadow-2xl backdrop-blur-md border border-slate-700">
-            <button onClick={handleZoomIn} className="text-white hover:bg-slate-700 p-3 rounded-lg font-bold text-lg leading-none" title="Zoom In">➕</button>
-            <button onClick={handleFitMap} className="text-white hover:bg-slate-700 p-3 rounded-lg font-bold text-lg leading-none" title="Fit to Screen">⛶</button>
-            <button onClick={handleZoomOut} className="text-white hover:bg-slate-700 p-3 rounded-lg font-bold text-lg leading-none" title="Zoom Out">➖</button>
+          <div className="absolute bottom-4 right-4 md:bottom-8 md:right-8 z-20 flex flex-col space-y-1.5 md:space-y-2 bg-slate-800/80 p-1 md:p-2 rounded-lg md:rounded-xl shadow-2xl backdrop-blur-md border border-slate-700">
+            <button onClick={handleZoomIn} className="text-white hover:bg-slate-700 p-2 md:p-3 rounded text-sm md:text-lg font-bold leading-none" title="Zoom In">➕</button>
+            <button onClick={handleFitMap} className="text-white hover:bg-slate-700 p-2 md:p-3 rounded text-sm md:text-lg font-bold leading-none" title="Fit to Screen">⛶</button>
+            <button onClick={handleZoomOut} className="text-white hover:bg-slate-700 p-2 md:p-3 rounded text-sm md:text-lg font-bold leading-none" title="Zoom Out">➖</button>
           </div>
         )}
 
