@@ -2,21 +2,23 @@
 # This module implements a FastAPI-based REST API that serves as the backend for the INI Platform.
 # It exposes endpoints for AI-driven copilot queries, directory access, network visualization, and user profile management.
 import os
+from typing import Optional
+
+import pandas as pd
 from dotenv import load_dotenv
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+# Import database operations and initialization helper functions
+from api.db_manager import get_connection, initialize_database
+from api.discovery_engine import generate_civic_insight, search_civic_network
 
 # Resolve the absolute path to the project root directory and load environment variables from .env.local
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 dotenv_path = os.path.join(base_dir, ".env.local")
 load_dotenv(dotenv_path=dotenv_path)
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import pandas as pd
-from api.discovery_engine import search_civic_network, generate_civic_insight
-# Import database operations and initialization helper functions
-from api.db_manager import initialize_database, get_connection
-from typing import Optional
 
 # Initialize the FastAPI application instance
 app = FastAPI()
@@ -25,7 +27,9 @@ app = FastAPI()
 # Essential for allowing the React/Next.js frontend (running on a different port/domain) to communicate with this FastAPI server.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production environments, restrict this wildcard to specific trusted origins (e.g., frontend domain) for security.
+    allow_origins=[
+        "*"
+    ],  # In production environments, restrict this wildcard to specific trusted origins (e.g., frontend domain) for security.
     allow_credentials=True,
     allow_methods=["*"],  # Allows all HTTP methods (GET, POST, OPTIONS, etc.)
     allow_headers=["*"],  # Allows all headers (Authorization, Content-Type, etc.)
@@ -34,9 +38,11 @@ app.add_middleware(
 # Execute database setup routines, creating tables and running migration patches if necessary
 initialize_database()
 
+
 # Pydantic schema representing the expected request body for the Copilot AI search endpoint
 class ChatRequest(BaseModel):
     prompt: str  # The natural language user query containing search intent
+
 
 @app.post("/api/copilot")
 def ask_copilot(request: ChatRequest):
@@ -57,22 +63,30 @@ def ask_copilot(request: ChatRequest):
         matches, filters = search_civic_network(request.prompt, df)
 
         # Step 3: Ground the generator in the results found to produce a summarized civic insight narrative
-        insight = generate_civic_insight(request.prompt, matches if not matches.empty else df)
+        insight = generate_civic_insight(
+            request.prompt, matches if not matches.empty else df
+        )
 
         # Step 4: Format matches to a native JSON-compatible list of dictionaries, replacing NaN with empty strings for React
-        results_data = matches.fillna("").to_dict(orient="records") if not matches.empty else []
+        results_data = (
+            matches.fillna("").to_dict(orient="records") if not matches.empty else []
+        )
 
         return {
             "status": "success",
             "insight": insight,
             "matches": results_data,
-            "match_count": len(results_data)
+            "match_count": len(results_data),
         }
 
     except Exception as e:
         # Log stack trace / exception details for administrative observability
         print(f"ERROR in /api/copilot: {e}")
-        return {"status": "error", "message": "The Copilot encountered an issue analyzing the network."}
+        return {
+            "status": "error",
+            "message": "The Copilot encountered an issue analyzing the network.",
+        }
+
 
 # Note: Modern routes in app/ directory fetch data directly via Supabase,
 # however these legacy endpoints are maintained for fallback support.
@@ -114,26 +128,30 @@ def get_network_graph():
         links = []
 
         # Step 1: Identify all unique campuses present in the database and create large 'Hub' nodes for them
-        campuses = df['Campus'].dropna().unique()
+        campuses = df["Campus"].dropna().unique()
         for campus in campuses:
             if campus.strip():
                 # 'val' represents visual size/weight of the node in the interactive frontend map
-                nodes.append({"id": campus, "name": campus, "group": "campus", "val": 8})
+                nodes.append(
+                    {"id": campus, "name": campus, "group": "campus", "val": 8}
+                )
 
         # Step 2: Iterate over contacts to create individual person nodes and draw edges/links to their campuses
         for _, row in df.iterrows():
-            person_id = row['ID']
-            campus = row['Campus']
-            name = row['Contact Name']
+            person_id = row["ID"]
+            campus = row["Campus"]
+            name = row["Contact Name"]
 
             if person_id and name:
-                nodes.append({
-                    "id": person_id,
-                    "name": name,
-                    "group": "person",
-                    "val": 2,  # Individual nodes are rendered smaller than campus hubs
-                    "title": row.get('Role/Title', '')
-                })
+                nodes.append(
+                    {
+                        "id": person_id,
+                        "name": name,
+                        "group": "person",
+                        "val": 2,  # Individual nodes are rendered smaller than campus hubs
+                        "title": row.get("Role/Title", ""),
+                    }
+                )
                 # Create connection edge connecting the person to their academic campus if valid
                 if campus and campus.strip():
                     links.append({"source": person_id, "target": campus})
@@ -146,8 +164,10 @@ def get_network_graph():
 
 # --- DTO SCHEMAS FOR USER PROFILES & SAVED CONTACTS ---
 
+
 class ProfileData(BaseModel):
     """Pydantic model representing public directory publication schema."""
+
     contact_name: str
     campus: str
     capabilities: Optional[str] = ""
@@ -166,10 +186,12 @@ class ProfileData(BaseModel):
 
 class SaveContactRequest(BaseModel):
     """Pydantic schema for requesting a contact save operation."""
+
     contact_id: str
 
 
 # --- PROFILE & VAULT CRUD ENDPOINTS ---
+
 
 @app.post("/api/save_contact")
 def save_contact(request: SaveContactRequest):
@@ -185,14 +207,21 @@ def save_contact(request: SaveContactRequest):
         cursor = conn.cursor()
 
         # Enforce that the user profile entry exists before inserting foreign key mappings
-        cursor.execute("INSERT OR IGNORE INTO Users (user_id, name) VALUES (?, ?)", (user_id, "Demo User"))
+        cursor.execute(
+            "INSERT OR IGNORE INTO Users (user_id, name) VALUES (?, ?)",
+            (user_id, "Demo User"),
+        )
 
         # Check for duplication manually to maintain database transaction safety
-        cursor.execute("SELECT id FROM Saved_Collaborations WHERE user_id = ? AND contact_id = ?",
-                       (user_id, request.contact_id))
+        cursor.execute(
+            "SELECT id FROM Saved_Collaborations WHERE user_id = ? AND contact_id = ?",
+            (user_id, request.contact_id),
+        )
         if not cursor.fetchone():
-            cursor.execute("INSERT INTO Saved_Collaborations (user_id, contact_id) VALUES (?, ?)",
-                           (user_id, request.contact_id))
+            cursor.execute(
+                "INSERT INTO Saved_Collaborations (user_id, contact_id) VALUES (?, ?)",
+                (user_id, request.contact_id),
+            )
             conn.commit()
         conn.close()
         return {"status": "success", "message": "Contact saved!"}
@@ -235,6 +264,7 @@ def publish_profile(profile: ProfileData):
     """
     try:
         import uuid
+
         conn = get_connection()
         cursor = conn.cursor()
 
@@ -267,14 +297,17 @@ def publish_profile(profile: ProfileData):
             profile.opportunity_ideas,
             profile.affiliation,
             profile.role_title,
-            profile.url
+            profile.url,
         )
 
         cursor.execute(insert_query, data)
         conn.commit()
         conn.close()
 
-        return {"status": "success", "message": "Profile published to public directory!"}
+        return {
+            "status": "success",
+            "message": "Profile published to public directory!",
+        }
     except Exception as e:
         print(f"Error publishing profile: {e}")
         return {"status": "error", "message": str(e)}
