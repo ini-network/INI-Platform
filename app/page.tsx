@@ -23,7 +23,7 @@ export default function HomePage() {
 
   return (
     <div className="h-full w-full overflow-y-auto bg-slate-50 font-sans selection:bg-indigo-100 selection:text-indigo-900">
-      
+
       {/* ================= 1. HERO SECTION ================= */}
       <section className="relative bg-slate-900 text-white pt-28 pb-24 overflow-hidden">
         {/* Immersive Glowing Background Blobs */}
@@ -86,7 +86,7 @@ export default function HomePage() {
       <section className="py-20 bg-white relative overflow-hidden">
         <div className="max-w-5xl mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            
+
             {/* Left Column: Narrative Copy */}
             <div className="lg:col-span-7 space-y-6">
               <div className="inline-block px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-xs font-bold text-indigo-700">
@@ -95,7 +95,7 @@ export default function HomePage() {
               <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
                 Why This Platform Matters
               </h2>
-              
+
               <div className="space-y-4 text-slate-600 text-sm md:text-base leading-relaxed">
                 <p>
                   CUNY represents one of the world’s largest concentrations of public talent, research, and lived experience. Yet, valuable work often remains siloed across campuses, departments, and organizations.
@@ -132,7 +132,7 @@ export default function HomePage() {
             <div className="lg:col-span-5 relative mt-6 lg:mt-0">
               <div className="absolute inset-0 bg-gradient-to-tr from-indigo-100 to-emerald-50 rounded-3xl transform rotate-3 scale-105" />
               <div className="bg-white p-6 rounded-3xl shadow-xl relative border border-slate-100/60 space-y-6">
-                
+
                 <div className="flex items-center gap-4 pb-5 border-b border-slate-100">
                   <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0 border border-indigo-100">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -192,7 +192,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
+
             {/* Enablement Card 1 */}
             <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all">
               <div className="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-4 text-indigo-600 font-extrabold">
@@ -233,7 +233,7 @@ export default function HomePage() {
       {/* ================= 4. COLLABORATION INFRASTRUCTURE BUILT FOR CUNY ================= */}
       <section className="py-20 bg-white border-t border-slate-200">
         <div className="max-w-5xl mx-auto px-6">
-          
+
           <div className="text-center mb-14">
             <div className="inline-block px-3 py-1 rounded-full bg-purple-50 border border-purple-100 text-xs font-bold text-purple-700 mb-3">
               Platform Features
@@ -247,9 +247,9 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
+
             {/* Feature 1: Directory */}
-            <Link 
+            <Link
               href="/directory"
               className="group bg-slate-50/50 p-6 rounded-3xl border border-slate-200/80 hover:bg-white hover:border-indigo-300 hover:shadow-xl transition-all duration-300"
             >
@@ -267,7 +267,7 @@ export default function HomePage() {
             </Link>
 
             {/* Feature 2: Network Map */}
-            <Link 
+            <Link
               href="/explore"
               className="group bg-slate-50/50 p-6 rounded-3xl border border-slate-200/80 hover:bg-white hover:border-emerald-300 hover:shadow-xl transition-all duration-300"
             >
@@ -285,7 +285,7 @@ export default function HomePage() {
             </Link>
 
             {/* Feature 3: Collaboration Hub */}
-            <Link 
+            {/* <Link 
               href="/collab"
               className="group bg-slate-50/50 p-6 rounded-3xl border border-slate-200/80 hover:bg-white hover:border-purple-300 hover:shadow-xl transition-all duration-300"
             >
@@ -300,10 +300,10 @@ export default function HomePage() {
               <p className="text-xs text-slate-600 leading-relaxed">
                 Form teams, share active civic/research opportunities, and coordinate cross-campus initiatives.
               </p>
-            </Link>
+            </Link> */}
 
             {/* Feature 4: AI Copilot */}
-            <div className="group bg-slate-50/50 p-6 rounded-3xl border border-slate-200/80 hover:bg-white hover:border-amber-300 hover:shadow-xl transition-all duration-300 relative overflow-hidden cursor-default">
+            <div className="group bg-slate-50/50 p-6 rounded-3xl border border-slate-200/80 hover:bg-white hover:border-amber-300 hover:shadow-xl transition-all duration-300 relative overflow-hidden cursor-default md:col-span-2 md:max-w-md md:mx-auto w-full">
               <div className="absolute top-0 right-0 p-4">
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800 shadow-sm border border-amber-200/50">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse"></span>
@@ -332,28 +332,28 @@ export default function HomePage() {
         <div className="absolute inset-0 pointer-events-none opacity-20">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[300px] bg-indigo-600 rounded-full blur-[120px]" />
         </div>
-        
+
         <div className="relative z-10 max-w-3xl mx-auto">
           <span className="inline-block px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-indigo-300 uppercase tracking-widest mb-4">
             Ecosystem Infrastructure
           </span>
-          
+
           <h2 className="text-2xl md:text-4xl font-extrabold text-white mb-4 tracking-tight">
             Built to Strengthen NYC’s Civic Ecosystem
           </h2>
-          
+
           <p className="text-slate-400 text-xs md:text-sm mb-10 max-w-xl mx-auto leading-relaxed">
             The INI Collaboration Network is more than a directory or project board. It is emerging civic infrastructure designed to help New York City collaborate at the scale today’s urban challenges demand.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Link 
+            <Link
               href="/directory"
               className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-colors shadow-lg shadow-indigo-500/20 text-xs"
             >
               Browse Directory
             </Link>
-            <Link 
+            <Link
               href="/explore"
               className="px-8 py-3.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors border border-slate-700 text-xs"
             >

@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import {usePathname} from "next/navigation";
+import { usePathname } from "next/navigation";
 import UserMenu from "./UserMenu";
-import {useEffect, useState, useRef} from "react";
-import {createClient} from "@/utils/supabase/client"; // Handles browser-side Supabase client initialization
-import {User} from "@supabase/supabase-js";
+import { useEffect, useState, useRef } from "react";
+import { createClient } from "@/utils/supabase/client"; // Handles browser-side Supabase client initialization
+import { User } from "@supabase/supabase-js";
 
 /**
  * Header Component
@@ -32,13 +32,13 @@ export default function Header() {
     useEffect(() => {
         // 1. Resolve existing user session synchronously/asynchronously on mount
         const getUser = async () => {
-            const {data: {user}} = await supabase.auth.getUser();
+            const { data: { user } } = await supabase.auth.getUser();
             setUser(user);
         };
         getUser();
 
         // 2. Establish a persistent auth listener subscription for sign-in/sign-out events
-        const {data: {subscription}} = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setUser(session?.user ?? null);
         });
 
@@ -70,13 +70,13 @@ export default function Header() {
 
     // Declares structural navigation paths
     const navLinks = [
-        {name: "Home", href: "/"},
-        ...(user ? [{name: "My Matches", href: "/matches"}] : []),
-        {name: "Directory", href: "/directory"},
-        {name: "Map Explorer", href: "/explore"},
-        {name: "Collaboration Hub", href: "/collab"},
-        {name: "Join Us", href: "/partners"},
-        {name: "About", href: "/about"},
+        { name: "Home", href: "/" },
+        ...(user ? [{ name: "My Matches", href: "/matches" }] : []),
+        { name: "Directory", href: "/directory" },
+        { name: "Map Explorer", href: "/explore" },
+        // {name: "Collaboration Hub", href: "/collab"},
+        { name: "Join Us", href: "/partners" },
+        { name: "About", href: "/about" },
     ];
 
     return (
@@ -87,7 +87,7 @@ export default function Header() {
                     {/* Logo / Home Branding */}
                     <div className="flex-shrink-0 flex items-center">
                         <Link href="/"
-                              className="text-xl font-black text-slate-900 tracking-tight transition-transform hover:scale-105">
+                            className="text-xl font-black text-slate-900 tracking-tight transition-transform hover:scale-105">
                             INI<span className="text-blue-600">.network</span>
                         </Link>
                     </div>
@@ -101,9 +101,8 @@ export default function Header() {
                                 <Link
                                     key={link.name}
                                     href={link.href}
-                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                                        isActive ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                                    }`}
+                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${isActive ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                                        }`}
                                 >
                                     {link.name}
                                 </Link>
@@ -115,11 +114,10 @@ export default function Header() {
                             <div className="relative flex items-center" ref={adminDropdownRef}>
                                 <button
                                     onClick={() => setIsAdminOpen(!isAdminOpen)}
-                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 focus:outline-none ${
-                                        pathname.startsWith("/admin")
+                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 focus:outline-none ${pathname.startsWith("/admin")
                                             ? "bg-white text-blue-700 shadow-sm"
                                             : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                                    }`}
+                                        }`}
                                 >
                                     <span>⚙️ Admin</span>
                                     <svg
@@ -140,22 +138,20 @@ export default function Header() {
                                         <Link
                                             href="/admin/matches"
                                             onClick={() => setIsAdminOpen(false)}
-                                            className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold rounded-xl transition-colors ${
-                                                pathname === "/admin/matches"
+                                            className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold rounded-xl transition-colors ${pathname === "/admin/matches"
                                                     ? "bg-blue-50 text-blue-700"
                                                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                                            }`}
+                                                }`}
                                         >
                                             <span className="text-sm">🤖</span> Matchmaker Admin
                                         </Link>
                                         <Link
                                             href="/admin/marketing"
                                             onClick={() => setIsAdminOpen(false)}
-                                            className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold rounded-xl transition-colors ${
-                                                pathname === "/admin/marketing"
+                                            className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold rounded-xl transition-colors ${pathname === "/admin/marketing"
                                                     ? "bg-blue-50 text-blue-700"
                                                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                                            }`}
+                                                }`}
                                         >
                                             <span className="text-sm">📢</span> Marketing Broadcasts
                                         </Link>
@@ -171,7 +167,7 @@ export default function Header() {
                         <div className="flex items-center">
                             {/* CONDITIONAL RENDERING: Show UserMenu if logged in, otherwise show Login link */}
                             {user ? (
-                                <UserMenu/>
+                                <UserMenu />
                             ) : (
                                 <Link
                                     href="/login"
@@ -213,9 +209,8 @@ export default function Header() {
                                     key={link.name}
                                     href={link.href}
                                     onClick={() => setIsMobileMenuOpen(false)}
-                                    className={`block px-4 py-3 rounded-xl text-sm font-bold transition-all ${
-                                        isActive ? "bg-blue-50 text-blue-700 shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                                    }`}
+                                    className={`block px-4 py-3 rounded-xl text-sm font-bold transition-all ${isActive ? "bg-blue-50 text-blue-700 shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                        }`}
                                 >
                                     {link.name}
                                 </Link>
@@ -231,22 +226,20 @@ export default function Header() {
                                 <Link
                                     href="/admin/matches"
                                     onClick={() => setIsMobileMenuOpen(false)}
-                                    className={`flex items-center gap-2 px-4 py-3 text-sm font-bold rounded-xl transition-colors ${
-                                        pathname === "/admin/matches"
+                                    className={`flex items-center gap-2 px-4 py-3 text-sm font-bold rounded-xl transition-colors ${pathname === "/admin/matches"
                                             ? "bg-blue-50 text-blue-700 shadow-sm"
                                             : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                                    }`}
+                                        }`}
                                 >
                                     <span className="text-sm">🤖</span> Matchmaker Admin
                                 </Link>
                                 <Link
                                     href="/admin/marketing"
                                     onClick={() => setIsMobileMenuOpen(false)}
-                                    className={`flex items-center gap-2 px-4 py-3 text-sm font-bold rounded-xl transition-colors ${
-                                        pathname === "/admin/marketing"
+                                    className={`flex items-center gap-2 px-4 py-3 text-sm font-bold rounded-xl transition-colors ${pathname === "/admin/marketing"
                                             ? "bg-blue-50 text-blue-700 shadow-sm"
                                             : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                                    }`}
+                                        }`}
                                 >
                                     <span className="text-sm">📢</span> Marketing Broadcasts
                                 </Link>
