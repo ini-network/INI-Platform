@@ -85,6 +85,70 @@ export default function HomePage() {
       {/* ================= 2. WHY THIS PLATFORM MATTERS ================= */}
       <section className="py-20 bg-white relative overflow-hidden">
         <div className="max-w-5xl mx-auto px-6">
+
+          {/* Testimonial Quote by Arthur Chisolm */}
+          <div className="mb-20">
+            <div className="relative">
+              {/* Offset backdrop wrapper to match ecosystem card styling */}
+              <div className="absolute inset-0 bg-linear-to-tr from-indigo-100/80 to-emerald-100/80 rounded-3xl transform -rotate-1 scale-102 md:scale-103" />
+              
+              <div className="relative bg-white rounded-3xl p-10 md:p-14 border border-slate-100/60 shadow-xl overflow-hidden">
+                {/* Decorative background gradients */}
+                <div className="absolute top-0 right-0 w-96 h-96 bg-linear-to-br from-indigo-500/5 to-purple-500/5 rounded-full blur-3xl -z-10 pointer-events-none" />
+                <div className="absolute -bottom-10 -left-10 w-72 h-72 bg-emerald-500/5 rounded-full blur-3xl -z-10 pointer-events-none" />
+                
+                <div className="relative flex flex-col md:flex-row gap-8 md:gap-10 items-start">
+                  {/* Large Decorative Quote Icon */}
+                  <div className="hidden md:flex w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100/80 items-center justify-center shrink-0 text-indigo-600">
+                    <svg className="w-8 h-8 fill-current" viewBox="0 0 24 24">
+                      <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+                    </svg>
+                  </div>
+                  
+                  <div className="flex-1 space-y-8">
+                    <blockquote className="space-y-4">
+                      <span className="block text-3xl md:text-5xl font-extrabold text-slate-900 leading-tight">
+                        “INI has changed lives
+                      </span>
+                      <p className="text-lg md:text-2xl text-slate-700 font-medium leading-relaxed">
+                        by creating new ways for NYC to collaborate, while creating pathways for more of CUNY to discover the impact they can make in their communities.”
+                      </p>
+                    </blockquote>
+                    
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pt-8 border-t border-slate-100">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <span className="font-extrabold text-slate-900 text-base md:text-lg">Arthur Chisolm</span>
+                          <a 
+                            href="https://www.linkedin.com/feed/update/urn:li:activity:7395134427678339072/" 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="inline-flex items-center text-[10px] md:text-xs text-indigo-600 hover:text-indigo-800 transition-colors font-bold gap-1 bg-indigo-50/50 px-2.5 py-0.5 rounded border border-indigo-100/50"
+                            aria-label="Arthur Chisolm LinkedIn update"
+                          >
+                            <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+                              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                            </svg>
+                            <span>LinkedIn</span>
+                          </a>
+                        </div>
+                        <div className="text-xs md:text-sm text-indigo-800 font-bold">
+                          Founding INI Campus Partner
+                        </div>
+                        <div className="text-xs md:text-sm text-slate-500 font-medium">
+                          Former Career & Academic Advisor, CUNY2X Tech at City Tech
+                        </div>
+                        <div className="text-xs md:text-sm text-slate-400 font-medium">
+                          Helped pioneer INI’s first five student fellow cohorts
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
 
             {/* Left Column: Narrative Copy */}
@@ -310,7 +374,7 @@ export default function HomePage() {
                   Always Available
                 </span>
               </div>
-              <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center mb-5 border border-amber-100 group-hover:scale-110 transition-transform">
+              <div className="w-12 h-12 bg-ambger-50 text-amber-600 rounded-xl flex items-center justify-center mb-5 border border-amber-100 group-hover:scale-110 transition-transform">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>

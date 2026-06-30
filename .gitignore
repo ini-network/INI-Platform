@@ -61,3 +61,4 @@ next-env.d.ts
 /roles.sql
 /CUNY_INI_Standardized_Final.csv
 /agentdocs/
+.env*
