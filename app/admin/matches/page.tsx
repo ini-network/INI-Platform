@@ -25,7 +25,7 @@ export default function MatchesDashboard() {
     </p>
     <div style="background-color: #f8fafc; padding: 20px; border-left: 4px solid #3b82f6; margin: 24px 0;">
         <p style="margin: 0; font-size: 16px; color: #1e293b; font-style: italic;">
-            "If you see this, your Resend API integration is fully functional and successfully connected to ini@ini.vngle.com."
+            "If you see this, your Resend API integration is fully functional and successfully connected to ini@ini.network."
         </p>
     </div>
 </div>
@@ -336,7 +336,7 @@ export default function MatchesDashboard() {
                             <span className="text-xl">🛠️</span>
                             <div className="text-left">
                                 <h3 className="font-bold text-sm sm:text-base text-white">Manual Resend Email Tester</h3>
-                                <p className="text-xs text-slate-300 font-normal">Draft and dispatch a test email from ini@ini.vngle.com to verify SMTP/Resend integration.</p>
+                                <p className="text-xs text-slate-300 font-normal">Draft and dispatch a test email from ini@ini.network to verify SMTP/Resend integration.</p>
                             </div>
                         </div>
                         <span className="text-lg text-white transition-transform duration-300" style={{ transform: isTesterOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>

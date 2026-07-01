@@ -76,6 +76,7 @@ export default function Header() {
         { name: "Map Explorer", href: "/explore" },
         // {name: "Collaboration Hub", href: "/collab"},
         { name: "Join Us", href: "/partners" },
+        { name: "America 250", href: "/america250" },
         { name: "About", href: "/about" },
     ];
 

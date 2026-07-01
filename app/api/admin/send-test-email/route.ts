@@ -45,7 +45,7 @@ export async function POST(req: Request) {
         console.log(`📩 Sending custom test email to ${to} triggered by ${email}...`);
 
         const res = await resend.emails.send({
-            from: 'INI Network <ini@ini.vngle.com>', // MUST match your verified domain in Resend
+            from: 'INI Network <ini@ini.network>', // MUST match your verified domain in Resend
             to: [to],
             subject: subject,
             html: html

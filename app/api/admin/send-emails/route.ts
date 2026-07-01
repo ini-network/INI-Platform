@@ -129,7 +129,7 @@ export async function POST(req: Request) {
                 `;
 
                 return resend.emails.send({
-                    from: 'INI Network <ini@ini.vngle.com>', // MUST match your verified domain in Resend
+                    from: 'INI Network <ini@ini.network>', // MUST match your verified domain in Resend
                     to: [recipient.email_contact],
                     subject: '🌟 You have a new synergy!',
                     html: htmlContent
