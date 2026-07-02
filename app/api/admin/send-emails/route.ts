@@ -13,6 +13,15 @@ const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder');
 
 export async function POST(req: Request) {
     try {
+        const apiKey = process.env.RESEND_API_KEY;
+        if (!apiKey || apiKey === 're_placeholder') {
+            console.error("❌ Resend API Key is missing or set to placeholder. Please configure RESEND_API_KEY in .env.local and restart the server.");
+            return NextResponse.json({
+                status: "error",
+                message: "Resend API Key is not configured. Please ensure RESEND_API_KEY is set in your environment and restart the server."
+            }, { status: 500 });
+        }
+
         // 0. Authenticate & Authorize the request
         const cookieStore = await cookies();
         const supabaseAuth = createServerClient(cookieStore);
