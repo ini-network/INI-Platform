@@ -3,6 +3,8 @@
 import {useState, useEffect, Suspense} from "react";
 import {useSearchParams} from "next/navigation";
 import Link from "next/link";
+import Footer from "@/components/Footer";
+
 
 // Static Intake Funnel Target URL
 const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/1VXaj8YPklVva7zJ92ZBA7EZg3Aw2LGhZ5PMiuNFMQyc/edit?ts=69de7307";
@@ -206,7 +208,7 @@ function PartnersDashboardContent() {
             </div>
 
             {/* VIEWPORT AREA */}
-            <div className="flex-1 h-full overflow-y-auto selection:bg-indigo-100 selection:text-indigo-900 pb-24">
+            <div className="flex-1 h-full overflow-y-auto selection:bg-indigo-100 selection:text-indigo-900">
 
                 {/* ================= CAMPUS PARTNERS VIEW ================= */}
                 {activeTab === "partners" && (
@@ -578,6 +580,7 @@ function PartnersDashboardContent() {
                     </div>
                 )}
 
+                <Footer />
             </div>
         </div>
     );

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import Footer from "@/components/Footer";
+
 
 export const metadata = {
   title: "About INI | INI Collaboration Network",
@@ -89,7 +91,7 @@ export default function AboutPage() {
   ];
 
   return (
-    <div className="h-full w-full overflow-y-auto bg-slate-50 font-sans selection:bg-blue-100 selection:text-blue-900 pb-24">
+    <div className="h-full w-full overflow-y-auto bg-slate-50 font-sans selection:bg-blue-100 selection:text-blue-900">
       {/* 1. HERO SECTION */}
       <section className="relative bg-slate-900 text-white pt-24 pb-20 overflow-hidden">
         {/* Glowing Blobs */}
@@ -306,6 +308,8 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+
+      <Footer />
     </div>
   );
 }

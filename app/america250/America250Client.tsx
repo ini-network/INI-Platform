@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import flagImage from "@/assets/images/American-Flag-On-White-Background-Wallpaper-Mural.jpg";
+import Footer from "@/components/Footer";
+
 
 export default function America250Client() {
   // 1. CivicWire Form State
@@ -80,7 +82,7 @@ export default function America250Client() {
   };
 
   return (
-    <div className="h-full w-full overflow-y-auto bg-slate-50 font-sans selection:bg-rose-100 selection:text-rose-900 pb-24">
+    <div className="h-full w-full overflow-y-auto bg-slate-50 font-sans selection:bg-rose-100 selection:text-rose-900">
       
       {/* ================= 1. HERO SECTION ================= */}
       <section className="relative bg-slate-900 text-white pt-28 pb-24 overflow-hidden">
@@ -560,6 +562,7 @@ export default function America250Client() {
         </div>
       </section>
 
+      <Footer />
     </div>
   );
 }

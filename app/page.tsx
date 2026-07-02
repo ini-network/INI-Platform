@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Footer from "@/components/Footer";
 
 /**
  * HomePage Component
@@ -427,6 +428,7 @@ export default function HomePage() {
         </div>
       </section>
 
+      <Footer />
     </div>
   );
 }
