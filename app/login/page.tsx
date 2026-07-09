@@ -1,8 +1,8 @@
 "use client";
 
-import {createClient} from '@/utils/supabase/client';
-import {useEffect, useState} from 'react';
-import {useRouter} from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 /**
  * LoginPage Component
@@ -51,7 +51,7 @@ export default function LoginPage() {
      * Returns a teardown function that unsubscribes the observer to prevent memory leak closures.
      */
     useEffect(() => {
-        const {data: {subscription}} = supabase.auth.onAuthStateChange((event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN' && session) {
                 router.refresh(); // Invalidate Next.js cache so layout header correctly evaluates new session
                 router.push('/');
@@ -62,11 +62,11 @@ export default function LoginPage() {
 
     // --- PASSWORD STRENGTH LOGIC (Strict pre-flight check before Sign Up) ---
     const passwordRequirements = [
-        {id: "length", text: "At least 8 characters", regex: /.{8,}/},
-        {id: "uppercase", text: "One uppercase letter", regex: /[A-Z]/},
-        {id: "lowercase", text: "One lowercase letter", regex: /[a-z]/},
-        {id: "number", text: "One number", regex: /[0-9]/},
-        {id: "special", text: "One special character (e.g., !@#$%^&*)", regex: /[^A-Za-z0-9]/},
+        { id: "length", text: "At least 8 characters", regex: /.{8,}/ },
+        { id: "uppercase", text: "One uppercase letter", regex: /[A-Z]/ },
+        { id: "lowercase", text: "One lowercase letter", regex: /[a-z]/ },
+        { id: "number", text: "One number", regex: /[0-9]/ },
+        { id: "special", text: "One special character (e.g., !@#$%^&*)", regex: /[^A-Za-z0-9]/ },
     ];
     // Check if password satisfies all regular expression patterns
     const isPasswordStrong = passwordRequirements.every((req) => req.regex.test(password));
@@ -91,18 +91,18 @@ export default function LoginPage() {
         }
 
         if (view === "sign-up") {
-            const {error} = await supabase.auth.signUp({
+            const { error } = await supabase.auth.signUp({
                 email,
                 password,
                 options: {
-                    data: {full_name: fullName},
+                    data: { full_name: fullName },
                     emailRedirectTo: getRedirectUrl()
                 }
             });
             if (error) setErrorMessage(error.message);
             else setSuccessMessage("Check your email for the confirmation link!");
         } else {
-            const {error} = await supabase.auth.signInWithPassword({
+            const { error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             });
@@ -235,12 +235,12 @@ export default function LoginPage() {
                                     const isMet = req.regex.test(password);
                                     return (
                                         <div key={req.id} className="flex items-center text-xs">
-                      <span className={`mr-2 ${isMet ? "text-emerald-500" : "text-slate-300"}`}>
-                        {isMet ? "✓" : "○"}
-                      </span>
+                                            <span className={`mr-2 ${isMet ? "text-emerald-500" : "text-slate-300"}`}>
+                                                {isMet ? "✓" : "○"}
+                                            </span>
                                             <span className={isMet ? "text-slate-700" : "text-slate-500"}>
-                        {req.text}
-                      </span>
+                                                {req.text}
+                                            </span>
                                         </div>
                                     );
                                 })}
@@ -258,7 +258,7 @@ export default function LoginPage() {
                 </form>
 
                 {/* LinkedIn Login Button */}
-                <div className="mt-6 border-t border-slate-100 pt-6">
+                {/*<div className="mt-6 border-t border-slate-100 pt-6">
                     <button
                         type="button"
                         onClick={handleLinkedInSignIn}
@@ -267,7 +267,7 @@ export default function LoginPage() {
                     >
                         Sign in with LinkedIn
                     </button>
-                </div>
+                </div> */}
 
                 {/* Updated Anonymous Browsing Button */}
                 <div className="mt-6 border-t border-slate-100 pt-6">
@@ -278,7 +278,7 @@ export default function LoginPage() {
                             // Force-invalidates server-side layout and router caches which might have
                             // cached an "auth-required" state from a previously failed session.
                             router.refresh();
-                            
+
                             // 2. JS EVENT LOOP YIELD STRATEGY
                             // Yields execution to the next tick (100ms delay) to guarantee the Next.js router
                             // processes and records the refresh state before we commit to the homepage redirect.
@@ -288,7 +288,7 @@ export default function LoginPage() {
                         }}
                         className="w-full flex items-center justify-center py-2.5 bg-slate-100 text-slate-600 font-bold rounded-lg hover:bg-slate-200 transition-colors shadow-sm"
                     >
-                        👀 Browse without logging in
+                        Browse without logging in
                     </button>
                 </div>
 
