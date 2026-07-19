@@ -18,8 +18,10 @@ export default function Header() {
     const supabase = createClient();
     const [user, setUser] = useState<User | null>(null);
     const [isAdminOpen, setIsAdminOpen] = useState(false);
+    const [isMapOpen, setIsMapOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const adminDropdownRef = useRef<HTMLDivElement>(null);
+    const mapDropdownRef = useRef<HTMLDivElement>(null);
 
     // Auto-close mobile menu when navigating
     useEffect(() => {
@@ -46,11 +48,14 @@ export default function Header() {
         return () => subscription.unsubscribe();
     }, [supabase.auth]);
 
-    // Close admin dropdown when user clicks outside the menu
+    // Close dropdowns when user clicks outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (adminDropdownRef.current && !adminDropdownRef.current.contains(event.target as Node)) {
                 setIsAdminOpen(false);
+            }
+            if (mapDropdownRef.current && !mapDropdownRef.current.contains(event.target as Node)) {
+                setIsMapOpen(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
@@ -74,7 +79,6 @@ export default function Header() {
         ...(user ? [{ name: "My Matches", href: "/matches" }] : []),
         { name: "Directory", href: "/directory" },
         { name: "Map Explorer", href: "/explore" },
-        // {name: "Collaboration Hub", href: "/collab"},
         { name: "Join Us", href: "/partners" },
         { name: "America 250", href: "/america250" },
         { name: "About", href: "/about" },
@@ -86,7 +90,7 @@ export default function Header() {
                 <div className="flex justify-between items-center h-16">
 
                     {/* Logo / Home Branding */}
-                    <div className="flex-shrink-0 flex items-center">
+                    <div className="shrink-0 flex items-center">
                         <Link href="/"
                             className="text-xl font-black text-slate-900 tracking-tight transition-transform hover:scale-105">
                             INI<span className="text-blue-600">.network</span>
@@ -109,6 +113,54 @@ export default function Header() {
                                 </Link>
                             );
                         })}
+
+                        {/* Civic Map Dropdown */}
+                        <div className="relative flex items-center" ref={mapDropdownRef}>
+                            <button
+                                onClick={() => setIsMapOpen(!isMapOpen)}
+                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 focus:outline-none ${
+                                    ["/map", "/news", "/reports"].includes(pathname)
+                                        ? "bg-white text-blue-700 shadow-sm"
+                                        : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                                }`}
+                            >
+                                <span>Civic Map</span>
+                                <svg
+                                    className={`w-3.5 h-3.5 transition-transform duration-200 ${isMapOpen ? "rotate-180" : ""}`}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            {isMapOpen && (
+                                <div className="absolute left-0 mt-2 top-full w-48 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 p-1.5 space-y-1">
+                                    <Link
+                                        href="/map"
+                                        onClick={() => setIsMapOpen(false)}
+                                        className={`block px-3.5 py-2.5 text-xs font-bold rounded-xl transition-colors ${pathname === "/map" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}
+                                    >
+                                        🗺️ Interactive Map
+                                    </Link>
+                                    <Link
+                                        href="/news"
+                                        onClick={() => setIsMapOpen(false)}
+                                        className={`block px-3.5 py-2.5 text-xs font-bold rounded-xl transition-colors ${pathname === "/news" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}
+                                    >
+                                        📰 Civic News
+                                    </Link>
+                                    <Link
+                                        href="/reports"
+                                        onClick={() => setIsMapOpen(false)}
+                                        className={`block px-3.5 py-2.5 text-xs font-bold rounded-xl transition-colors ${pathname === "/reports" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}
+                                    >
+                                        🗣️ Civic Stories
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
 
                         {/* Admin Portal Dropdown */}
                         {isAdmin && (
@@ -217,6 +269,22 @@ export default function Header() {
                                 </Link>
                             );
                         })}
+
+                        {/* Civic Map Mobile Links */}
+                        <div className="pt-4 mt-4 border-t border-slate-100 space-y-1.5">
+                            <div className="px-4 py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                🗺️ Civic Map Features
+                            </div>
+                            <Link href="/map" onClick={() => setIsMobileMenuOpen(false)} className={`block px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === "/map" ? "bg-blue-50 text-blue-700 shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+                                Interactive Map
+                            </Link>
+                            <Link href="/news" onClick={() => setIsMobileMenuOpen(false)} className={`block px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === "/news" ? "bg-blue-50 text-blue-700 shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+                                Civic News
+                            </Link>
+                            <Link href="/reports" onClick={() => setIsMobileMenuOpen(false)} className={`block px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === "/reports" ? "bg-blue-50 text-blue-700 shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+                                Civic Stories
+                            </Link>
+                        </div>
 
                         {/* Admin Portal section inside Mobile Menu */}
                         {isAdmin && (
