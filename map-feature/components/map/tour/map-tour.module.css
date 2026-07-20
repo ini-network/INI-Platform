@@ -1,0 +1,368 @@
+/* Guided map tour chrome. Warm-paper palette, quiet + premium — a calm ring, a
+   soft bubble, a quiet green success beat. No confetti (Travis's D4). All colors
+   come from the design-system tokens so it inherits the brand. */
+
+/* ---- centered info card (welcome / finish): dim backdrop, map inert ---- */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1390;
+  background: rgba(16, 22, 18, 0.5);
+  display: grid;
+  place-items: center;
+  padding: 5vh 16px;
+}
+
+/* ---- spotlight dim panels: cover the viewport except the target hole ----
+   Four fixed panels (computed from the anchorRect) that BLOCK clicks and answer
+   with the stop's nudge; only the hole stays interactive. Below the ring (1395)
+   and bubble (1400), above all page chrome. */
+.dim,
+.dimFull {
+  position: fixed;
+  z-index: 1385;
+  background: rgba(10, 16, 13, 0.32);
+  pointer-events: auto;
+  cursor: default;
+  /* B: the hole's POSITION (top/left/width/height) is written straight to the DOM
+     every rAF frame (map-tour-guide), never transitioned — so it tracks a scrolling
+     anchor exactly instead of perpetually easing toward a stale target and snapping
+     when the scroll stops. Only the tint eases; .settleMove re-adds a brief position
+     ease for the stop-to-stop move. */
+  transition: background 160ms var(--ease);
+}
+.dimFull {
+  inset: 0;
+}
+
+/* ---- ring glued to a DOM anchor (action + sidebar stops) ---- */
+.ring {
+  position: fixed;
+  z-index: 1395;
+  border: 2px solid var(--primary, #7c3aed);
+  border-radius: var(--radius-md, 12px);
+  /* inset ring + a soft accent glow — quiet, premium (the ::after adds the pulse) */
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary, #7c3aed) 22%, transparent),
+    0 0 18px 2px color-mix(in srgb, var(--primary, #7c3aed) 28%, transparent);
+  pointer-events: none;
+  /* B: position is DOM-written per frame (raw tracking, no scroll lag). Only the
+     accent color / glow ease here; .settleMove owns the one-shot stop-change move. */
+  transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease);
+}
+.ring::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  animation: tourPulse 2s var(--ease) infinite;
+}
+.ringSuccess {
+  border-color: var(--success, #14664f);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success, #14664f) 26%, transparent),
+    0 0 18px 2px color-mix(in srgb, var(--success, #14664f) 26%, transparent);
+}
+.ringSuccess::after {
+  animation: none;
+}
+
+@keyframes tourPulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary, #7c3aed) 34%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--primary, #7c3aed) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary, #7c3aed) 0%, transparent);
+  }
+}
+
+/* ---- bubble / card shared surface ---- */
+.bubble,
+.card {
+  position: fixed;
+  z-index: 1400;
+  background: var(--surface, #fffdf8);
+  border: 1px solid var(--line, #e3ddcf);
+  border-radius: var(--radius-lg, 18px);
+  box-shadow: var(--shadow-lg, 0 4px 8px rgba(17, 28, 24, 0.05), 0 24px 48px rgba(17, 28, 24, 0.1));
+  padding: 16px 18px 14px;
+  color: var(--ink, #111c18);
+  pointer-events: auto;
+  animation: tourRise 200ms var(--ease) both;
+}
+.bubble {
+  width: min(320px, calc(100vw - 24px));
+}
+.card {
+  position: static;
+  width: min(420px, 100%);
+  animation: tourPop 220ms var(--ease) both;
+}
+/* Same quiet accent-glow language as the ring, applied to the center card's edge. */
+.cardGlow {
+  border-color: color-mix(in srgb, var(--primary, #7c3aed) 40%, var(--line, #e3ddcf));
+  box-shadow: var(--shadow-lg, 0 4px 8px rgba(17, 28, 24, 0.05), 0 24px 48px rgba(17, 28, 24, 0.1)),
+    0 0 22px 2px color-mix(in srgb, var(--primary, #7c3aed) 22%, transparent);
+}
+
+/* B2: one-shot position ease as the overlay settles onto a new stop's anchor. The
+   engines add this class on a stop change and hold it (min ~180ms) until the anchor
+   rect goes QUIESCENT — stable for ~2 frames under the move-gate — then drop it on a
+   settled frame so removal is a sub-pixel no-op instead of an instant snap (a hard
+   ~1200ms ceiling guards a never-settling anchor). In practice the STOP-TO-STOP ease
+   applies to the PERSISTENT bubble only: the ring + dim panels remount through the
+   null-rect commit between stops (fresh mount, no prior position to ease from), so
+   their move is an accepted hard-cut. `right` + `transform` are in the list because a
+   bubbleSide:'left' stop positions via `right` and 'over' via `transform` — without
+   them a left/over bubble would ease vertically while snapping horizontally (a
+   diagonal dogleg). Declared AFTER .ring / .dim / .bubble so its transition wins for
+   the brief window it's applied (equal specificity → later source order). During that
+   window the accent color / glow never change, so replacing their transition is
+   invisible. */
+.settleMove {
+  transition: top 120ms var(--ease), left 120ms var(--ease),
+    width 120ms var(--ease), height 120ms var(--ease),
+    right 120ms var(--ease), transform 120ms var(--ease);
+}
+
+@keyframes tourRise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes tourPop {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ---- text ---- */
+.title {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  margin: 0 0 6px;
+  color: var(--ink, #111c18);
+}
+.body {
+  font-size: 13.5px;
+  line-height: 1.45;
+  margin: 0;
+  color: var(--ink-soft, #33423b);
+}
+
+/* ---- feedback line (quiet success / gentle nudge) ---- */
+.feedback {
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.35;
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm, 8px);
+}
+.feedbackSuccess {
+  color: var(--success, #14664f);
+  background: var(--success-tint, #e6f3ec);
+}
+.feedbackNudge {
+  color: var(--warn, #a86d1d);
+  background: var(--warn-tint, #fbf2df);
+}
+
+/* ---- footer: skip + cta / step count ---- */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+.skip {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 4px 2px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted, #6a756f);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.skip:hover {
+  color: var(--ink, #111c18);
+}
+/* Right cluster of the footer: Back sits to the left of the counter / CTA. */
+.footerRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.back {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 4px 2px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted, #6a756f);
+  cursor: pointer;
+}
+.back:hover {
+  color: var(--ink, #111c18);
+}
+.count {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--faint, #8a948f);
+  font-variant-numeric: tabular-nums;
+}
+.cta {
+  appearance: none;
+  border: 1px solid var(--primary, #7c3aed);
+  background: var(--primary, #7c3aed);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill, 999px);
+  cursor: pointer;
+  transition: background 160ms var(--ease), border-color 160ms var(--ease),
+    transform 120ms var(--ease);
+}
+.cta:hover {
+  background: var(--primary-strong, #5b21b6);
+  border-color: var(--primary-strong, #5b21b6);
+}
+.cta:active {
+  transform: translateY(1px);
+}
+
+/* ---- restart toast (page segments): outlives the chrome on skip/Esc ----
+   Fixed (the /news + /reports overlays aren't inside the map's positioned box),
+   top-left so it reads near where the map's ? launcher lives. */
+.skipToast {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 1400;
+  max-width: min(300px, calc(100vw - 32px));
+  padding: 9px 13px;
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--line, #e3ddcf);
+  background: var(--surface, #fffdf8);
+  box-shadow: var(--shadow-lg, 0 4px 8px rgba(17, 28, 24, 0.05), 0 24px 48px rgba(17, 28, 24, 0.1));
+  color: var(--ink, #111c18);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  animation: tourRise 200ms var(--ease) both;
+}
+
+/* ---- small arrow pointing from the bubble toward the ring (desktop) ---- */
+.arrow {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--surface, #fffdf8);
+  border: 1px solid var(--line, #e3ddcf);
+  transform: rotate(45deg);
+}
+.arrowLeft {
+  right: -7px;
+  top: 22px;
+  border-left: 0;
+  border-bottom: 0;
+}
+.arrowRight {
+  left: -7px;
+  top: 22px;
+  border-right: 0;
+  border-top: 0;
+}
+.arrowOver {
+  left: 50%;
+  margin-left: -6px;
+  top: -7px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+/* ---- touch (pointer: coarse) — applies at every touch width incl. iPad ----
+   Fine-pointer desktop is signed off and must stay byte-identical, so all of
+   these are pointer-gated, never width-gated. */
+@media (pointer: coarse) {
+  /* C2: cap the centered welcome/finish card to the visible viewport so a long
+     body can't push the footer off-screen, and keep the action row reachable via
+     a sticky bar. (--app-vh is written by useVisualViewport; 100vh is the fallback.) */
+  .card {
+    max-height: calc(var(--app-vh, 100vh) - 10vh);
+    overflow-y: auto;
+  }
+  .card .footer {
+    position: sticky;
+    bottom: 0;
+    padding-top: 10px;
+    background: var(--surface, #fffdf8);
+    box-shadow: 0 -10px 12px -10px rgba(17, 28, 24, 0.14);
+  }
+  /* M3: the tour's own controls to the 44px touch minimum. */
+  .skip,
+  .back {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .cta {
+    min-height: 44px;
+  }
+}
+
+/* ---- phone (<=640): panel is a bottom sheet; bubble geometry adapts ---- */
+@media (max-width: 640px) {
+  .bubble {
+    left: 12px !important;
+    right: 12px !important;
+    top: 12px !important;
+    width: auto !important;
+    transform: none !important;
+    /* M4: never let a long body (± the appended feedback line) grow the bubble
+       off-screen — cap to the visible viewport and scroll inside. */
+    max-height: calc(var(--app-vh, 100vh) - 24px);
+    overflow-y: auto;
+  }
+  .arrow {
+    display: none;
+  }
+  /* Branch (a) — bridge-news (map tour) + the page overlay's reader/close stops:
+     bottom band cleared above the 56px tab bar, so the bubble sits just above its
+     own spotlight hole (the News tab / the modal's close). */
+  .bubblePinBottom {
+    top: auto !important;
+    bottom: calc(12px + 56px + env(safe-area-inset-bottom)) !important;
+  }
+  /* Branch (b) — map-region stops (borough / neighborhood): the sheet is at peek
+     (96px) on these stops, so clear the tab bar AND the peek band; bubbleCompact
+     keeps the bubble short enough to stay inside the spotlit map band above it. */
+  .bubblePinMap {
+    top: auto !important;
+    bottom: calc(12px + 56px + 96px + 12px + env(safe-area-inset-bottom)) !important;
+  }
+  /* M5: map-region stops stay compact so the pinned bubble never reaches up into
+     the spotlit map band above the sheet. */
+  .bubbleCompact {
+    max-height: calc(var(--app-vh, 100vh) * 0.46);
+    padding: 12px 14px;
+  }
+  /* Branch (c) — panel-anchored stops (digest / browse / area-detail / filter /
+     filter-pick): the sheet is at half, so ride ABOVE its top edge and point down
+     at the ringed control inside it. Applied INSTEAD of bubblePinBottom (never both)
+     so two !important bottoms can't stack. --app-vh tracks the visual viewport. */
+  .bubbleAboveSheet {
+    top: auto !important;
+    bottom: calc(var(--app-vh, 100vh) * 0.5 + 56px + 24px + env(safe-area-inset-bottom)) !important;
+  }
+}

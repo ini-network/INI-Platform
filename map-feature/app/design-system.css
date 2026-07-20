@@ -1,0 +1,1647 @@
+/* =====================================================================
+   Civic Signal — canonical design system (calm editorial)
+   ---------------------------------------------------------------------
+   Single source of truth for the Pulse frontend. Imported AFTER
+   globals.css so it wins the cascade and unifies the two stacked legacy
+   palettes (--cs-* editorial + --vg-* vngle) onto ONE warm-paper, civic-
+   green system. Page bodies migrate onto the primitives below page-by-
+   page (strangler pattern); legacy per-page CSS is deleted as each moves.
+   ===================================================================== */
+
+:root {
+  /* ---- surfaces (warm paper) ---- */
+  --bg: #f6f2ea;
+  --bg-grad-1: rgba(124, 58, 237, 0.05);
+  --surface: #fffdf8;
+  --surface-soft: #fbf8f1;
+  --surface-tint: #eef5f0;
+  --surface-strong: #ffffff;
+
+  /* ---- ink / text ---- */
+  --ink: #111c18;
+  --ink-soft: #33423b;
+  --muted: #6a756f;
+  --faint: #8a948f;
+
+  /* ---- lines ---- */
+  --line: #e3ddcf;
+  --line-strong: #cdc4b1;
+
+  /* ---- brand + semantic (one primary, restrained accents) ---- */
+  --primary: #7c3aed;
+  --primary-strong: #5b21b6;
+  --primary-tint: #f1ecfd;
+  --green: var(--primary);
+  --green-dark: var(--primary-strong);
+  --teal: #197b85;
+  --blue: #315f92;
+  --warn: #a86d1d;
+  --warn-tint: #fbf2df;
+  --danger: #b1432c;
+  --danger-tint: #fcefe9;
+  --success: #14664f;
+  --success-tint: #e6f3ec;
+  --info-tint: #eaf2f4;
+
+  /* legacy aliases kept pointed at the calm palette so the ~8k lines of
+     token-driven legacy rules recolor instead of breaking */
+  --cs-bg: var(--bg);
+  --cs-panel: var(--surface);
+  --cs-panel-strong: var(--surface-strong);
+  --cs-bg-soft: var(--surface-soft);
+  --cs-ink: var(--ink);
+  --cs-ink-soft: var(--ink-soft);
+  --cs-muted: var(--muted);
+  --cs-faint: var(--faint);
+  --cs-line: var(--line);
+  --cs-line-strong: var(--line-strong);
+  --cs-civic: var(--primary);
+  --cs-civic-strong: var(--primary-strong);
+  --cs-teal: var(--teal);
+  --cs-blue: var(--blue);
+  --cs-gap: var(--danger);
+  --cs-warning: var(--warn);
+  --cs-found: var(--success);
+  --cs-gap-bg: var(--danger-tint);
+  --cs-warning-bg: var(--warn-tint);
+  --cs-found-bg: var(--success-tint);
+  --cs-info-bg: var(--info-tint);
+  --cyan: var(--teal);
+  --orange: var(--warn);
+  --red: var(--danger);
+  --amber: var(--warn);
+  /* recolor the vngle brights onto calm equivalents */
+  --vg-navy: #102a23;
+  --vg-navy-2: #15352c;
+  --vg-panel: var(--surface);
+  --vg-panel-2: var(--surface-soft);
+  --vg-ink: var(--ink);
+  --vg-muted: var(--muted);
+  --vg-line: var(--line);
+  --vg-cyan: var(--teal);
+  --vg-magenta: var(--blue);
+  --vg-yellow: var(--warn);
+  --vg-coral: var(--danger);
+  --vg-green: var(--primary);
+
+  /* ---- spacing scale ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* ---- radius ---- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-pill: 999px;
+
+  /* ---- shadows (soft, low) ---- */
+  --shadow-sm: 0 1px 2px rgba(17, 28, 24, 0.05);
+  --shadow-md: 0 2px 4px rgba(17, 28, 24, 0.04), 0 8px 24px rgba(17, 28, 24, 0.07);
+  --shadow-lg: 0 4px 8px rgba(17, 28, 24, 0.05), 0 24px 48px rgba(17, 28, 24, 0.1);
+  --shadow: var(--shadow-md);
+  --cs-shadow-sm: var(--shadow-sm);
+  --cs-shadow-md: var(--shadow-md);
+  --vg-shadow: var(--shadow-lg);
+
+  /* ---- type ---- */
+  --font-sans: var(--font-inter), Inter, ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.85rem;
+  --text-base: 0.95rem;
+  --text-lg: 1.1rem;
+  --text-xl: 1.4rem;
+  --text-2xl: 1.85rem;
+  --text-3xl: 2.35rem;
+
+  /* ---- motion (one calm language everywhere) ---- */
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur: 160ms;
+  --dur-fast: 120ms;
+  --lift: translateY(-2px);
+  --ring: 0 0 0 4px var(--primary-tint);
+}
+
+/* ---- base ---- */
+body {
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top left, var(--bg-grad-1), transparent 420px),
+    var(--bg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "cv05" 1, "ss01" 1;
+  letter-spacing: -0.006em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: inherit;
+  box-shadow: var(--ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* =====================================================================
+   App shell — clean light editorial topbar
+   ===================================================================== */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  min-height: 64px;
+  padding: var(--space-3) clamp(16px, 3vw, 32px);
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 253, 248, 0.85);
+  box-shadow: none;
+  backdrop-filter: blur(16px);
+}
+
+.brand-mark {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.brand-glyph {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.brand-glyph img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 5px;
+}
+
+.brand-mark strong {
+  color: var(--ink);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.brand-mark small {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.workspace-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface-soft);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  font-weight: 650;
+}
+
+.workspace-switcher svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.main-nav {
+  display: flex;
+  align-items: center;
+  gap: clamp(4px, 1.4vw, 16px);
+  margin-left: auto;
+}
+
+.nav-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: 650;
+  letter-spacing: 0;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.nav-link:hover:not(.active) {
+  color: var(--ink);
+  background: var(--surface-soft);
+}
+
+.nav-link.active {
+  color: var(--primary);
+  background: var(--primary-tint);
+  box-shadow: none;
+}
+
+.nav-link.active::after {
+  content: none;
+}
+
+.nav-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+/* Topbar action controls (Bell/Help) — re-themed for the light shell.
+   The legacy rules in globals.css were authored for a dark navy topbar
+   (white icons, near-invisible hover, dark dropdown). */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.topbar-actions .topbar-action-item { position: relative; }
+.topbar-actions summary {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-soft);
+  list-style: none;
+  cursor: pointer;
+}
+.topbar-actions summary::-webkit-details-marker { display: none; }
+.topbar-actions summary:hover { background: var(--surface-soft); color: var(--ink); }
+.topbar-actions svg { width: 20px; height: 20px; fill: none; stroke: currentColor; }
+.topbar-action-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--radius-pill);
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 750;
+}
+.topbar-action-menu {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  color: var(--ink);
+}
+.topbar-action-menu header strong { color: var(--ink); }
+.topbar-action-menu header span,
+.topbar-action-menu small,
+.topbar-action-menu p { color: var(--muted); }
+.topbar-action-menu a { color: var(--ink-soft); }
+.topbar-action-menu a:hover { background: var(--surface-soft); }
+
+/* =====================================================================
+   Main column + page header
+   ===================================================================== */
+.app-main {
+  width: min(1080px, 100%);
+  margin: 0 auto;
+  padding: clamp(20px, 3vw, 36px) clamp(16px, 3vw, 32px) var(--space-8);
+}
+
+.app-main.wide {
+  width: min(1320px, 100%);
+}
+
+.page-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
+  /* fully neutralize the legacy dark glass-card .page-hero from globals.css
+     (otherwise the dark navy bg + heavy shadow leak through and the new
+     near-black h1 becomes dark-on-dark on /issues/[id] and not-found) */
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  color: var(--ink);
+}
+
+/* bare eyebrow (outside a page-hero) — calm weight, not the legacy 950 */
+.eyebrow {
+  margin: 0;
+  color: var(--primary);
+  font-size: var(--text-xs);
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.page-hero .eyebrow {
+  margin: 0 0 var(--space-2);
+  color: var(--primary);
+  font-size: var(--text-xs);
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.page-hero h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-3xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+.page-hero .page-description {
+  margin: var(--space-3) 0 0;
+  max-width: 60ch;
+  color: var(--muted);
+  font-size: var(--text-base);
+  line-height: 1.5;
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/* =====================================================================
+   Primitives — reusable, used as pages migrate (prefix: ds-)
+   ===================================================================== */
+.ds-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: 650;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+.ds-btn:hover { background: var(--surface-soft); }
+.ds-btn:active { transform: translateY(1px); }
+
+.ds-btn-primary {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+.ds-btn-primary:hover { background: var(--primary-strong); border-color: var(--primary-strong); }
+
+.ds-btn-ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--primary);
+}
+.ds-btn-ghost:hover { background: var(--primary-tint); }
+
+.ds-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.ds-card-pad { padding: var(--space-5); }
+
+.ds-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 3px var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface-soft);
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+  font-weight: 650;
+}
+.ds-chip.is-warn { background: var(--warn-tint); border-color: transparent; color: var(--warn); }
+.ds-chip.is-danger { background: var(--danger-tint); border-color: transparent; color: var(--danger); }
+.ds-chip.is-success { background: var(--success-tint); border-color: transparent; color: var(--success); }
+.ds-chip.is-primary { background: var(--primary-tint); border-color: transparent; color: var(--primary); }
+
+.ds-section-title {
+  margin: var(--space-7) 0 var(--space-4);
+  color: var(--ink);
+  font-size: var(--text-xl);
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+.ds-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ds-stat dt { color: var(--muted); font-size: var(--text-xs); font-weight: 650; }
+.ds-stat dd { margin: 0; color: var(--ink); font-size: var(--text-xl); font-weight: 750; }
+
+.ds-muted { color: var(--muted); }
+.ds-empty {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface-soft);
+  color: var(--muted);
+  text-align: center;
+}
+.ds-empty strong { color: var(--ink); }
+
+/* --- Pulse public feed cards ----------------------------------------------- */
+.pulse-feed-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+.pulse-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.pulse-card-feature { grid-column: 1 / -1; }
+.pulse-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.pulse-card-date { color: var(--muted); font-size: var(--text-xs); }
+.pulse-card-title {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-lg);
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+.pulse-card-feature .pulse-card-title { font-size: var(--text-2xl); }
+.pulse-card-summary { margin: 0; color: var(--ink-soft); line-height: 1.6; }
+.pulse-card-meta {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: auto;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+/* =====================================================================
+   Notices — legal digest (ranked rows, date-forward, urgency rail)
+   ===================================================================== */
+.notice-digest {
+  list-style: none;
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.notice-row {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  gap: var(--space-4);
+  align-items: start;
+  padding: var(--space-4) var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.notice-row:hover { box-shadow: var(--shadow-md); }
+.notice-row--urgent { border-left-color: var(--danger); }
+.notice-row--important { border-left-color: var(--primary); }
+
+.notice-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 2px;
+  line-height: 1.05;
+}
+.notice-date-mon {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.notice-date-day {
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+.notice-date-tbd {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--faint);
+}
+
+.notice-body { min-width: 0; }
+.notice-row-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-2);
+}
+.notice-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 9px;
+  border-radius: var(--radius-pill);
+}
+.notice-tag--urgent { background: var(--danger-tint); color: var(--danger); }
+.notice-tag--important { background: var(--primary-tint); color: var(--primary-strong); }
+.notice-agency {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--muted);
+}
+.notice-headline {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-lg);
+  font-weight: 750;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+.notice-why {
+  margin: var(--space-2) 0 0;
+  max-width: 70ch;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+}
+.notice-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+.notice-dot { color: var(--faint); }
+.notice-open {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--primary);
+  font-size: var(--text-sm);
+  font-weight: 650;
+  text-decoration: none;
+}
+.notice-open:hover { background: var(--primary-tint); border-color: var(--primary); }
+
+@media (max-width: 640px) {
+  .notice-row { grid-template-columns: 46px 1fr; }
+  .notice-open { grid-column: 2; justify-self: start; margin-top: var(--space-3); }
+}
+
+.home-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 var(--space-6);
+}
+.home-stat {
+  flex: 1;
+  min-width: 150px;
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.home-stat dt { color: var(--muted); font-size: var(--text-xs); font-weight: 650; }
+.home-stat dd { margin: 4px 0 0; color: var(--ink); font-size: var(--text-2xl); font-weight: 750; letter-spacing: -0.01em; }
+.home-stat dd.home-stat-sm { font-size: var(--text-base); font-weight: 650; }
+
+.ds-arrow {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* =====================================================================
+   Home (Signal Room) — calm two-column overview
+   ===================================================================== */
+.home-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+.home-head h1 {
+  margin: 0;
+  font-size: var(--text-3xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.home-sub {
+  margin: var(--space-3) 0 0;
+  max-width: 64ch;
+  color: var(--muted);
+  font-size: var(--text-base);
+  line-height: 1.55;
+}
+.home-head-cta { white-space: nowrap; }
+
+.home-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--space-6);
+  align-items: start;
+}
+@media (max-width: 980px) {
+  .home-grid { grid-template-columns: 1fr; }
+}
+
+.home-main { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+
+.home-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.home-section-head .ds-section-title { margin: var(--space-6) 0 var(--space-3); }
+
+.home-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  position: sticky;
+  top: 80px;
+}
+@media (max-width: 980px) {
+  .home-side { position: static; }
+}
+.home-side-card { display: flex; flex-direction: column; gap: var(--space-3); }
+.home-side-head { display: flex; align-items: center; justify-content: space-between; }
+.home-side-head h2 { margin: 0; font-size: var(--text-lg); font-weight: 740; }
+.home-side-head a {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+}
+.home-side-head a:hover { background: var(--surface-soft); color: var(--ink); }
+.home-side-big {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1;
+}
+.home-side-big span { font-size: var(--text-xs); font-weight: 600; color: var(--muted); }
+.home-side-cta { justify-content: center; }
+
+/* =====================================================================
+   Responsive
+   ===================================================================== */
+@media (max-width: 860px) {
+  .topbar { flex-wrap: wrap; gap: var(--space-3); }
+  .main-nav { width: 100%; order: 3; overflow-x: auto; justify-content: flex-start; }
+  .page-hero { flex-direction: column; align-items: flex-start; }
+  .page-hero h1 { font-size: var(--text-2xl); }
+}
+
+
+/* ===================================================================
+   Migrated page styles (issues / detail / review / map / sources / status)
+   ===================================================================== */
+
+/* --- pgissues --- */
+/* =====================================================================
+   Issues — Issue desk (calm editorial, prefix: pgissues-)
+   ===================================================================== */
+.pgissues-page { display: flex; flex-direction: column; gap: var(--space-5); }
+
+.pgissues-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+}
+.pgissues-head h1 {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-3xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.pgissues-sub {
+  margin: var(--space-3) 0 0;
+  max-width: 64ch;
+  color: var(--muted);
+  font-size: var(--text-base);
+  line-height: 1.55;
+}
+.pgissues-live svg {
+  width: 9px;
+  height: 9px;
+  fill: var(--success);
+}
+
+/* ---- filter bar ---- */
+.pgissues-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.pgissues-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 160px;
+  flex: 1 1 160px;
+}
+.pgissues-field span {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 650;
+}
+.pgissues-field select {
+  appearance: none;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  font-family: inherit;
+}
+.pgissues-field select:hover { background: var(--surface); }
+.pgissues-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.pgissues-list-head .ds-section-title { margin: 0; font-size: var(--text-lg); }
+
+.pgissues-empty { text-align: center; }
+
+/* --- pgissue --- */
+/* =====================================================================
+   Issue detail (/issues/[id]) — calm editorial (prefix: pgissue-)
+   ===================================================================== */
+.pgissue-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--space-6);
+  align-items: start;
+}
+@media (max-width: 980px) {
+  .pgissue-grid { grid-template-columns: 1fr; }
+}
+
+.pgissue-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+/* ---- summary card ---- */
+.pgissue-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.pgissue-card-title {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-lg);
+  font-weight: 740;
+  letter-spacing: -0.01em;
+}
+.pgissue-summary-text {
+  margin: 0;
+  max-width: 68ch;
+  color: var(--ink-soft);
+  font-size: var(--text-base);
+  line-height: 1.6;
+}
+.pgissue-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: var(--space-4) 0 0;
+  border-top: 1px solid var(--line);
+}
+@media (max-width: 560px) {
+  .pgissue-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.pgissue-stat-sm { font-size: var(--text-base) !important; }
+
+/* ---- evidence section ---- */
+.pgissue-evidence-heading { margin-top: var(--space-2); }
+.pgissue-evidence-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.pgissue-evidence-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.pgissue-evidence-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.pgissue-evidence-headmain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.pgissue-evidence-title {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+.pgissue-evidence-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.pgissue-evidence-date {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pgissue-evidence-excerpt {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-base);
+  line-height: 1.6;
+}
+.pgissue-source-btn { align-self: flex-start; }
+
+/* ---- community replies ---- */
+.pgissue-comments {
+  margin-top: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+}
+.pgissue-comments-title {
+  margin: 0 0 var(--space-3);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.pgissue-comment-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.pgissue-comment {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+}
+.pgissue-comment-text {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+}
+.pgissue-comment-date {
+  color: var(--faint);
+  font-size: var(--text-xs);
+}
+
+/* ---- referenced links ---- */
+.pgissue-reflinks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.pgissue-reflinks-title {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+.pgissue-reflinks-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pgissue-inline-link {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.pgissue-inline-link:hover { color: var(--primary-strong); }
+
+/* ---- scoring sidebar ---- */
+.pgissue-side {
+  position: sticky;
+  top: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+@media (max-width: 980px) {
+  .pgissue-side { position: static; }
+}
+.pgissue-score-card { padding: var(--space-5); }
+
+/* ---- stale / rebuilt state ---- */
+.pgissue-stale { justify-items: center; gap: var(--space-3); }
+
+/* --- pgissuenf --- */
+/* =====================================================================
+   Issue not-found — calm empty state (prefix: pgissuenf-)
+   ===================================================================== */
+.pgissuenf-empty {
+  max-width: 52ch;
+  margin: var(--space-6) auto 0;
+  padding: var(--space-7) var(--space-6);
+}
+.pgissuenf-empty span {
+  line-height: 1.55;
+}
+.pgissuenf-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+/* --- pgreview --- */
+/* =====================================================================
+   Review queue (/review) — calm editorial
+   ===================================================================== */
+.pgreview-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.pgreview-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+.pgreview-head h1 {
+  margin: var(--space-1) 0 0;
+  color: var(--ink);
+  font-size: var(--text-3xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.pgreview-sub {
+  margin: var(--space-3) 0 0;
+  max-width: 60ch;
+  color: var(--muted);
+  font-size: var(--text-base);
+  line-height: 1.55;
+}
+.pgreview-head-count {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* compact summary stat row */
+.pgreview-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+@media (max-width: 560px) {
+  .pgreview-summary { grid-template-columns: repeat(3, 1fr); padding: var(--space-4); gap: var(--space-3); }
+}
+
+/* --- pgmap --- */
+/* =====================================================================
+   Map page — calm-editorial recolor of the region-atlas chrome
+   ---------------------------------------------------------------------
+   The RegionAtlasMap component (and its civic-signal-regions Leaflet pane)
+   is intentionally NOT rewritten. Instead, the page wraps it in
+   .pgmap-root and recolors the legacy `apple-*` chrome / controls /
+   legend onto the warm-paper, civic-green calm system (strangler recolor).
+   Only colors, borders, shadows, and radii are touched — every position,
+   z-index, grid, and size from globals.css is preserved so the floating
+   panels stay laid out exactly as before. The map canvas, tiles, and
+   region fills are left untouched.
+
+   .pgmap-root uses `display: contents` so the wrapper adds no box of its
+   own: the component's single <main className="apple-map-ui"> stays the
+   sole layout container (no second <main>, no competing positioned box).
+   ===================================================================== */
+
+.pgmap-root {
+  display: contents;
+}
+
+/* ---- shared glass panels → calm paper ---- */
+.pgmap-root .apple-glass {
+  border: 1px solid var(--line);
+  background: rgba(255, 253, 248, 0.92);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(18px) saturate(1.05);
+  -webkit-backdrop-filter: blur(18px) saturate(1.05);
+}
+
+/* ---- search topbar ---- */
+.pgmap-root .apple-map-topbar {
+  border-radius: var(--radius-md);
+}
+.pgmap-root .apple-map-brand {
+  border-right: 1px solid var(--line);
+}
+.pgmap-root .apple-map-brand strong {
+  color: var(--ink);
+}
+.pgmap-root .apple-map-brand span {
+  color: var(--muted);
+}
+.pgmap-root .apple-search-wrap svg {
+  color: var(--muted);
+}
+.pgmap-root .apple-search-input {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  color: var(--ink);
+}
+.pgmap-root .apple-search-input::placeholder {
+  color: var(--faint);
+}
+.pgmap-root .apple-search-input:focus-visible {
+  border-color: var(--primary);
+  background: var(--surface);
+}
+
+/* ---- search results dropdown ---- */
+.pgmap-root .apple-search-results {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+.pgmap-root .apple-search-results button {
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+}
+.pgmap-root .apple-search-results button:hover,
+.pgmap-root .apple-search-results button:focus-visible {
+  background: var(--primary-tint);
+}
+.pgmap-root .apple-search-results button small {
+  color: var(--muted);
+}
+.pgmap-root .apple-search-results button[data-kind="issue_type"] small {
+  color: var(--primary);
+}
+
+/* ---- map tools (nav menu + zoom group) ---- */
+.pgmap-root .apple-tool-group,
+.pgmap-root .apple-nav-menu {
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}
+.pgmap-root .apple-tool-group button,
+.pgmap-root .apple-nav-menu summary {
+  background: rgba(255, 253, 248, 0.94);
+  color: var(--ink-soft);
+}
+.pgmap-root .apple-tool-group button + button {
+  border-top: 1px solid var(--line);
+}
+.pgmap-root .apple-tool-group button:hover,
+.pgmap-root .apple-nav-menu summary:hover {
+  color: var(--primary);
+  background: var(--surface);
+}
+.pgmap-root .apple-nav-menu nav {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+.pgmap-root .apple-nav-menu a {
+  color: var(--ink-soft);
+}
+.pgmap-root .apple-nav-menu a + a {
+  border-top: 1px solid var(--line);
+}
+.pgmap-root .apple-nav-menu a:hover {
+  color: var(--primary);
+  background: var(--primary-tint);
+}
+
+/* ---- detail sheet (selected region) ---- */
+.pgmap-root .apple-detail-sheet {
+  border-radius: var(--radius-lg);
+  scrollbar-color: var(--line-strong) var(--surface-soft);
+}
+.pgmap-root .apple-detail-sheet::-webkit-scrollbar-thumb {
+  border: 3px solid var(--surface);
+  background: var(--line-strong);
+  background-clip: content-box;
+}
+.pgmap-root .apple-detail-sheet::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+  background-clip: content-box;
+}
+.pgmap-root .apple-detail-sheet::-webkit-scrollbar-track {
+  background: var(--surface-soft);
+}
+.pgmap-root .apple-detail-kicker {
+  color: var(--muted);
+}
+.pgmap-root .apple-detail-dot {
+  background: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-tint);
+}
+.pgmap-root .apple-back-region {
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+  background: var(--surface-soft);
+}
+.pgmap-root .apple-back-region:hover {
+  background: var(--surface);
+  border-color: var(--line-strong);
+}
+.pgmap-root .apple-detail-header h1 {
+  color: var(--ink);
+}
+.pgmap-root .apple-detail-header p {
+  color: var(--muted);
+}
+.pgmap-root .apple-focus-button {
+  color: #fff;
+  background: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+.pgmap-root .apple-focus-button:hover {
+  background: var(--primary-strong);
+}
+
+/* ---- stat tiles ---- */
+.pgmap-root .apple-stats div {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+}
+.pgmap-root .apple-stats dt {
+  color: var(--muted);
+}
+.pgmap-root .apple-stats dd {
+  color: var(--ink);
+}
+
+/* ---- filter + coverage controls ---- */
+.pgmap-root .apple-filter-panel span,
+.pgmap-root .apple-coverage-card label span {
+  color: var(--muted);
+}
+.pgmap-root .apple-filter-panel select,
+.pgmap-root .apple-coverage-card select {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  color: var(--ink);
+}
+.pgmap-root .apple-filter-panel select:focus-visible,
+.pgmap-root .apple-coverage-card select:focus-visible {
+  border-color: var(--primary);
+}
+.pgmap-root .apple-filter-panel button,
+.pgmap-root .apple-coverage-card > button {
+  border-radius: var(--radius-sm);
+  color: #fff;
+  background: var(--primary);
+}
+.pgmap-root .apple-filter-panel button:hover,
+.pgmap-root .apple-coverage-card > button:hover {
+  background: var(--primary-strong);
+}
+.pgmap-root .apple-coverage-card > button:disabled {
+  background: var(--line-strong);
+  color: var(--surface);
+}
+
+/* ---- coverage scan progress (restrained warn/danger) ---- */
+.pgmap-root .apple-scan-progress {
+  border: 1px solid var(--primary-tint);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+}
+.pgmap-root .apple-scan-progress.blocked {
+  border-color: var(--danger-tint);
+  background: var(--danger-tint);
+}
+.pgmap-root .apple-scan-progress.complete {
+  border-color: var(--success-tint);
+  background: var(--success-tint);
+}
+.pgmap-root .apple-scan-progress strong {
+  color: var(--ink);
+}
+.pgmap-root .apple-scan-progress > div span {
+  color: var(--muted);
+}
+.pgmap-root .apple-scan-progress li {
+  color: var(--muted);
+}
+.pgmap-root .apple-scan-progress li > span {
+  background: var(--line-strong);
+}
+.pgmap-root .apple-scan-progress li.complete {
+  color: var(--success);
+}
+.pgmap-root .apple-scan-progress li.complete > span {
+  background: var(--success);
+}
+.pgmap-root .apple-scan-progress li.active {
+  color: var(--primary);
+}
+.pgmap-root .apple-scan-progress li.active > span {
+  background: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-tint);
+}
+.pgmap-root .apple-scan-progress li.blocked {
+  color: var(--danger);
+}
+.pgmap-root .apple-scan-progress li.blocked > span {
+  background: var(--danger);
+}
+
+/* ---- region detail lists (child areas / community / broader coverage) ---- */
+.pgmap-root .apple-region-details {
+  border-top: 1px solid var(--line);
+}
+.pgmap-root .apple-region-details summary {
+  color: var(--ink-soft);
+}
+.pgmap-root .apple-region-details li {
+  color: var(--ink-soft);
+}
+.pgmap-root .apple-region-details li strong {
+  color: var(--ink);
+}
+.pgmap-root .apple-child-area-go {
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  background: var(--primary-tint);
+}
+.pgmap-root .apple-child-area-go:hover {
+  border-color: var(--primary-strong);
+  background: var(--primary-tint);
+  color: var(--primary-strong);
+}
+.pgmap-root .apple-child-area-toggle {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--ink-soft);
+  background: var(--surface-soft);
+}
+.pgmap-root .apple-child-area-toggle:hover {
+  background: var(--surface);
+  border-color: var(--line-strong);
+}
+
+/* ---- coverage card text + news list ---- */
+.pgmap-root .apple-coverage-card {
+  border-top: 1px solid var(--line);
+}
+.pgmap-root .apple-coverage-card strong {
+  color: var(--ink);
+}
+.pgmap-root .apple-coverage-card > div span,
+.pgmap-root .apple-status-text {
+  color: var(--muted);
+}
+.pgmap-root .apple-news-list li {
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+}
+.pgmap-root .apple-news-list a,
+.pgmap-root .apple-news-list span {
+  color: var(--ink-soft);
+}
+.pgmap-root .apple-news-list a:hover {
+  color: var(--primary);
+}
+.pgmap-root .apple-news-list small {
+  color: var(--muted);
+}
+
+/* ---- data freshness legend / meta ---- */
+.pgmap-root .apple-map-meta {
+  border-radius: var(--radius-sm);
+}
+.pgmap-root .apple-map-meta span {
+  background: var(--surface-soft);
+  color: var(--muted);
+}
+
+/* ---- empty state + load error ---- */
+.pgmap-root .empty-state {
+  color: var(--muted);
+}
+.pgmap-root .apple-map-load-error {
+  border-radius: var(--radius-md);
+}
+.pgmap-root .apple-map-load-error strong {
+  color: var(--danger);
+}
+.pgmap-root .apple-map-load-error span {
+  color: var(--muted);
+}
+
+/* --- pgsources --- */
+/* =====================================================================
+   Sources / source runs — calm editorial (prefix: pgsources-)
+   ===================================================================== */
+.pgsources-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+.pgsources-head h1 {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-3xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.pgsources-sub {
+  margin: var(--space-3) 0 0;
+  max-width: 64ch;
+  color: var(--muted);
+  font-size: var(--text-base);
+  line-height: 1.55;
+}
+.pgsources-health {
+  white-space: nowrap;
+  align-self: center;
+}
+
+.pgsources-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  margin: 0 0 var(--space-6);
+  padding: var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.pgsources-summary-time {
+  font-size: var(--text-base);
+  font-weight: 700;
+}
+@media (max-width: 720px) {
+  .pgsources-summary { grid-template-columns: repeat(2, 1fr); }
+}
+
+.pgsources-run-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.pgsources-run {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+.pgsources-run-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.pgsources-run-title { min-width: 0; }
+.pgsources-run-title h3 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 730;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.pgsources-run-time {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+.pgsources-run-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin: 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+}
+.pgsources-run-stat-sm {
+  font-size: var(--text-base) !important;
+  font-weight: 700 !important;
+}
+.pgsources-run-error {
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--danger-tint);
+  color: var(--danger);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+@media (max-width: 560px) {
+  .pgsources-run-stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* --- pgops (operations dashboard) --- */
+.pgops-head { margin-bottom: var(--space-5); }
+.pgops-head h1 { margin: 0; font-size: var(--text-3xl); font-weight: 800; letter-spacing: -0.02em; }
+.pgops-sub { margin: var(--space-2) 0 0; max-width: 64ch; color: var(--muted); }
+.pgops-funnel { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.pgops-funnel-stage { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
+.pgops-stage-name { min-width: 110px; text-transform: capitalize; color: var(--ink); }
+.pgops-decisions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.pgops-backlog { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--space-3); }
+@media (max-width: 720px) { .pgops-backlog { grid-template-columns: repeat(3, 1fr); } }
+.pgops-backlog-stat {
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.pgops-backlog-stat dt { text-transform: capitalize; }
+.pgops-gates { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-3); }
+.pgops-gate { display: flex; flex-direction: column; gap: 2px; }
+.pgops-gate-value { font-size: var(--text-xl); font-weight: 750; color: var(--primary); }
+.pgops-runs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.pgops-run {
+  display: grid;
+  grid-template-columns: 100px 1fr auto auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: var(--text-sm);
+}
+.pgops-run.has-error { border-color: var(--danger); background: var(--danger-tint); }
+.pgops-run-stage { font-weight: 650; text-transform: capitalize; }
+.pgops-run-id { color: var(--faint); font-family: ui-monospace, monospace; font-size: var(--text-xs); }
+.pgops-run-io, .pgops-run-time { color: var(--muted); font-size: var(--text-xs); white-space: nowrap; }
+.pgops-run-err { grid-column: 1 / -1; color: var(--danger); font-size: var(--text-xs); }
+@media (max-width: 720px) {
+  .pgops-run { grid-template-columns: 1fr auto; }
+  .pgops-run-id, .pgops-run-io { display: none; }
+}
+
+/* Pulse review queue (cards awaiting approval on /ops) */
+.pgops-review-hint { margin: calc(-1 * var(--space-2)) 0 var(--space-4); max-width: 64ch; }
+.pgreview-pulse-count { margin: 0 0 var(--space-3); }
+.pgreview-pulse-error { border-color: var(--danger); margin-bottom: var(--space-4); }
+.pgreview-pulse-list {
+  list-style: none; margin: 0 0 var(--space-6); padding: 0;
+  display: grid; gap: var(--space-3);
+}
+.pgreview-pulse-card { display: grid; gap: var(--space-3); }
+.pgreview-pulse-head {
+  display: flex; flex-wrap: wrap; gap: var(--space-2);
+  align-items: baseline; justify-content: space-between;
+}
+.pgreview-pulse-title { margin: 0; font-size: var(--text-lg); }
+.pgreview-pulse-meta { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.pgreview-pulse-summary { margin: 0; color: var(--ink-soft); }
+.pgreview-pulse-evidence {
+  list-style: none; margin: 0; padding: var(--space-3);
+  display: grid; gap: var(--space-2);
+  background: var(--surface-soft); border-radius: var(--radius-sm);
+  font-size: var(--text-sm); color: var(--ink-soft);
+}
+.pgreview-pulse-evidence li { padding-left: var(--space-3); border-left: 2px solid var(--line); }
+.pgreview-pulse-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }

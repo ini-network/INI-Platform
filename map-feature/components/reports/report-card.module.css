@@ -1,0 +1,318 @@
+/* One community story on /reports. Card recipe mirrors .cs-newscard (border /
+   radius-lg / surface / shadow-sm) but stays static — the card itself is not a
+   link, so no hover lift. Everything token-driven. */
+
+.card {
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.1));
+  border-radius: var(--radius-lg, 18px);
+  background: var(--surface, #fffdf8);
+  box-shadow: var(--shadow-sm);
+  padding: 18px 20px;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 8px;
+}
+.boro {
+  background: rgba(124, 58, 237, 0.12);
+  color: var(--primary, #7c3aed);
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.area {
+  background: var(--surface-soft, #f1efe7);
+  color: var(--muted, #6a756f);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.cat {
+  color: var(--primary, #7c3aed);
+  font-weight: 600;
+}
+.date {
+  color: var(--muted, #6a756f);
+  margin-left: auto;
+  letter-spacing: normal;
+  text-transform: none;
+  font-size: 12px;
+}
+
+.title {
+  margin: 0 0 6px;
+  font-size: var(--text-lg, 18px);
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.summary {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-soft, #33423b);
+}
+
+.posts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+/* A resident post: their words as a soft quoted block, platform link below. */
+.post {
+  border-top: 1px solid var(--line, rgba(20, 30, 25, 0.08));
+  padding-top: 12px;
+}
+.postText {
+  margin: 0;
+  padding: 10px 14px;
+  background: var(--surface-soft, #f1efe7);
+  border-left: 3px solid var(--primary, #7c3aed);
+  border-radius: 0 var(--radius-md, 12px) var(--radius-md, 12px) 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink, #111c18);
+}
+.postMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted, #6a756f);
+}
+.postLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted, #6a756f);
+  text-decoration: none;
+  font-weight: 600;
+}
+.postIcon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+.postDate::before {
+  content: "·";
+  margin-right: 10px;
+}
+
+/* Comments under a post: quiet list, top ones visible, expand for the rest. */
+.comments {
+  margin-top: 10px;
+}
+.commentsLabel {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted, #6a756f);
+}
+.commentList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.comment {
+  padding: 8px 12px;
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.08));
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface, #fffdf8);
+}
+.commentText {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-soft, #33423b);
+}
+.commentMeta {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--muted, #6a756f);
+}
+.commentScore {
+  color: var(--success, #14664f);
+  font-weight: 600;
+}
+.commentsToggle {
+  margin-top: 8px;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary, #7c3aed);
+  cursor: pointer;
+}
+.commentsToggle:hover {
+  text-decoration: underline;
+}
+
+/* The quote doubles as an affordance to open the in-site reader. Accessible path
+   is the .readMore button below it, so the quote itself stays a plain hover tint. */
+.clickableQuote {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.clickableQuote:hover {
+  background: var(--surface-hover, #ebe8de);
+}
+
+/* Primary-purple text button, sibling of .commentsToggle. Opens the reader. */
+.readMore {
+  margin-top: 8px;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary, #7c3aed);
+  cursor: pointer;
+}
+.readMore:hover {
+  text-decoration: underline;
+}
+
+/* In-site post reader (PostModal). New module classes only — the global
+   .cs-modal classes ship opacity:0 and need the news reader's animation. */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(16, 22, 18, 0.5);
+}
+.panel {
+  position: relative;
+  width: min(680px, 92vw);
+  max-width: 680px;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--surface, #fffdf8);
+  border-radius: var(--radius-lg, 18px);
+  box-shadow: 0 24px 60px rgba(16, 22, 18, 0.35);
+  padding: 28px 30px;
+}
+.panelClose {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  border: none;
+  background: none;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--muted, #6a756f);
+  cursor: pointer;
+}
+.panelClose:hover {
+  color: var(--ink, #111c18);
+}
+.panelHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-right: 32px;
+  font-size: 12px;
+  color: var(--muted, #6a756f);
+}
+.panelSource {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted, #6a756f);
+  font-weight: 600;
+}
+.panelTitle {
+  margin: 8px 0 14px;
+  font-size: var(--text-lg, 18px);
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.panelProse {
+  margin: 0 0 18px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink, #111c18);
+  white-space: pre-wrap;
+}
+.panelFoot {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line, rgba(20, 30, 25, 0.08));
+}
+.panelSourceLink {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted, #6a756f);
+  text-decoration: none;
+}
+.panelSourceLink:hover {
+  color: var(--primary, #7c3aed);
+  text-decoration: underline;
+}
+
+/* M3 §4 phone card polish: story cards go full-width on phone, so tighten inner
+   padding and phone-size the quote block + comment cards (44px reading actions
+   stay in the coarse block below). Width-gated so desktop/tablet are untouched. */
+@media (max-width: 640px) {
+  .card { padding: 16px; }
+  .title { font-size: 17px; }
+  .summary { font-size: 14px; line-height: 1.55; }
+  .postText { padding: 10px 12px; font-size: 14px; }
+  .comment { padding: 8px 10px; }
+  .commentText { font-size: 14px; }
+}
+
+/* B3 touch fixes (capability-gated; fine-pointer desktop unchanged). */
+@media (pointer: coarse) {
+  /* Item 2: the .panel is the scroller (max-height 85vh; overflow-y auto), so the
+     absolute close scrolls off on long posts. Pin it to the top of the scrollport
+     with sticky (block + margin-left:auto keeps it top-right in normal flow) and
+     grow it to 44x44. data-tour="modal-close" hook unchanged. */
+  .panelClose {
+    position: sticky;
+    top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    margin-right: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    background: var(--surface, #fffdf8);
+    z-index: 5;
+  }
+  /* Item 4: >=44px hit area on the primary reading actions (were ~16-18px tall). */
+  .readMore,
+  .commentsToggle {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}

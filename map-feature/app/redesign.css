@@ -1,0 +1,995 @@
+/* Redesign shell + borough overview + deep-dive. All classes are namespaced
+   with a cs- prefix so this never collides with the legacy map styles.
+   Uses the design-system tokens (with fallbacks) so it inherits the brand. */
+
+/* ---- BREAKPOINT TOKENS (mirror of lib/breakpoints.ts) --------------------
+   640 and 1024 are THE ONLY width lines allowed in the redesign surface
+   (redesign.css + the map/report/tour CSS modules). Every @media here must use
+   one; a raw magic-number width is a defect. The two axes are orthogonal:
+   WIDTH decides layout, POINTER decides interaction — most touch rules key off
+   `(pointer: coarse)`, not a width.
+     phone           : max-width 640px
+     tablet-portrait : 641-1024px AND (pointer: coarse)
+     wide / desktop  : > 1024px, or any (pointer: fine)
+   Keep these in sync with apps/web/lib/breakpoints.ts. */
+
+.cs-shell {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  background: var(--bg, #f6f2ea);
+  color: var(--ink, #111c18);
+  font-family: var(--font-sans, Inter, system-ui, sans-serif);
+}
+
+/* ---------- left icon rail ---------- */
+.cs-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 76px;
+  flex: 0 0 76px;
+  padding: 14px 0;
+  background: var(--surface, #fffdf8);
+  border-right: 1px solid var(--line, rgba(20, 30, 25, 0.1));
+}
+.cs-rail-brand {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--primary, #7c3aed);
+  overflow: hidden;
+}
+.cs-rail-brand img { display: block; }
+.cs-rail-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  width: 100%;
+}
+.cs-rail-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 0;
+  margin: 0 10px;
+  border-radius: 12px;
+  color: var(--muted, #6a756f);
+  text-decoration: none;
+  transition: background 120ms ease, color 120ms ease;
+}
+.cs-rail-item small { font-size: 10px; font-weight: 650; letter-spacing: 0.01em; }
+.cs-rail-item:hover { background: var(--surface-soft, #fbf8f1); color: var(--ink, #111c18); }
+.cs-rail-item.is-active { background: color-mix(in srgb, var(--primary, #7c3aed) 14%, transparent); color: var(--primary, #7c3aed); }
+/* Unread count on the News icon. */
+.cs-rail-badge {
+  position: absolute;
+  top: 4px;
+  right: 16px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 2px var(--surface, #fffdf8);
+}
+
+/* ---------- phone bottom tab bar ---------- */
+/* Hidden by default (desktop/tablet keep the rail); the <=640 block below hides
+   the rail and reveals this fixed bar. Base styles live inside that media block. */
+.cs-tabbar { display: none; }
+
+/* ---------- main column ---------- */
+.cs-shell-main { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.cs-shell-content { position: relative; flex: 1; min-height: 0; overflow-y: auto; }
+
+/* ---------- top bar ---------- */
+.cs-topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 60px;
+  flex: 0 0 60px;
+  padding: 0 18px;
+  background: var(--surface, #fffdf8);
+  border-bottom: 1px solid var(--line, rgba(20, 30, 25, 0.1));
+}
+.cs-brand-lockup { display: flex; align-items: baseline; gap: 6px; }
+.cs-brand-lockup strong { color: var(--primary, #7c3aed); font-size: 16px; font-weight: 800; }
+.cs-brand-lockup span { color: var(--muted, #6a756f); font-size: 12px; font-weight: 600; }
+.cs-topbar-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.cs-tb-btn {
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.14));
+  border-radius: 999px;
+  background: var(--surface, #fff);
+  color: var(--ink, #111c18);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cs-tb-btn:hover:not(:disabled) { border-color: var(--primary, #7c3aed); color: var(--primary, #7c3aed); }
+.cs-tb-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* ---------- borough overview view ---------- */
+.cs-overview { position: absolute; inset: 0; }
+.cs-map-canvas { position: absolute; inset: 0; }
+.cs-map-canvas .mapboxgl-canvas { outline: none; }
+.cs-map-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 6px;
+  text-align: center;
+  padding: 24px;
+  background: var(--surface-soft, #fbf8f1);
+  color: var(--muted, #6a756f);
+}
+.cs-map-fallback strong { color: var(--ink, #111c18); font-size: 15px; }
+
+/* ---------- insights panel ---------- */
+.cs-insights {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  width: 372px;
+  max-width: calc(100% - 32px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: var(--radius-lg, 18px);
+  background: rgba(255, 253, 248, 0.82);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow-lg);
+}
+.cs-insights-head { display: flex; flex-direction: column; gap: 4px; }
+.cs-insights-title { display: flex; align-items: center; gap: 8px; }
+.cs-insights-title-text {
+  margin: 0;
+  color: var(--ink, #111c18);
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+/* Subtle dim on the panel content while a borough's data is loading. */
+.cs-insights.is-loading .cs-total-card,
+.cs-insights.is-loading .cs-substats,
+.cs-insights.is-loading .cs-news {
+  opacity: 0.55;
+  transition: opacity 120ms ease;
+}
+
+/* Pending pill shown while a clicked borough's data loads in the background. */
+.cs-map-loading {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--primary, #7c3aed);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: var(--shadow-md, 0 10px 30px rgba(20, 30, 25, 0.18));
+  pointer-events: none;
+}
+
+.cs-badge {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary, #7c3aed) 14%, transparent);
+  color: var(--primary, #7c3aed);
+  font-size: 11px;
+  font-weight: 700;
+}
+.cs-insights-sub { color: var(--muted, #6a756f); font-size: 12px; margin: 0; }
+
+.cs-total-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 0;
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface-soft, #fbf8f1);
+}
+.cs-total-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cs-total-value { font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; color: var(--ink, #111c18); font-variant-numeric: tabular-nums; }
+.cs-window-select {
+  height: 30px;
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.14));
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  color: var(--ink-soft, #33423b);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 6px;
+  cursor: pointer;
+}
+.cs-total-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cs-total-label { color: var(--muted, #6a756f); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+.cs-delta { font-size: 12px; font-weight: 700; }
+.cs-delta.is-up { color: var(--success); }
+.cs-delta.is-down { color: #b1432c; }
+.cs-delta.is-flat { color: var(--muted, #6a756f); }
+
+.cs-substats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.cs-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--surface-soft, #fbf8f1);
+}
+.cs-stat-value { font-size: 18px; font-weight: 800; color: var(--ink, #111c18); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.cs-stat-label { font-size: 10px; font-weight: 650; color: var(--muted, #6a756f); line-height: 1.15; }
+
+.cs-issues-section { display: flex; flex-direction: column; gap: 8px; }
+.cs-section-label { font-size: 13px; font-weight: 800; margin: 0; color: var(--ink, #111c18); }
+
+.cs-news { display: flex; flex-direction: column; gap: 8px; }
+.cs-news-head { display: flex; align-items: center; justify-content: space-between; }
+.cs-news-head h2 { font-size: 13px; font-weight: 800; margin: 0; color: var(--ink, #111c18); }
+.cs-news-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.cs-news-item { display: flex; gap: 10px; align-items: flex-start; }
+.cs-news-thumb {
+  flex: 0 0 46px;
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary, #7c3aed) 24%, #fff), var(--surface-soft, #eee));
+  position: relative;
+  overflow: hidden;
+}
+.cs-news-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cs-news-body a, .cs-news-body span { color: var(--ink, #1b211f); font-size: 12.5px; font-weight: 650; line-height: 1.3; text-decoration: none; }
+.cs-news-body a:hover { color: var(--primary, #7c3aed); text-decoration: underline; }
+.cs-news-body small { color: var(--muted, #8a948f); font-size: 11px; }
+
+.cs-empty { color: var(--muted, #6a756f); font-size: 13px; padding: 8px 0; }
+
+/* CTA from the overview panel into the neighborhood deep-dive (View 3). */
+.cs-explore-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 11px 14px;
+  border-radius: var(--radius-md, 12px);
+  background: color-mix(in srgb, var(--primary, #7c3aed) 12%, transparent);
+  color: var(--primary, #7c3aed);
+  font-size: 13px;
+  font-weight: 750;
+  text-decoration: none;
+  transition: background 120ms ease;
+}
+.cs-explore-link:hover { background: color-mix(in srgb, var(--primary, #7c3aed) 20%, transparent); }
+
+/* ---------- deep-dive (View 3) ---------- */
+/* Panel itself stays fixed-height; the ranked list is the only scroll area.
+   Tighter gap than the overview panel so the list keeps most of the height. */
+.cs-dd-panel { overflow: hidden; gap: 10px; }
+.cs-dd-panel .cs-dd-list { flex: 1 1 auto; min-height: 120px; }
+
+.cs-map-back {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 3;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--surface, #fffdf8);
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.12));
+  box-shadow: var(--shadow-sm, 0 6px 18px rgba(20, 30, 25, 0.1));
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--ink, #111c18);
+  text-decoration: none;
+}
+.cs-map-back:hover { border-color: var(--primary, #7c3aed); color: var(--primary, #7c3aed); }
+/* Signals-lens "← All boroughs" variant: sits BELOW the mode toggle (which owns
+   the 16,16 corner at a higher z-index with an opaque background — anything
+   placed under it is invisible). Rendered as a <button>, unlike the deep-dive's
+   <Link> above, so it also carries the button resets. Must stay AFTER the base
+   rule — equal specificity, so source order decides the top/left override. */
+.cs-map-back--signals {
+  top: 62px;
+  left: 16px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.cs-dd-filters { display: flex; flex-direction: column; gap: 10px; }
+.cs-issue-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.cs-issue-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.14));
+  background: var(--surface, #fff);
+  color: var(--ink-soft, #33423b);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.cs-issue-chip:hover { border-color: var(--primary, #7c3aed); }
+.cs-issue-chip.is-active {
+  background: var(--primary, #7c3aed);
+  border-color: var(--primary, #7c3aed);
+  color: #fff;
+}
+.cs-issue-comm {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--primary, #7c3aed);
+}
+.cs-issue-chip.is-active .cs-issue-comm { background: #fff; }
+.cs-dd-time { max-width: 220px; }
+.cs-dd-field { display: flex; flex-direction: column; gap: 4px; }
+.cs-dd-field span { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted, #6a756f); }
+.cs-dd-field select {
+  height: 34px;
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.14));
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  color: var(--ink, #111c18);
+  font-size: 12.5px;
+  padding: 0 8px;
+  cursor: pointer;
+}
+.cs-dd-search {
+  height: 36px;
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.14));
+  border-radius: 999px;
+  background: var(--surface-soft, #fbf8f1);
+  color: var(--ink, #111c18);
+  font-size: 13px;
+  padding: 0 14px;
+  outline: none;
+}
+.cs-dd-search:focus { border-color: var(--primary, #7c3aed); }
+
+.cs-legend { display: flex; flex-wrap: wrap; gap: 6px; }
+.cs-legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.14));
+  background: var(--surface, #fff);
+  color: var(--ink, #111c18);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 120ms ease, border-color 120ms ease;
+}
+.cs-legend-chip.is-off { opacity: 0.4; }
+.cs-legend-chip:hover { border-color: var(--primary, #7c3aed); }
+.cs-legend-dot { width: 10px; height: 10px; border-radius: 999px; }
+.cs-legend-count { color: var(--muted, #6a756f); font-weight: 650; }
+
+.cs-dd-count { font-size: 12px; color: var(--muted, #6a756f); }
+.cs-dd-count strong { color: var(--ink, #111c18); }
+
+.cs-dd-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+}
+.cs-dd-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.cs-dd-item:hover { background: var(--surface-soft, #fbf8f1); }
+.cs-dd-item.is-selected { background: color-mix(in srgb, var(--primary, #7c3aed) 10%, transparent); border-color: color-mix(in srgb, var(--primary, #7c3aed) 35%, transparent); }
+.cs-dd-rank { flex: 0 0 20px; text-align: center; font-size: 11px; font-weight: 700; color: var(--muted, #6a756f); }
+.cs-dd-dot { flex: 0 0 11px; width: 11px; height: 11px; border-radius: 999px; }
+.cs-dd-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.cs-dd-name { font-size: 13px; font-weight: 650; color: var(--ink, #111c18); line-height: 1.25; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cs-dd-sub { font-size: 11px; color: var(--muted, #8a948f); }
+
+/* Badge marking community-reported places (explains community-first ranking). */
+.cs-comm-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary, #7c3aed) 16%, transparent);
+  color: var(--primary, #7c3aed);
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.cs-dd-item.is-hovered:not(.is-selected) { background: var(--surface-soft, #fbf8f1); }
+
+/* Map wrapper + hover tooltip (deep-dive). */
+.cs-deepdive-map-wrap { position: absolute; inset: 0; }
+.cs-map-tip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  pointer-events: none;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--surface, #fffdf8);
+  color: var(--ink, #111c18);
+  border: 1px solid var(--line);
+  font-size: 11.5px;
+  font-weight: 650;
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+  /* Fade only — transitioning transform would rubber-band the tag behind the
+     cursor, which drives it every mousemove. */
+  transition: opacity 120ms ease;
+  will-change: transform;
+}
+
+/* Selected-neighborhood detail card (compact, 3 tight rows). */
+.cs-selected-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--primary, #7c3aed) 28%, var(--line, rgba(20, 30, 25, 0.12)));
+  border-radius: var(--radius-md, 12px);
+  background: color-mix(in srgb, var(--primary, #7c3aed) 6%, var(--surface, #fffdf8));
+}
+.cs-selected-top { display: flex; align-items: center; gap: 7px; }
+.cs-selected-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  color: var(--ink, #111c18);
+  line-height: 1.2;
+}
+.cs-selected-rank { font-size: 11px; font-weight: 700; color: var(--muted, #6a756f); white-space: nowrap; }
+.cs-selected-line { display: flex; align-items: baseline; gap: 6px; }
+.cs-selected-value { font-size: 20px; font-weight: 800; color: var(--ink, #111c18); line-height: 1; font-variant-numeric: tabular-nums; }
+.cs-selected-unit { font-size: 11px; color: var(--muted, #6a756f); font-weight: 650; }
+.cs-selected-trend {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-soft, #33423b);
+}
+.cs-selected-meta { font-size: 11px; color: var(--muted, #6a756f); }
+
+@media (max-width: 640px) {
+  /* Track the iOS DYNAMIC viewport so the shell's bottom follows the visible
+     bottom the fixed tab bar tracks (100vh anchors under the collapsing browser
+     chrome, misplacing the sheet). 100vh base (line 18) is the old-browser
+     fallback where 100dvh is unsupported. */
+  .cs-shell {
+    height: 100dvh;
+  }
+  /* Draggable bottom sheet (M1). Height is driven INLINE by useSheetState
+     (peek/half/full px, derived from the visual viewport so it shrinks above the
+     soft keyboard). max-height mirrors the JS full clamp (visible viewport less
+     the topbar + tab-bar bands) as a looser backstop that can't exceed it; the
+     height transition animates each snap. Bottom clearance (M0) keeps it above
+     the tab bar. overflow:auto (base rule) means peek/half hide the body below
+     the fold naturally; full scrolls internally. */
+  .cs-insights {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    top: auto;
+    bottom: calc(12px + 56px + env(safe-area-inset-bottom));
+    max-height: calc(var(--app-vh, 100vh) - 140px);
+    /* Full-bleed feel in the short sheet: tighter padding, top corners only
+       (M2 §5 phone type/spacing). */
+    padding: 14px 16px;
+    border-radius: 18px 18px 0 0;
+    transition: height 220ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  /* The signals sheet (data-snap) is a NON-scrolling frame: the grab handle + peek
+     brief are static children and .cs-sheet-body owns the scroll, so the handle
+     can't drift with momentum scroll or slide under content (owner complaint 1).
+     z-index lifts the whole sheet above the floating mode toggle (.modeToggle z5),
+     restart toast (z6) and search popover (z6) so the handle is never covered at
+     full (owner complaint 2); it stays under the tab bar (z900) and tour chrome
+     (z1385+). Scoped to [data-snap] so the 311 / unavailable panels (capped +
+     scrolling via the rule below) are untouched. */
+  .cs-insights[data-snap] {
+    overflow: hidden;
+    z-index: 7;
+  }
+  /* The sheet's scroll container: everything below the static handle + brief. Flexes
+     to fill the frame and scrolls internally (the aside above is overflow:hidden).
+     Reproduces the aside's column gap so the content keeps its spacing one level
+     deeper. */
+  .cs-sheet-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    /* Trap the scroll: at scrollTop 0 a downward swipe must not chain to the
+       document (Chrome pull-to-refresh reloads the app; iOS rubber-bands the
+       shell). */
+    overscroll-behavior: contain;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  /* Non-sheet panels (T3): the 311 Reports lens + the "Insights unavailable"
+     fallback render a bare .cs-insights with no sheet machinery, so the base
+     bottom-anchor above would let them grow to 90% and bury the map. Cap them
+     under half the screen and scroll internally. The signals sheet (data-snap)
+     and the deep-dive panel (its own T4 cap) are excluded. */
+  .cs-insights:not([data-snap]):not(.cs-dd-panel) {
+    max-height: calc(var(--app-vh, 100vh) * 0.45);
+    overflow-y: auto;
+    /* Same scroll-chaining trap as .cs-sheet-body: a downward swipe at the top
+       must not chain to the document (pull-to-refresh / shell rubber-band). */
+    overscroll-behavior: contain;
+  }
+  /* Deep-dive panel (T4): its desktop overflow:hidden clips chips+legend+list
+     once they exceed the cap; on phone cap it and scroll internally instead. */
+  .cs-dd-panel {
+    overflow-y: auto;
+    max-height: calc(var(--app-vh, 100vh) * 0.55);
+    overscroll-behavior: contain;
+  }
+  /* Peek (M2 §3): the sheet shows ONLY the grab handle + the one-line brief; the
+     scrolling body (all other content) is hidden. CSS only — never unmounted, so
+     the tour's live .cs-insights measurement and its panel anchors stay in the DOM
+     (panel-anchored stops raise the sheet to half before they draw a ring). */
+  .cs-insights[data-snap="peek"] .cs-sheet-body {
+    display: none;
+  }
+  /* The peek brief line: scope name + the filtered counts, single line, clipped.
+     Only shown at peek — at half/full the header badge + digest brief carry the
+     same numbers, so it would be redundant. */
+  .cs-sheet-brief {
+    display: none;
+    margin: 2px 0 0;
+    color: var(--muted, #6a756f);
+    font-size: 13px;
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+  }
+  .cs-sheet-brief strong {
+    color: var(--ink, #111c18);
+    font-weight: 750;
+  }
+  .cs-insights[data-snap="peek"] .cs-sheet-brief {
+    display: block;
+  }
+  /* While dragging: no height transition (the finger drives it live). */
+  .cs-insights[data-dragging] {
+    transition: none;
+  }
+  /* Drag AND snap-settle: drop the 18px backdrop blur for an opaque surface —
+     recompositing a blur over the WebGL map every pointermove (drag) or every
+     frame of the 220ms height animation (settle) is guaranteed low-end jank
+     (amendment 4 / T8). data-settling is set for the transition window only. */
+  .cs-insights[data-dragging],
+  .cs-insights[data-settling] {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--surface, #fffdf8);
+  }
+  /* Grab handle: the sole drag surface (handle-only drag avoids map-gesture
+     conflict). A 44px hit band with a subtle warm-paper pill. */
+  .cs-sheet-handle {
+    /* A STATIC top child of the non-scrolling frame (not sticky): .cs-sheet-body
+       scrolls beneath it, so the handle can't drift with momentum scroll or paint
+       over content (owner complaint 1). Bleeds into the sheet's 14px/16px padding so
+       the opaque strip spans the full width and hugs the top corners. */
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* T10: a true 44px tap target (was 40). */
+    min-height: 44px;
+    margin: -14px -16px 0;
+    /* T11: reset the <button> UA chrome (it's now a real button for a11y) so it
+       renders identically to the old <div>. The div filled to the sheet width via
+       width:auto expanding over the -16px side margins; a button's intrinsic
+       width is unreliable, so set it explicitly (100% + the 32px of side margin)
+       to keep the opaque strip full-bleed. 0 horizontal padding, no border. */
+    width: calc(100% + 32px);
+    padding: 4px 0 0;
+    appearance: none;
+    -webkit-appearance: none;
+    border: 0;
+    font: inherit;
+    color: inherit;
+    border-radius: 18px 18px 0 0;
+    background: var(--surface, #fffdf8);
+    cursor: grab;
+    touch-action: none;
+  }
+  .cs-insights[data-dragging] .cs-sheet-handle {
+    cursor: grabbing;
+  }
+  .cs-sheet-handle-pill {
+    width: 40px;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--line-strong, #cdc4b1);
+  }
+  /* Rail OUT on phone — replaced by the bottom tab bar. (Deleted the old
+     rail-labels-hidden + 60px-width rules; they only applied when the rail
+     stayed on phone.) */
+  .cs-rail { display: none; }
+  .cs-tabbar {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 900;
+    height: calc(56px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--surface, #fffdf8);
+    border-top: 1px solid var(--line, rgba(20, 30, 25, 0.1));
+    justify-content: space-around;
+    align-items: stretch;
+  }
+  .cs-tab {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 44px;
+    color: var(--muted, #6a756f);
+    text-decoration: none;
+  }
+  .cs-tab small { font-size: 10px; font-weight: 650; letter-spacing: 0.01em; }
+  .cs-tab.is-active,
+  .cs-tab.is-active small { color: var(--primary, #7c3aed); }
+  /* Unread badge — mirrors .cs-rail-badge, anchored above/right of the News icon. */
+  .cs-tabbar-badge {
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    margin-left: 6px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: #2563eb;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    box-shadow: 0 0 0 2px var(--surface, #fffdf8);
+  }
+}
+
+/* Tablet-portrait band (641-1024 + coarse): the narrowed 320px side panel the
+   map fit padding (computeFitPadding right:340) and the tour bubble were already
+   sized against — finally shipped. Below 640 the bottom sheet takes over; above
+   1024 (or any fine pointer) the desktop 372px panel stands. */
+@media (min-width: 641px) and (max-width: 1024px) and (pointer: coarse) {
+  .cs-insights { width: 320px; }
+  /* Same iOS dynamic-viewport tracking as the phone block (T2); desktop >1024
+     keeps plain 100vh. */
+  .cs-shell { height: 100dvh; }
+}
+
+/* Touch tap target for the signals "← All boroughs" pill (B2 item 3). Pointer-
+   gated; the deep-dive .cs-map-back and the fine-pointer desktop are untouched. */
+@media (pointer: coarse) {
+  /* top:76 (was 62) clears the mode toggle, which grows to ~52px tall once its
+     buttons hit the 44px coarse minimum. */
+  .cs-map-back--signals { top: 76px; display: inline-flex; align-items: center; min-height: 44px; }
+}
+
+/* --- News page + Article Reader (View 2) ---------------------------------- */
+
+.cs-news-page { padding: 24px 28px 48px; max-width: 1100px; margin: 0 auto; overflow-y: auto; }
+.cs-news-page-head h1 { margin: 0 0 4px; font-size: var(--text-3xl); line-height: 1.15; letter-spacing: -0.02em; font-weight: 800; }
+.cs-news-page-head p { margin: 0 0 16px; color: var(--muted); }
+/* Honesty note shown when the page is in guided-tour demo mode (?tour=1). */
+.cs-tour-note {
+  display: inline-block;
+  margin: -8px 0 16px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--surface-2, rgba(20, 30, 25, 0.06));
+  color: var(--muted);
+  font-size: 12px;
+  font-style: italic;
+  font-weight: 600;
+}
+.cs-news-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+.cs-news-chip {
+  padding: 6px 14px; border-radius: 999px; font-size: 13px; text-decoration: none;
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.12)); color: var(--ink);
+  background: var(--surface, #fffdf8);
+}
+.cs-news-chip:hover { border-color: var(--primary, #7c3aed); color: var(--primary, #7c3aed); }
+.cs-news-chip.is-active { background: var(--primary, #7c3aed); border-color: var(--primary, #7c3aed); color: #fff; }
+
+.cs-newscard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+
+/* /reports feed: one readable column of community stories (cards own their look
+   in components/reports/report-card.module.css). */
+.cs-reports-feed { display: flex; flex-direction: column; gap: 16px; max-width: 720px; }
+.cs-reports-more { display: flex; justify-content: center; max-width: 720px; margin-top: 16px; padding: 4px 0 8px; }
+.cs-newscard-list { display: flex; flex-direction: column; gap: 10px; }
+.cs-newscard {
+  position: relative;
+  display: flex; flex-direction: column; text-decoration: none; color: inherit;
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.1)); border-radius: var(--radius-lg, 18px);
+  background: var(--surface, #fffdf8); overflow: hidden; box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.cs-newscard:hover { box-shadow: var(--shadow-md); transform: var(--lift); border-color: var(--line-strong); }
+.cs-newscard.is-unread { border-color: color-mix(in srgb, #2563eb 35%, var(--line, rgba(20,30,25,0.1))); }
+
+/* Unread indicator: a blue dot until the article is opened. */
+.cs-unread-dot {
+  width: 8px; height: 8px; border-radius: 999px; background: #2563eb; flex: 0 0 auto;
+}
+.cs-newscard > .cs-unread-dot {
+  position: absolute; top: 10px; right: 10px; z-index: 2; width: 9px; height: 9px;
+  box-shadow: 0 0 0 2px var(--surface, #fffdf8);
+}
+.cs-news-body .cs-unread-dot { display: inline-block; margin-right: 6px; vertical-align: middle; }
+.cs-newscard-list .cs-newscard { flex-direction: row; align-items: stretch; }
+.cs-newscard-thumb { display: block; aspect-ratio: 16 / 9; background: linear-gradient(135deg, color-mix(in srgb, var(--primary, #7c3aed) 22%, #fff), var(--surface-soft, #f1efe7)); background-size: cover; background-position: center; flex: 0 0 auto; position: relative; overflow: hidden; }
+.cs-newscard-list .cs-newscard-thumb { width: 96px; aspect-ratio: auto; }
+/* Real <img> thumbnail (lazy) laid over the gradient placeholder — object-fit
+   cover + center reproduces the old background crop exactly; on a broken/rotted
+   URL the img is hidden (onError) and the gradient shows through, space kept. */
+.cs-newscard-thumb img,
+.cs-news-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.cs-newscard-body { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; }
+.cs-newscard-meta { display: flex; gap: 8px; align-items: center; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
+.cs-newscard-cat { color: var(--primary, #7c3aed); font-weight: 600; }
+.cs-newscard-boro { color: var(--muted); }
+.cs-newscard-title { font-size: 15px; line-height: 1.35; font-weight: 600; }
+.cs-newscard-date { font-size: 12px; color: var(--muted); }
+
+/* Modal overlay (intercepted /news/{id}) */
+.cs-modal-backdrop {
+  position: fixed; inset: 0; z-index: 1000; background: rgba(16, 22, 18, 0.5);
+  display: flex; align-items: flex-start; justify-content: center; padding: 5vh 16px; overflow-y: auto;
+  /* Hidden until the open animation (Web Animations API) takes over, so there's
+     no one-frame flash of the final position before it grows from the card. */
+  opacity: 0;
+}
+.cs-modal {
+  position: relative; width: min(720px, 100%); background: var(--surface, #fffdf8);
+  border-radius: var(--radius-lg, 18px); box-shadow: 0 24px 70px rgba(16, 22, 18, 0.3);
+  padding: 28px; margin: auto 0;
+  opacity: 0;
+  /* Animation is transform + opacity only (compositor-driven, no layout/paint).
+     transform-origin stays at the default center to match the JS center math. */
+  will-change: transform;
+}
+/* Safety net: if JS/WAAPI is unavailable the overlay must still be visible. */
+@media (prefers-reduced-motion: reduce) {
+  .cs-modal-backdrop, .cs-modal { opacity: 1; }
+}
+
+/* Streaming skeleton shown while the article loads inside the modal. */
+.cs-reader-skeleton { display: flex; flex-direction: column; gap: 14px; }
+.cs-skel {
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    var(--surface-soft, #f1efe7) 25%,
+    color-mix(in srgb, var(--surface-soft, #f1efe7) 55%, #fff) 37%,
+    var(--surface-soft, #f1efe7) 63%
+  );
+  background-size: 400% 100%;
+  animation: csSkelShimmer 1.4s ease infinite;
+}
+.cs-skel-badge { height: 22px; width: 170px; border-radius: 999px; }
+.cs-skel-title { height: 26px; width: 92%; }
+.cs-skel-meta { height: 15px; width: 190px; }
+.cs-skel-hero { height: 220px; width: 100%; border-radius: var(--radius-md, 12px); margin: 4px 0; }
+.cs-skel-line { height: 14px; width: 100%; }
+.cs-skel.is-short { width: 58%; }
+@keyframes csSkelShimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .cs-skel { animation: none; } }
+
+.cs-reader-empty { color: var(--muted); font-size: 15px; padding: 24px 4px; }
+.cs-modal-close {
+  position: absolute; top: 12px; right: 14px; width: 32px; height: 32px; border-radius: 999px;
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.12)); background: var(--surface, #fffdf8);
+  font-size: 20px; line-height: 1; cursor: pointer; color: var(--ink);
+}
+.cs-modal-close:hover { background: var(--surface-soft, #f1efe7); }
+
+/* Reader (shared by modal + full page) */
+.cs-reader-page { padding: 24px 28px 56px; max-width: 760px; margin: 0 auto; overflow-y: auto; }
+.cs-reader-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.cs-reader-cat, .cs-reader-boro, .cs-reader-verified {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; padding: 4px 10px; border-radius: 999px;
+}
+.cs-reader-cat { background: rgba(124, 58, 237, 0.12); color: var(--primary, #7c3aed); font-weight: 600; }
+.cs-reader-boro { background: var(--surface-soft, #f1efe7); color: var(--muted); }
+.cs-reader-verified { background: var(--success-tint); color: var(--success); font-weight: 600; }
+.cs-reader-title { margin: 0 0 8px; font-size: var(--text-2xl); line-height: 1.2; letter-spacing: -0.02em; font-weight: 800; }
+.cs-reader-meta { display: flex; gap: 12px; color: var(--muted); font-size: 14px; margin-bottom: 16px; }
+.cs-reader-meta span + span::before { content: "·"; margin-right: 12px; }
+.cs-reader-hero { width: 100%; aspect-ratio: auto 16 / 9; border-radius: var(--radius-md, 12px); margin-bottom: 16px; display: block; }
+.cs-reader-summary { font-size: 16px; line-height: 1.6; margin: 0 0 16px; }
+.cs-reader-readmore { display: inline-block; color: var(--primary, #7c3aed); font-weight: 600; text-decoration: none; }
+.cs-reader-readmore:hover { text-decoration: underline; }
+/* Subtle attribution above an AI-written summary. */
+.cs-reader-ai-label {
+  display: inline-block; margin: 0 0 6px; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);
+}
+/* Demoted "read original" link (secondary to the in-app AI summary). */
+.cs-reader-readorig { display: inline-block; color: var(--muted); font-weight: 500; font-size: 14px; text-decoration: none; }
+.cs-reader-readorig:hover { color: var(--ink); text-decoration: underline; }
+.cs-reader-actions { display: flex; gap: 10px; margin: 18px 0 8px; }
+.cs-reader-btn {
+  padding: 8px 18px; border-radius: 999px; font-size: 14px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--primary, #7c3aed); background: var(--primary, #7c3aed); color: #fff;
+}
+.cs-reader-details { margin-top: 24px; border-top: 1px solid var(--line, rgba(20, 30, 25, 0.1)); padding-top: 16px; }
+.cs-reader-details h2, .cs-reader-related h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 0 0 12px; }
+.cs-reader-details dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0; }
+.cs-reader-detail dt { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+.cs-reader-detail dd { margin: 0; font-size: 15px; font-weight: 500; }
+.cs-reader-related { margin-top: 24px; }
+
+@media (max-width: 640px) {
+  .cs-modal { padding: 22px 18px; }
+  .cs-reader-details dl { grid-template-columns: 1fr; }
+  /* M3 §4 full-bleed: the rail is gone on phone, so reclaim its width — 16px side
+     padding instead of the rail-era 28px. Bottom padding clears the fixed tab bar
+     so page content never sits under the nav. */
+  .cs-news-page,
+  .cs-reader-page { padding: 16px 16px calc(48px + 56px + env(safe-area-inset-bottom)); }
+  /* M3 §2/§5 phone type + header pass (reading surfaces). Comfortable line-heights,
+     tighter header→chips spacing now that the page breathes full-width. */
+  .cs-news-page-head h1 { font-size: 22px; line-height: 1.2; }
+  .cs-news-page-head p { font-size: 14px; line-height: 1.45; margin-bottom: 12px; }
+  .cs-news-filters { margin-bottom: 14px; }
+  .cs-newscard-title { font-size: 16px; line-height: 1.35; }
+  .cs-newscard-meta { font-size: 12px; }
+  .cs-newscard-body { padding: 12px 14px; gap: 5px; }
+  .cs-reader-title { font-size: 22px; line-height: 1.25; }
+  .cs-reader-meta { font-size: 13px; }
+  .cs-reader-summary { font-size: 15px; line-height: 1.6; }
+  /* B3 item 3: the auto-fill minmax(260px) track overflows the ~259px phone
+     content column — force a single readable column. iPad (>640) keeps auto-fill. */
+  .cs-newscard-grid { grid-template-columns: 1fr; }
+  /* B3 item 5: borough chip rows stop stacking 2-3 tall and become one
+     horizontal scroll row (desktop >640 keeps the wrap). */
+  .cs-news-filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .cs-news-filters::-webkit-scrollbar { display: none; }
+  .cs-news-chip { flex: 0 0 auto; white-space: nowrap; scroll-snap-align: start; }
+}
+
+/* B3 items 1 + 4: touch reading-surface fixes, capability-gated so fine-pointer
+   desktop is byte-identical. */
+@media (pointer: coarse) {
+  /* Item 1 (CRITICAL): the news reader close scrolls out of reach because the
+     .cs-modal-backdrop is the scroller and the modal grows to ~1400px. Pin the
+     close to the top of the scrollport with position:sticky (fixed can't be used
+     — .cs-modal's will-change:transform makes it the containing block). block +
+     margin-left:auto keeps it right-aligned in normal flow. data-tour hook and
+     the desktop absolute 32px close are untouched. */
+  .cs-modal-close {
+    position: sticky;
+    top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    margin-right: 0;
+    width: 44px;
+    height: 44px;
+    z-index: 5;
+  }
+  /* Item 4: >=44px hit area on the borough filter chips + the "Show more
+     stories" chip (both .cs-news-chip). */
+  .cs-news-chip {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  /* T10: 44px hit areas on the remaining sub-40px controls — topbar Share and the
+     311-mode issue chips / window select / explore link. Coarse-gated so
+     fine-pointer desktop is byte-identical. */
+  .cs-tb-btn,
+  .cs-issue-chip,
+  .cs-window-select,
+  .cs-explore-link {
+    min-height: 44px;
+  }
+  /* Inline digest news links: pad the line box to a 44px tap target without
+     changing the inline text look on fine-pointer desktop. */
+  .cs-news-body a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}
+
+/* --- Uniform micro-interactions: a crisp press on the things you click --- */
+.cs-tb-btn:active,
+.cs-issue-chip:active,
+.cs-news-chip:active,
+.cs-reader-btn:active,
+.cs-rail-item:active {
+  transform: scale(0.97);
+}
+.cs-reader-btn {
+  transition: background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.cs-reader-btn:hover {
+  background: var(--primary-strong);
+}
