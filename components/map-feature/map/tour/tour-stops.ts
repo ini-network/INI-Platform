@@ -271,22 +271,25 @@ export const STOPS: TourStop[] = [
   },
   {
     id: "bridge-news",
-    kind: "info",
-    placement: "center",
-    anchor: null,
-    bubbleSide: "center",
+    kind: "action",
+    placement: "anchored",
+    anchor: '[data-tour="rail"] a[href="/news"]',
+    anchorPhone: '[data-tour="tabbar-news"]',
+    bubbleSide: "right",
+    sheetOnActivate: "peek",
     mapRegion: false,
     navLinked: false,
     doneAtDepth: 0,
     requiresDepth: 0,
     needsDrill: false,
-    needsRail: false,
+    needsRail: true,
     title: "Next stop — News",
     body:
-      "Last one for you to do: open the Civic Map dropdown at the top of the page to navigate to Civic News and see the day's local headlines.",
+      "Last one for you to do: click News in the sidebar to see the day's local headlines across the boroughs.",
     bodyPhone:
-      "Last one for you to do: open the Civic Map dropdown in the menu to navigate to Civic News and see the day's local headlines.",
-    cta: "Got it!",
+      "Last one for you to do: tap News at the bottom to see the day's local headlines across the boroughs.",
+    missHint: "Click News in the sidebar on the left to keep going.",
+    missHintPhone: "Tap News at the bottom to keep going.",
     successText: ""
   }
 ];
