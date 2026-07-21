@@ -7,6 +7,12 @@ import Header from "@/components/Header";
 import { usePathname } from "next/navigation"; // Import usePathname
 import Copilot from "@/components/Copilot";
 
+// Map feature global imports
+import "mapbox-gl/dist/mapbox-gl.css";
+import "./map-styles/design-system.css";
+import "./map-styles/redesign.css";
+import { NewsModalHost } from "@/components/map-feature/news/news-modal-host";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -38,6 +44,9 @@ export default function RootLayout({
 
         {/* Render global AI Copilot on all pages except the login page */}
         {!isLoginPage && <Copilot />}
+
+        {/* Global modals for map feature */}
+        <NewsModalHost />
       </body>
     </html>
   );
