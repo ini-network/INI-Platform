@@ -78,7 +78,7 @@ export default function Header() {
         { name: "Home", href: "/" },
         ...(user ? [{ name: "My Matches", href: "/matches" }] : []),
         { name: "Directory", href: "/directory" },
-        { name: "Map Explorer", href: "/explore" },
+        { name: "Network Map", href: "/explore" },
         { name: "Join Us", href: "/partners" },
         { name: "America 250", href: "/america250" },
         { name: "About", href: "/about" },

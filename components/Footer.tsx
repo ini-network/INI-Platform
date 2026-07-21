@@ -52,7 +52,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link href="/explore" className="hover:text-white transition-colors">
-                  Map Explorer
+                  Network Map
                 </Link>
               </li>
             </ul>
