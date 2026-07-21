@@ -50,15 +50,11 @@ export function AppShellV2({ children }: { children: ReactNode }) {
 
   return (
     <div className="cs-shell">
-      <NavRail />
-      {/* Both navs mount unconditionally; CSS owns visibility (rail off / tab bar
-          on <=640) so there is no useFormFactor hydration flash. */}
-      <TabBar />
-      <div className="cs-shell-main">
-        <TopBar />
-        <main className="cs-shell-content">{children}</main>
+      <div className="cs-shell-main" style={{ width: '100%' }}>
+        <main className="cs-shell-content" style={{ padding: 0 }}>
+          {children}
+        </main>
       </div>
-      <PageTourOverlay />
     </div>
   );
 }
