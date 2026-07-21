@@ -251,6 +251,7 @@ export function MapExperience({
   // on the seen-key so returning visitors aren't interrupted. try/catch covers
   // private-mode localStorage throws — a throw simply skips the auto-open.
   useEffect(() => {
+    /* TOUR DISABLED
     if (initialSignals === null) {
       return;
     }
@@ -268,6 +269,7 @@ export function MapExperience({
       return;
     }
     setTourOpen(true);
+    */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -371,11 +373,13 @@ export function MapExperience({
         </>
       )}
 
+      {/* TOUR DISABLED
       {showSkipToast ? (
         <div className={mapStyles.tourSkipToast} role="status">
           Restart the tour anytime — click the ? up there.
         </div>
       ) : null}
+      */}
 
       <div className={mapStyles.modeToggle} role="group" aria-label="Map view">
         <button
@@ -401,6 +405,7 @@ export function MapExperience({
         {/* The guide teaches the Signals lens; when signals are unavailable its
             Filter stop is unanchorable, so hide the launcher rather than open a
             soft-broken tour (finding 2). */}
+        {/* TOUR DISABLED
         {initialSignals !== null ? (
           <button
             type="button"
@@ -412,6 +417,7 @@ export function MapExperience({
             ?
           </button>
         ) : null}
+        */}
       </div>
     </div>
   );
