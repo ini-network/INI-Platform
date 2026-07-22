@@ -13,6 +13,7 @@ import {
 import { useFormFactor } from "@/lib/map-feature/use-form-factor";
 import { useVisualViewport } from "@/lib/map-feature/use-visual-viewport";
 import type { SheetSnap } from "@/lib/map-feature/use-sheet-state";
+import { useShellTop } from "../../tour/use-shell-top";
 import { liveStops, type TourEnact, type TourStop } from "./tour-stops";
 import styles from "./map-tour.module.css";
 
@@ -29,7 +30,10 @@ const MOVE_GATE = 0.5; // px the anchor must move before we re-position (idle fr
 // anchor RAW — no position transition — so a scrolling anchor stays glued instead of
 // easing toward a stale target. SETTLE_CEIL_MS caps it so it can never stick.
 const SETTLE_MS = 180;
-const SETTLE_CEIL_MS = 1200;
+// 700 (was 1200): long enough for the slowest stop choreography above, short
+// enough that a late-reflowing anchor (e.g. images loading under it) stops
+// "chasing" through the eased writes well under a second.
+const SETTLE_CEIL_MS = 700;
 
 type Rect = { top: number; left: number; width: number; height: number };
 
@@ -39,11 +43,19 @@ const DIM_PAD = 6;
 
 // Pure position math (B): ring inset + the spotlight hole geometry, both derived
 // from the tracked anchor rect. Written straight to the DOM every rAF frame.
-function ringInset(rect: Rect): Rect {
-  return { top: rect.top - 6, left: rect.left - 6, width: rect.width + 12, height: rect.height + 12 };
+function ringInset(rect: Rect, minTop = 0): Rect {
+  // Clamp the ring's top to the shell edge (minTop) so a tall anchor that scrolls
+  // up behind the host header doesn't draw ring borders through the dimmed header
+  // band — the ring frames only the visible (spotlit) part, matching holeGeom.
+  const top = Math.max(rect.top - 6, minTop);
+  const bottom = rect.top + rect.height + 6;
+  return { top, left: rect.left - 6, width: rect.width + 12, height: Math.max(0, bottom - top) };
 }
-function holeGeom(rect: Rect) {
-  const holeTop = rect.top - DIM_PAD;
+function holeGeom(rect: Rect, minTop = 0) {
+  // minTop: the map shell's top edge in viewport space. The host site renders
+  // its own sticky header above the shell — the spotlight hole must never
+  // extend into it, so the top dim band always covers the host chrome fully.
+  const holeTop = Math.max(rect.top - DIM_PAD, minTop);
   const holeLeft = rect.left - DIM_PAD;
   const holeRight = rect.left + rect.width + DIM_PAD;
   const holeBottom = rect.top + rect.height + DIM_PAD;
@@ -110,6 +122,10 @@ export function MapTourGuide({
   // offsets/caps sized to the region under the soft keyboard (m10).
   const ff = useFormFactor();
   const vv = useVisualViewport();
+  // Where the map shell starts in viewport space (the host site's sticky header
+  // sits above it) — floors every bubble/hole placement so no tour chrome ever
+  // lands on the host's own chrome.
+  const shellTop = useShellTop();
   const steps = useMemo(
     () => liveStops(canDrill, { isPhone: ff.isPhone, isCoarse: ff.isCoarse }),
     [canDrill, ff.isPhone, ff.isCoarse]
@@ -260,7 +276,10 @@ export function MapTourGuide({
         : typeof window !== "undefined"
           ? window.innerHeight
           : 800;
-    const top = Math.max(12, Math.min(rect.top, vh - 240));
+    // Floor at the shell's top edge (+12), not the viewport's: the host site's
+    // sticky header lives above the shell and the bubble must never sit on it.
+    const topFloor = shellTop.current + 12;
+    const top = Math.max(topFloor, Math.min(rect.top, vh - 240));
     const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
     switch (step.bubbleSide) {
       case "left":
@@ -273,11 +292,11 @@ export function MapTourGuide({
           ...(ff.isTabletPortrait ? { maxWidth: Math.max(220, rect.left - 24) } : {})
         };
       case "right":
-        return { top: Math.max(12, rect.top), left: rect.left + rect.width + 16 };
+        return { top: Math.max(topFloor, rect.top), left: rect.left + rect.width + 16 };
       case "over":
       default:
         return {
-          top: Math.max(12, rect.top + 16),
+          top: Math.max(topFloor, rect.top + 16),
           left: rect.left + rect.width / 2,
           transform: "translateX(-50%)"
         };
@@ -488,14 +507,14 @@ export function MapTourGuide({
     // regime as the ring (desktop/tablet only — phone pins it via CSS).
     const writePositions = (rect: Rect) => {
       if (ringRef.current) {
-        const r = ringInset(rect);
+        const r = ringInset(rect, shellTop.current);
         const s = ringRef.current.style;
         s.top = `${r.top}px`;
         s.left = `${r.left}px`;
         s.width = `${r.width}px`;
         s.height = `${r.height}px`;
       }
-      const g = holeGeom(rect);
+      const g = holeGeom(rect, shellTop.current);
       if (dimTopRef.current) dimTopRef.current.style.height = `${Math.max(0, g.holeTop)}px`;
       if (dimBottomRef.current) dimBottomRef.current.style.top = `${g.holeBottom}px`;
       if (dimLeftRef.current) {
@@ -681,26 +700,11 @@ export function MapTourGuide({
     return () => document.removeEventListener("click", onCapture, true);
   }, [index, ready, step.kind, step.anchor, step.mapRegion, step.missHint, ff.isCoarse, clearMiss, nudge]);
 
-  // Rail navigation, during ANY stop. On the bridge-news stop, a click on the
-  // News link ADVANCES into the /news segment (preventDefault → onBridge writes
-  // the progress key + navigates). Any other rail link, or a rail click on any
-  // non-bridge stop, is Travis D2's graceful end (write seen-key + close, let
-  // the navigation proceed).
-  useEffect(() => {
-    const onRailClick = (event: MouseEvent) => {
-      const target = event.target as Element | null;
-      const link = target?.closest('[data-tour="rail"] a, [data-tour="tabbar"] a');
-      if (!link) return;
-      if (step.id === "bridge-news" && link.matches('a[href="/news"]')) {
-        event.preventDefault();
-        onBridge();
-        return;
-      }
-      onClose();
-    };
-    document.addEventListener("click", onRailClick, true);
-    return () => document.removeEventListener("click", onRailClick, true);
-  }, [onClose, onBridge, step.id]);
+  // (The old rail/tab-bar click listener lived here: bridge-news used to advance
+  // on a real News-link click, any other rail click gracefully ended the tour.
+  // This design has no rail or tab bar — the bridge is the stop's own CTA now —
+  // so the listener is gone rather than left waiting for selectors that no
+  // longer exist.)
 
   // Esc skips — but never when focus is in an input/textarea/contenteditable (so
   // Esc inside the search box or a form field doesn't end the tour).
@@ -722,12 +726,19 @@ export function MapTourGuide({
   }, [closeSkip]);
 
   const advanceInfo = useCallback(() => {
+    // bridge-news is now an info stop whose CTA hands off to the /news tour
+    // segment (this design has no sidebar for the old hands-on click, so the
+    // guide navigates itself). onBridge records the segment and routes.
+    if (steps[safeIndex]?.id === "bridge-news") {
+      onBridge();
+      return;
+    }
     if (safeIndex >= steps.length - 1) {
       onFinish();
       return;
     }
     setIndex(safeIndex + 1);
-  }, [safeIndex, steps.length, onFinish]);
+  }, [safeIndex, steps, onFinish, onBridge]);
 
   // Step back one stop. Rewind the host to the destination stop's nav depth (closing
   // the filter drawer unless the destination is filter-pick) BEFORE landing, so its
@@ -839,7 +850,7 @@ export function MapTourGuide({
 
   // Anchored stop: ring (if measured) + bubble. Position from liveRect; the rAF
   // loop overwrites it each frame straight on the DOM.
-  const ringStyle: CSSProperties | undefined = liveRect ? ringInset(liveRect) : undefined;
+  const ringStyle: CSSProperties | undefined = liveRect ? ringInset(liveRect, shellTop.current) : undefined;
   const showRing = liveRect && !anchorLost && !anchorClipped;
   // Auto + info anchored stops block ALL interaction (the guide drove the step —
   // nothing for the user to click but Next/Back/Skip); the hands-on action stops
@@ -855,7 +866,7 @@ export function MapTourGuide({
   const onDimClick = () => nudge(dimHint);
   let dimNode: ReactNode = null;
   if (liveRect && !anchorLost && !anchorClipped) {
-    const g = holeGeom(liveRect);
+    const g = holeGeom(liveRect, shellTop.current);
     const dimClass = `${styles.dim}${settleClass}`;
     dimNode = (
       <>
@@ -924,9 +935,9 @@ export function MapTourGuide({
   // desktop + tablet-portrait placement stays byte-identical.
   let phoneBubble = "";
   if (ff.isPhone) {
-    if (step.id === "bridge-news") {
-      phoneBubble = styles.bubblePinBottom;
-    } else if (step.mapRegion) {
+    // (bridge-news no longer pins here — it's a centered card now, rendered by
+    // the placement:"center" branch above, so it never reaches this path.)
+    if (step.mapRegion) {
       phoneBubble = `${styles.bubblePinMap} ${styles.bubbleCompact}`;
     } else {
       phoneBubble = styles.bubbleAboveSheet;

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { activeSegment, endTour, startSegment, type TourSegment } from "@/lib/map-feature/tour-progress";
 import { useVisualViewport } from "@/lib/map-feature/use-visual-viewport";
+import { useShellTop } from "./use-shell-top";
 import styles from "../map/tour/map-tour.module.css";
 
 // Cross-page tour engine for the /news and /reports segments. The map tour
@@ -35,7 +36,10 @@ const SUCCESS_REVEAL_MS = 700; // quiet ✓ beat before an action stop advances
 // class isn't dropped mid-motion (entry scrollIntoView / reader-modal grow) — which
 // would snap the trailing gap. SETTLE_CEIL_MS caps it so it can never stick.
 const SETTLE_MS = 180;
-const SETTLE_CEIL_MS = 1200;
+// 700 (was 1200): long enough for the reader-modal grow / entry scroll, short
+// enough that late image loads reflowing the news grid can't keep the bubble
+// visibly "chasing" its anchor through the eased writes.
+const SETTLE_CEIL_MS = 700;
 
 // Every look-at stop's dim panels answer a stray click with this gentle nudge.
 const MISS_HINT = "Take a look, then continue with the guide.";
@@ -43,11 +47,19 @@ const MISS_HINT = "Take a look, then continue with the guide.";
 type Rect = { top: number; left: number; width: number; height: number };
 
 // Pure position math (B) — shared by the initial render style and the rAF writer.
-function ringInset(rect: Rect): Rect {
-  return { top: rect.top - 6, left: rect.left - 6, width: rect.width + 12, height: rect.height + 12 };
+function ringInset(rect: Rect, minTop = 0): Rect {
+  // Clamp the ring's top to the shell edge (minTop) so a tall anchor scrolling up
+  // behind the host header doesn't draw ring borders through the dimmed header
+  // band — the ring frames only the visible part, matching holeGeom.
+  const top = Math.max(rect.top - 6, minTop);
+  const bottom = rect.top + rect.height + 6;
+  return { top, left: rect.left - 6, width: rect.width + 12, height: Math.max(0, bottom - top) };
 }
-function holeGeom(rect: Rect) {
-  const holeTop = rect.top - DIM_PAD;
+function holeGeom(rect: Rect, minTop = 0) {
+  // minTop: the shell's top edge — the host site's sticky header sits above it
+  // and the spotlight hole must never open into it (the top band always covers
+  // the host chrome fully).
+  const holeTop = Math.max(rect.top - DIM_PAD, minTop);
   const holeLeft = rect.left - DIM_PAD;
   const holeRight = rect.left + rect.width + DIM_PAD;
   const holeBottom = rect.top + rect.height + DIM_PAD;
@@ -221,6 +233,9 @@ export function PageTourOverlay() {
   // these pages) so the coarse .card cap + phone .bubble max-height track the
   // visible viewport (m10 / C2).
   useVisualViewport();
+  // Where the shell starts in viewport space (below the host site's sticky
+  // header) — floors bubble/hole placement so tour chrome never sits on it.
+  const shellTop = useShellTop();
 
   const [seg, setSeg] = useState<TourSegment | null>(null);
   const [index, setIndex] = useState(0);
@@ -307,19 +322,22 @@ export function PageTourOverlay() {
     if (!step) return {};
     const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
     const vh = typeof window !== "undefined" ? window.innerHeight : 800;
-    const top = Math.max(12, Math.min(rect.top, vh - 240));
+    // Floor at the shell's top edge (+12), not the viewport's: the host site's
+    // sticky header lives above the shell and the bubble must never sit on it.
+    const topFloor = shellTop.current + 12;
+    const top = Math.max(topFloor, Math.min(rect.top, vh - 240));
     switch (step.bubbleSide) {
       case "left":
         return { top, right: Math.max(12, vw - rect.left + 16) };
       case "right":
         return {
-          top: Math.max(12, rect.top),
+          top: Math.max(topFloor, rect.top),
           left: Math.min(rect.left + rect.width + 16, vw - 320 - 12)
         };
       case "over":
       default:
         return {
-          top: Math.max(12, rect.top + rect.height + 16),
+          top: Math.max(topFloor, rect.top + rect.height + 16),
           left: rect.left,
           maxWidth: "min(320px, calc(100vw - 24px))"
         };
@@ -416,15 +434,21 @@ export function PageTourOverlay() {
     let raf = 0;
 
     const writePositions = (rect: Rect) => {
+      // Clamp the hole/ring to the shell top so page content scrolling under the
+      // host's sticky header can't spotlight into it — EXCEPT while a segment
+      // modal is open. That modal is a full-viewport overlay ABOVE the header,
+      // so the header isn't visible and its close × legitimately sits in the
+      // top band; clamping there would chop the ring to a sliver.
+      const minTop = modalSel && document.querySelector(modalSel) ? 0 : shellTop.current;
       if (ringRef.current) {
-        const r = ringInset(rect);
+        const r = ringInset(rect, minTop);
         const s = ringRef.current.style;
         s.top = `${r.top}px`;
         s.left = `${r.left}px`;
         s.width = `${r.width}px`;
         s.height = `${r.height}px`;
       }
-      const g = holeGeom(rect);
+      const g = holeGeom(rect, minTop);
       if (dimTopRef.current) dimTopRef.current.style.height = `${Math.max(0, g.holeTop)}px`;
       if (dimBottomRef.current) dimBottomRef.current.style.top = `${g.holeBottom}px`;
       if (dimLeftRef.current) {
@@ -740,7 +764,10 @@ export function PageTourOverlay() {
         ? styles.arrowRight
         : styles.arrowOver;
 
-  const ringStyle: CSSProperties | undefined = liveRect ? ringInset(liveRect) : undefined;
+  // See writePositions: no shell-top clamp while a full-viewport segment modal
+  // is open (it covers the header; the close × legitimately sits in the top band).
+  const clampMinTop = modalSel && typeof document !== "undefined" && document.querySelector(modalSel) ? 0 : shellTop.current;
+  const ringStyle: CSSProperties | undefined = liveRect ? ringInset(liveRect, clampMinTop) : undefined;
 
   // Spotlight: four dim panels around the anchor answer stray clicks with a nudge.
   // A look-at stop (no interactiveHole) also covers the hole with a transparent
@@ -749,7 +776,7 @@ export function PageTourOverlay() {
   // re-written each frame by the rAF loop (B).
   let dimNode: ReactNode = null;
   if (liveRect) {
-    const g = holeGeom(liveRect);
+    const g = holeGeom(liveRect, clampMinTop);
     const dimClass = `${styles.dim}${settleClass}`;
     dimNode = (
       <>

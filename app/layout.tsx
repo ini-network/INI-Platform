@@ -1,7 +1,7 @@
 "use client"; // Add this to use hooks
 
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import { usePathname } from "next/navigation"; // Import usePathname
@@ -23,6 +23,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// The map feature's design system types in Inter (via --font-inter); load it
+// here so the map keeps its own typography without touching the site's Geist.
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -32,7 +39,7 @@ export default function RootLayout({
   const isLoginPage = pathname === "/login"; // Check if path is /login
 
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} antialiased`}>
       <body className="flex flex-col h-dvh overflow-hidden bg-slate-50 text-slate-900 font-sans">
 
         {/* Only render Header if NOT on the login page */}

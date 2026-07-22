@@ -13,18 +13,11 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
+/* The create-next-app template `body` rule and dark-mode variable flip used to
+   live here. Removed: as unlayered element styles they overrode the Tailwind
+   classes on <body> (bg-slate-50 text-slate-900 font-sans), forcing Arial and
+   — for visitors with a dark OS theme — a near-black background. The site is
+   deliberately light (color-scheme: light above); the body classes now govern. */
 
 /* --- HIGH-VISIBILITY INPUTS & CHROME AUTO-DARK-MODE FIXES --- */
 /* Forcing color-scheme, dark text, light background and borders on inputs guarantees visibility */

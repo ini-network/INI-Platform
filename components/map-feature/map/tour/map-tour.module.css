@@ -2,7 +2,10 @@
    soft bubble, a quiet green success beat. No confetti (Travis's D4). All colors
    come from the design-system tokens so it inherits the brand. */
 
-/* ---- centered info card (welcome / finish): dim backdrop, map inert ---- */
+/* ---- centered info card (welcome / bridge / finish): dim backdrop, map inert ----
+   The dim deliberately covers the WHOLE viewport (host header included — a modal
+   moment), but the card centers within the map shell region: --tour-shell-top is
+   the shell's top edge (written by the tour's useShellTop hook; 0 standalone). */
 .backdrop {
   position: fixed;
   inset: 0;
@@ -10,7 +13,7 @@
   background: rgba(16, 22, 18, 0.5);
   display: grid;
   place-items: center;
-  padding: 5vh 16px;
+  padding: calc(var(--tour-shell-top, 0px) + 5vh) 16px 5vh;
 }
 
 /* ---- spotlight dim panels: cover the viewport except the target hole ----
@@ -35,7 +38,7 @@
   inset: 0;
 }
 
-/* ---- ring glued to a DOM anchor (action + sidebar stops) ---- */
+/* ---- ring glued to a DOM anchor (the anchored action / auto / info stops) ---- */
 .ring {
   position: fixed;
   z-index: 1395;
@@ -121,14 +124,20 @@
    window the accent color / glow never change, so replacing their transition is
    invisible. */
 .settleMove {
-  transition: top 120ms var(--ease), left 120ms var(--ease),
-    width 120ms var(--ease), height 120ms var(--ease),
-    right 120ms var(--ease), transform 120ms var(--ease);
+  /* 80ms (was 120): tight enough that an anchor still reflowing under the
+     ~700ms ceiling reads as tracking, not lagging. */
+  transition: top 80ms var(--ease), left 80ms var(--ease),
+    width 80ms var(--ease), height 80ms var(--ease),
+    right 80ms var(--ease), transform 80ms var(--ease);
 }
 
+/* Entrance uses the standalone `translate` property, NOT `transform`: an 'over'
+   bubble is POSITIONED via an inline transform (translateX(-50%)), and a
+   transform keyframe would override that positioning for the animation's whole
+   duration (and, with fill:both, after it) — the render-then-jump flutter. */
 @keyframes tourRise {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; translate: 0 6px; }
+  to { opacity: 1; translate: 0 0; }
 }
 @keyframes tourPop {
   from { opacity: 0; transform: scale(0.96); }
@@ -242,11 +251,11 @@
 }
 
 /* ---- restart toast (page segments): outlives the chrome on skip/Esc ----
-   Fixed (the /news + /reports overlays aren't inside the map's positioned box),
-   top-left so it reads near where the map's ? launcher lives. */
+   Fixed, pinned to the top-left of the map SHELL (below the host site's sticky
+   header) so it reads near where the map's ? launcher lives. */
 .skipToast {
   position: fixed;
-  top: 16px;
+  top: calc(var(--tour-shell-top, 0px) + 16px);
   left: 16px;
   z-index: 1400;
   max-width: min(300px, calc(100vw - 32px));
@@ -295,11 +304,12 @@
    Fine-pointer desktop is signed off and must stay byte-identical, so all of
    these are pointer-gated, never width-gated. */
 @media (pointer: coarse) {
-  /* C2: cap the centered welcome/finish card to the visible viewport so a long
-     body can't push the footer off-screen, and keep the action row reachable via
-     a sticky bar. (--app-vh is written by useVisualViewport; 100vh is the fallback.) */
+  /* C2: cap the centered welcome/finish card to the visible SHELL region (the
+     host header eats the top of the viewport) so a long body can't push the
+     footer off-screen, and keep the action row reachable via a sticky bar.
+     (--app-vh is written by useVisualViewport; 100dvh is the fallback.) */
   .card {
-    max-height: calc(var(--app-vh, 100vh) - 10vh);
+    max-height: calc(var(--app-vh, 100dvh) - var(--tour-shell-top, 0px) - 10vh);
     overflow-y: auto;
   }
   .card .footer {
@@ -326,43 +336,61 @@
   .bubble {
     left: 12px !important;
     right: 12px !important;
-    top: 12px !important;
+    /* Below the host site's sticky header (--tour-shell-top = shell's top edge). */
+    top: calc(var(--tour-shell-top, 0px) + 12px) !important;
     width: auto !important;
     transform: none !important;
     /* M4: never let a long body (± the appended feedback line) grow the bubble
-       off-screen — cap to the visible viewport and scroll inside. */
-    max-height: calc(var(--app-vh, 100vh) - 24px);
+       off-screen — cap to the visible shell region and scroll inside. */
+    max-height: calc(var(--app-vh, 100dvh) - var(--tour-shell-top, 0px) - 24px);
     overflow-y: auto;
   }
   .arrow {
     display: none;
   }
-  /* Branch (a) — bridge-news (map tour) + the page overlay's reader/close stops:
-     bottom band cleared above the 56px tab bar, so the bubble sits just above its
-     own spotlight hole (the News tab / the modal's close). */
+  /* Branch (a) — the page overlay's reader/close stops: pinned to the bottom
+     edge so the bubble sits just below its spotlight hole (the modal / its ×).
+     (The old 56px term cleared the map's own tab bar — removed with it; the
+     host site has no bottom bar.) */
   .bubblePinBottom {
     top: auto !important;
-    bottom: calc(12px + 56px + env(safe-area-inset-bottom)) !important;
+    bottom: calc(12px + env(safe-area-inset-bottom)) !important;
   }
   /* Branch (b) — map-region stops (borough / neighborhood): the sheet is at peek
-     (96px) on these stops, so clear the tab bar AND the peek band; bubbleCompact
-     keeps the bubble short enough to stay inside the spotlit map band above it. */
+     (96px) on these stops, so clear the peek band; bubbleCompact keeps the bubble
+     short enough to stay inside the spotlit map band above it. */
   .bubblePinMap {
     top: auto !important;
-    bottom: calc(12px + 56px + 96px + 12px + env(safe-area-inset-bottom)) !important;
+    bottom: calc(12px + 96px + 12px + env(safe-area-inset-bottom)) !important;
   }
   /* M5: map-region stops stay compact so the pinned bubble never reaches up into
      the spotlit map band above the sheet. */
   .bubbleCompact {
-    max-height: calc(var(--app-vh, 100vh) * 0.46);
+    max-height: calc((var(--app-vh, 100dvh) - var(--tour-shell-top, 0px)) * 0.46);
     padding: 12px 14px;
   }
   /* Branch (c) — panel-anchored stops (digest / browse / area-detail / filter /
      filter-pick): the sheet is at half, so ride ABOVE its top edge and point down
      at the ringed control inside it. Applied INSTEAD of bubblePinBottom (never both)
-     so two !important bottoms can't stack. --app-vh tracks the visual viewport. */
+     so two !important bottoms can't stack. The sheet halves the SHELL's height
+     (viewport minus the host header), so derive from that, not the raw viewport. */
   .bubbleAboveSheet {
     top: auto !important;
-    bottom: calc(var(--app-vh, 100vh) * 0.5 + 56px + 24px + env(safe-area-inset-bottom)) !important;
+    bottom: calc((var(--app-vh, 100dvh) - var(--tour-shell-top, 0px)) * 0.5 + 24px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* Motion is decorative here — honor the platform setting. Position writes stay
+   (they're how the overlay tracks its anchor); the pulse, entrances and eases go. */
+@media (prefers-reduced-motion: reduce) {
+  .ring::after {
+    animation: none;
+  }
+  .bubble,
+  .card {
+    animation-duration: 1ms;
+  }
+  .settleMove {
+    transition: none;
   }
 }

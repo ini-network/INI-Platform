@@ -19,7 +19,7 @@
   width: 100%;
   background: var(--bg, #f6f2ea);
   color: var(--ink, #111c18);
-  font-family: var(--font-sans, Inter, system-ui, sans-serif);
+  font-family: var(--cs-font-sans, Inter, system-ui, sans-serif);
 }
 
 /* ---------- left icon rail ---------- */
