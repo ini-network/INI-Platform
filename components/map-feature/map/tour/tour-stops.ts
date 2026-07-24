@@ -270,26 +270,28 @@ export const STOPS: TourStop[] = [
     successText: "That's filtering — the map and panel follow whatever topic you pick."
   },
   {
+    // The old hands-on version anchored to the sidebar's News link; this design
+    // has no sidebar (navigation lives in the host site's header menu), so the
+    // guide now carries the user to /news itself — the CTA triggers the bridge
+    // (see advanceInfo in map-tour-guide.tsx).
     id: "bridge-news",
-    kind: "action",
-    placement: "anchored",
-    anchor: '[data-tour="rail"] a[href="/news"]',
-    anchorPhone: '[data-tour="tabbar-news"]',
-    bubbleSide: "right",
+    kind: "info",
+    placement: "center",
+    anchor: null,
+    bubbleSide: "center",
     sheetOnActivate: "peek",
     mapRegion: false,
     navLinked: false,
     doneAtDepth: 0,
     requiresDepth: 0,
     needsDrill: false,
-    needsRail: true,
+    needsRail: false,
     title: "Next stop — News",
     body:
-      "Last one for you to do: click News in the sidebar to see the day's local headlines across the boroughs.",
+      "That's the map! There's more: a News page with the day's local headlines across the boroughs. The guide will take you there and point out the good parts.",
     bodyPhone:
-      "Last one for you to do: tap News at the bottom to see the day's local headlines across the boroughs.",
-    missHint: "Click News in the sidebar on the left to keep going.",
-    missHintPhone: "Tap News at the bottom to keep going.",
+      "That's the map! There's more: a News page with the day's local headlines. The guide will take you there next.",
+    cta: "Take me to News →",
     successText: ""
   }
 ];

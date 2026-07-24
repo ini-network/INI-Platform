@@ -55,6 +55,10 @@ export function AppShellV2({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+      {/* Cross-page tour engine for the /news and /reports guide segments.
+          Renders nothing unless a tour segment is actually mid-flight, so it
+          costs nothing on normal visits. */}
+      <PageTourOverlay />
     </div>
   );
 }
