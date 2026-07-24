@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 /**
  * LoginPage Component
@@ -131,7 +132,7 @@ export default function LoginPage() {
         setSuccessMessage("");
 
         const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'linkedin',
+            provider: 'linkedin_oidc',
             options: {
                 redirectTo: getRedirectUrl(),
             },
@@ -141,30 +142,30 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex h-full w-full overflow-y-auto items-center justify-center bg-slate-900 p-4 font-sans">
-            <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl relative my-auto">
+        <div className="flex h-screen w-full items-center justify-center bg-[#f8fafc] font-sans">
+            <div className="w-full max-w-[420px] rounded-2xl bg-white p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 relative">
 
                 {/* Header */}
-                <div className="mb-6 text-center">
+                <div className="mb-8 text-center">
                     <div
-                        className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-                        <span className="text-3xl">🔭</span>
+                        className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-slate-900 shadow-sm">
+                        <span className="text-2xl">🔭</span>
                     </div>
-                    <h1 className="text-2xl font-bold text-slate-800">INI Explorer</h1>
-                    <p className="mt-2 text-sm font-medium text-slate-500">
-                        {view === "sign-in" ? "Sign in to access the network" : "Create your account"}
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Welcome to INI</h1>
+                    <p className="mt-2 text-sm text-slate-500">
+                        {view === "sign-in" ? "Sign in to access the network" : "Create your account to get started"}
                     </p>
                 </div>
 
                 {/* View Toggles */}
-                <div className="flex p-1 bg-slate-100 rounded-lg mb-6">
+                <div className="flex p-1 bg-slate-100/80 rounded-xl mb-8">
                     <button
                         onClick={() => {
                             setView("sign-in");
                             setErrorMessage("");
                             setSuccessMessage("");
                         }}
-                        className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${view === "sign-in" ? "bg-white shadow-sm text-slate-800" : "text-slate-500 hover:text-slate-700"}`}
+                        className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${view === "sign-in" ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-700"}`}
                     >
                         Sign In
                     </button>
@@ -174,7 +175,7 @@ export default function LoginPage() {
                             setErrorMessage("");
                             setSuccessMessage("");
                         }}
-                        className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${view === "sign-up" ? "bg-white shadow-sm text-slate-800" : "text-slate-500 hover:text-slate-700"}`}
+                        className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${view === "sign-up" ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-700"}`}
                     >
                         Sign Up
                     </button>
@@ -182,16 +183,22 @@ export default function LoginPage() {
 
                 {/* Messages */}
                 {errorMessage && <div
-                    className="mb-4 p-3 bg-red-50 text-red-600 text-sm font-bold rounded-lg border border-red-100">{errorMessage}</div>}
+                    className="mb-6 p-3.5 bg-red-50/80 text-red-600 text-sm font-medium rounded-xl border border-red-100 flex items-start gap-2">
+                    <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    {errorMessage}
+                </div>}
                 {successMessage && <div
-                    className="mb-4 p-3 bg-emerald-50 text-emerald-700 text-sm font-bold rounded-lg border border-emerald-100">{successMessage}</div>}
+                    className="mb-6 p-3.5 bg-emerald-50/80 text-emerald-700 text-sm font-medium rounded-xl border border-emerald-100 flex items-start gap-2">
+                    <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    {successMessage}
+                </div>}
 
                 {/* Form */}
-                <form onSubmit={handleAuth} className="space-y-4">
+                <form onSubmit={handleAuth} className="space-y-5">
                     {/* Full Name Field (Only on Sign Up) */}
                     {view === "sign-up" && (
                         <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                            <label className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">
+                            <label className="block text-sm font-medium text-slate-700 mb-1.5">
                                 Full Name
                             </label>
                             <input
@@ -200,43 +207,43 @@ export default function LoginPage() {
                                 onChange={(e) => setFullName(e.target.value)}
                                 required={view === "sign-up"}
                                 placeholder="Jane Doe"
-                                className="w-full border border-slate-200 bg-slate-50 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all font-medium"
+                                className="w-full border border-slate-200 bg-white rounded-xl p-3 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all placeholder:text-slate-400"
                             />
                         </div>
                     )}
                     <div>
-                        <label
-                            className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Email</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Email address</label>
                         <input
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            className="w-full border border-slate-200 bg-slate-50 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all font-medium"
+                            placeholder="you@example.com"
+                            className="w-full border border-slate-200 bg-white rounded-xl p-3 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all placeholder:text-slate-400"
                         />
                     </div>
 
                     <div>
-                        <label
-                            className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Password</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
                         <input
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            className="w-full border border-slate-200 bg-slate-50 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all font-medium"
+                            placeholder="••••••••"
+                            className="w-full border border-slate-200 bg-white rounded-xl p-3 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all placeholder:text-slate-400"
                         />
 
                         {/* Password Strength Checklist (Only shows during Sign Up) */}
                         {view === "sign-up" && (
-                            <div className="mt-3 space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                                <p className="text-xs font-bold text-slate-600 mb-2">Password must contain:</p>
+                            <div className="mt-3 space-y-1.5 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                                <p className="text-xs font-semibold text-slate-700 mb-2">Password requirements:</p>
                                 {passwordRequirements.map((req) => {
                                     const isMet = req.regex.test(password);
                                     return (
                                         <div key={req.id} className="flex items-center text-xs">
-                                            <span className={`mr-2 ${isMet ? "text-emerald-500" : "text-slate-300"}`}>
-                                                {isMet ? "✓" : "○"}
+                                            <span className={`mr-2.5 flex-shrink-0 flex items-center justify-center w-4 h-4 rounded-full ${isMet ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400"}`}>
+                                                {isMet ? <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg> : <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />}
                                             </span>
                                             <span className={isMet ? "text-slate-700" : "text-slate-500"}>
                                                 {req.text}
@@ -251,42 +258,51 @@ export default function LoginPage() {
                     <button
                         type="submit"
                         disabled={isLoading || (view === "sign-up" && !isPasswordStrong)}
-                        className="w-full py-3 bg-slate-900 text-white font-bold rounded-lg hover:bg-slate-800 disabled:opacity-50 transition-all shadow-sm"
+                        className="w-full py-3 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm mt-2"
                     >
                         {isLoading ? "Processing..." : view === "sign-in" ? "Sign In" : "Create Account"}
                     </button>
                 </form>
 
+                <div className="relative mt-8 mb-6">
+                    <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-slate-200"></div>
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                        <span className="bg-white px-4 text-slate-400 font-medium text-xs tracking-wider uppercase">Or continue with</span>
+                    </div>
+                </div>
+
                 {/* LinkedIn Login Button */}
-                {/*<div className="mt-6 border-t border-slate-100 pt-6">
+                <div>
                     <button
                         type="button"
                         onClick={handleLinkedInSignIn}
                         disabled={isLoading}
-                        className="w-full flex items-center justify-center py-2.5 bg-[#0A66C2] text-white font-bold rounded-lg hover:bg-[#004182] transition-colors shadow-sm disabled:opacity-50"
+                        className="w-full flex items-center justify-center py-3 bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50 group"
                     >
+                        <Image 
+                            src="/images/linkedin-logo.png" 
+                            alt="LinkedIn Logo" 
+                            width={20} 
+                            height={20} 
+                            className="mr-3 object-contain group-hover:scale-105 transition-transform" 
+                        />
                         Sign in with LinkedIn
                     </button>
-                </div> */}
+                </div>
 
                 {/* Updated Anonymous Browsing Button */}
-                <div className="mt-6 border-t border-slate-100 pt-6">
+                <div className="mt-6 text-center">
                     <button
                         type="button"
                         onClick={() => {
-                            // 1. ANONYMOUS BYPASS CACHE RESET
-                            // Force-invalidates server-side layout and router caches which might have
-                            // cached an "auth-required" state from a previously failed session.
                             router.refresh();
-
-                            // 2. JS EVENT LOOP YIELD STRATEGY
-                            // Yields execution to the next tick (100ms delay) to guarantee the Next.js router
-                            // processes and records the refresh state before we commit to the homepage redirect.
                             setTimeout(() => {
                                 router.push('/');
                             }, 100);
                         }}
-                        className="w-full flex items-center justify-center py-2.5 bg-slate-100 text-slate-600 font-bold rounded-lg hover:bg-slate-200 transition-colors shadow-sm"
+                        className="text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors underline decoration-slate-300 underline-offset-4 hover:decoration-slate-800"
                     >
                         Browse without logging in
                     </button>
