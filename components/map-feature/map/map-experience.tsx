@@ -27,6 +27,7 @@ type Props = {
   initialBorough: string;
   initialTimeWindow: string;
   initialIssueType: string;
+  initialAreaId: number | null;
   initialOverview: BoroughOverview | null;
   initialSignals: NeighborhoodSignalsResponse | null;
 };
@@ -47,6 +48,7 @@ export function MapExperience({
   initialBorough,
   initialTimeWindow,
   initialIssueType,
+  initialAreaId,
   initialOverview,
   initialSignals
 }: Props) {
@@ -63,6 +65,7 @@ export function MapExperience({
   const [borough, setBorough] = useState(initialBorough);
   const [timeWindow, setTimeWindow] = useState(initialTimeWindow);
   const [issueType, setIssueType] = useState(initialIssueType);
+  const [areaId, setAreaId] = useState<number | null>(initialAreaId);
   const [overview, setOverview] = useState<BoroughOverview | null>(initialOverview);
   const [loading, setLoading] = useState(false);
 
@@ -138,6 +141,7 @@ export function MapExperience({
         return;
       }
       setBorough(next);
+      setAreaId(null);
       void apply(next, timeWindowRef.current, issueTypeRef.current);
     },
     [apply]
@@ -173,6 +177,10 @@ export function MapExperience({
       return;
     }
     setBorough(next);
+  }, []);
+
+  const handleAreaChange = useCallback((next: number | null) => {
+    setAreaId(next);
   }, []);
 
   const handleModeChange = useCallback(
@@ -243,8 +251,13 @@ export function MapExperience({
     params.set("borough", borough);
     params.set("time_window", timeWindow);
     params.set("issue_type", issueType);
+    if (areaId === null) {
+      params.delete("area_id");
+    } else {
+      params.set("area_id", String(areaId));
+    }
     window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
-  }, [borough, timeWindow, issueType]);
+  }, [borough, timeWindow, issueType, areaId]);
 
   // First-visit auto-open of the guided tour. Runs once after hydration; gated
   // on real signals (a null set means there's nothing on the map to teach) and
@@ -334,6 +347,8 @@ export function MapExperience({
           neighborhoodGeoJson={neighborhoodGeoJson}
           activeBorough={borough}
           onSelectBorough={handleSelectBoroughSignals}
+          initialAreaId={areaId}
+          onAreaChange={handleAreaChange}
           tourOpen={tourOpen}
           onTourClose={handleTourClose}
           onTourBridge={handleTourBridge}

@@ -164,14 +164,14 @@ export const BoroughOverviewMap = memo(function BoroughOverviewMap({
   const ff = useFormFactor();
   // Signals lens threads the settled snap height; the 311 lens omits it, so fall
   // back to the non-sheet .cs-insights band (T3): its phone cap (45% of the
-  // visual viewport) plus the 68px it clears the tab bar by (12 margin + 56 bar).
+  // visual viewport) plus its 12px bottom margin. AppShellV2 has no map tab bar.
   const vv = useVisualViewport();
   // The .cs-insights CSS anchor includes env(safe-area-inset-bottom); the fallback
   // band must add it too, or on notched phones the modeled sheet sits ~34px high
   // and eats the fit's breathing pad. Probed once (changes only on rotation);
   // readSafeAreaBottom is SSR-guarded (returns 0 with no document).
   const safeBottom = useMemo(() => readSafeAreaBottom(), []);
-  const sheetPx = sheetPxProp ?? Math.round(vv.height * 0.45) + 68 + safeBottom;
+  const sheetPx = sheetPxProp ?? Math.round(vv.height * 0.45) + 12 + safeBottom;
   const fitRef = useRef<{ padding: Padding; sheetPx: number }>({
     padding: computeFitPadding(ff, sheetPx),
     sheetPx
@@ -315,11 +315,9 @@ export const BoroughOverviewMap = memo(function BoroughOverviewMap({
       // Click a borough → respond instantly (highlight + camera glide), then let
       // the orchestrator update its selection. Clicking the already-selected
       // borough re-runs the camera glide so the click is never silent.
-      // NOTE (B2 tap-peek decision): coarse pointers do NOT get the two-step
-      // tap-to-peek used on the neighborhood map. Boroughs are large targets and
-      // carry always-on symbol labels (borough-labels layer), so their name is
-      // already legible without a peek — a single tap selecting is correct and
-      // matches the fine-pointer behavior. Peek lives only on unlabeled NTAs.
+      // Coarse pointers use the same immediate selection behavior. Boroughs are
+      // large targets with always-on symbol labels, so one tap is clear and
+      // matches the neighborhood map's touch behavior.
       map.on("click", "borough-fill", (event) => {
         const name = event.features?.[0]?.properties?.BoroName;
         if (typeof name !== "string") {

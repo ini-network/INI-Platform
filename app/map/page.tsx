@@ -8,7 +8,7 @@ import {
 } from "@/lib/map-feature/api";
 import { buildBoroughOverview, type BoroughOverview } from "@/lib/map-feature/borough-overview";
 import type { NeighborhoodSignalsResponse } from "@/lib/map-feature/signal-types";
-import { firstParam } from "@/lib/map-feature/search-params";
+import { firstParam, positiveIntParam } from "@/lib/map-feature/search-params";
 import type { GeoJSONFeatureCollection } from "@/lib/map-feature/shared-types";
 import boroughBoundary from "../../public/map/nyc-borough-boundary-simplified.json";
 import boroughLabels from "../../public/map/nyc-borough-labels.json";
@@ -29,6 +29,7 @@ export default async function MapPage({
   const borough = boroughParam && BOROUGHS.includes(boroughParam) ? boroughParam : "Brooklyn";
   const timeWindow = firstParam(params, "time_window") ?? "30d";
   const issueType = firstParam(params, "issue_type") ?? "all";
+  const initialAreaId = positiveIntParam(params, "area_id");
 
   // Fetch only the initial borough server-side (fast first paint). The client
   // orchestrator caches it and lazily loads/prefetches the rest. Prefer the
@@ -71,6 +72,17 @@ export default async function MapPage({
       { next: { revalidate: 86400 } }
     ).catch((): GeoJSONFeatureCollection | null => null)
   ]);
+  const restoredAreaId =
+    initialAreaId !== null &&
+    neighborhoodGeoJson?.features.some((feature) => {
+      const properties = feature.properties ?? {};
+      return (
+        properties.id === initialAreaId &&
+        (typeof properties.borough !== "string" || properties.borough === borough)
+      );
+    })
+      ? initialAreaId
+      : null;
 
   return (
     <AppShellV2>
@@ -81,6 +93,7 @@ export default async function MapPage({
         initialBorough={borough}
         initialTimeWindow={timeWindow}
         initialIssueType={issueType}
+        initialAreaId={restoredAreaId}
         initialOverview={overview}
         initialSignals={signals}
       />

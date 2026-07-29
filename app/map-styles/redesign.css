@@ -226,10 +226,10 @@
 .cs-total-value { font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; color: var(--ink, #111c18); font-variant-numeric: tabular-nums; }
 .cs-window-select {
   height: 30px;
-  border: 1px solid var(--line, rgba(20, 30, 25, 0.14));
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.14)) !important;
   border-radius: 8px;
-  background: var(--surface, #fff);
-  color: var(--ink-soft, #33423b);
+  background: var(--surface, #fff) !important;
+  color: var(--ink-soft, #33423b) !important;
   font-size: 12px;
   font-weight: 600;
   padding: 0 6px;
@@ -364,25 +364,30 @@
 .cs-dd-field span { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted, #6a756f); }
 .cs-dd-field select {
   height: 34px;
-  border: 1px solid var(--line, rgba(20, 30, 25, 0.14));
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.14)) !important;
   border-radius: 8px;
-  background: var(--surface, #fff);
-  color: var(--ink, #111c18);
+  background: var(--surface, #fff) !important;
+  color: var(--ink, #111c18) !important;
   font-size: 12.5px;
   padding: 0 8px;
   cursor: pointer;
 }
 .cs-dd-search {
   height: 36px;
-  border: 1px solid var(--line, rgba(20, 30, 25, 0.14));
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.14)) !important;
   border-radius: 999px;
-  background: var(--surface-soft, #fbf8f1);
-  color: var(--ink, #111c18);
+  background: var(--surface-soft, #fbf8f1) !important;
+  color: var(--ink, #111c18) !important;
   font-size: 13px;
   padding: 0 14px;
   outline: none;
 }
-.cs-dd-search:focus { border-color: var(--primary, #7c3aed); }
+.cs-dd-search:focus {
+  border-color: var(--primary, #7c3aed) !important;
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+}
 
 .cs-legend { display: flex; flex-wrap: wrap; gap: 6px; }
 .cs-legend-chip {
@@ -476,6 +481,61 @@
   transition: opacity 120ms ease;
   will-change: transform;
 }
+.cs-focus-marker {
+  position: relative;
+  pointer-events: none;
+}
+.cs-focus-marker--geolocation {
+  width: 28px;
+  height: 36px;
+  filter: drop-shadow(0 5px 7px rgba(17, 28, 24, 0.28));
+}
+.cs-focus-marker--geolocation::before {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  background: #2563eb;
+  transform: rotate(-45deg);
+}
+.cs-focus-marker--geolocation::after {
+  content: "";
+  position: absolute;
+  top: 9px;
+  left: 12px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #fff;
+}
+.cs-focus-marker--search {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #7c3aed;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.9),
+    0 4px 10px rgba(17, 28, 24, 0.28);
+}
+.cs-focus-marker--search::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: #7c3aed;
+}
+.cs-focus-marker--search::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border: 2px solid rgba(124, 58, 237, 0.24);
+  border-radius: 50%;
+}
 
 /* Selected-neighborhood detail card (compact, 3 tight rows). */
 .cs-selected-card {
@@ -512,28 +572,47 @@
 .cs-selected-meta { font-size: 11px; color: var(--muted, #6a756f); }
 
 @media (max-width: 640px) {
-  /* Track the iOS DYNAMIC viewport so the shell's bottom follows the visible
-     bottom the fixed tab bar tracks (100vh anchors under the collapsing browser
-     chrome, misplacing the sheet). 100vh base (line 18) is the old-browser
-     fallback where 100dvh is unsupported. */
+  /* The global fixed launcher otherwise covers the map sheet and attribution. */
+  .cs-map-copilot {
+    display: none;
+  }
+  /* The host already owns the route area below its header. Keep that layout host
+     full-height when the keyboard opens: iOS shrinks only visualViewport, and
+     shrinking this nested shell produced the large blank block below the map. */
   .cs-shell {
-    height: 100dvh;
+    height: 100%;
+  }
+  /* Prevent Safari focus zoom throughout the Civic Map, including 311 and the
+     borough deep-dive, while retaining normal user pinch zoom. */
+  .cs-window-select,
+  .cs-dd-field select,
+  .cs-dd-search {
+    font-size: 16px;
+  }
+  .cs-window-select,
+  .cs-dd-field select,
+  .cs-dd-search {
+    min-height: 44px;
   }
   /* Draggable bottom sheet (M1). Height is driven INLINE by useSheetState
      (peek/half/full px, derived from the visual viewport so it shrinks above the
      soft keyboard). max-height mirrors the JS full clamp (visible viewport less
-     the topbar + tab-bar bands) as a looser backstop that can't exceed it; the
-     height transition animates each snap. Bottom clearance (M0) keeps it above
-     the tab bar. overflow:auto (base rule) means peek/half hide the body below
-     the fold naturally; full scrolls internally. */
+     the host header and breathing room) as a looser backstop that can't exceed
+     it; the height transition animates each snap. overflow:auto (base rule)
+     means peek/half hide the body below the fold naturally; full scrolls
+     internally. */
   .cs-insights {
     position: absolute;
     left: 12px;
     right: 12px;
     width: auto;
     top: auto;
-    bottom: calc(12px + 56px + env(safe-area-inset-bottom));
-    max-height: calc(var(--app-vh, 100vh) - 140px);
+    /* AppShellV2 no longer renders the old 56px map tab bar. --app-vv-bottom
+       moves only the sheet above an iOS keyboard while the map remains full. */
+    bottom: calc(
+      12px + env(safe-area-inset-bottom) + var(--app-vv-bottom, 0px)
+    );
+    max-height: calc(var(--app-vh, 100vh) - 4rem - 24px);
     /* Full-bleed feel in the short sheet: tighter padding, top corners only
        (M2 §5 phone type/spacing). */
     padding: 14px 16px;
@@ -545,8 +624,8 @@
      can't drift with momentum scroll or slide under content (owner complaint 1).
      z-index lifts the whole sheet above the floating mode toggle (.modeToggle z5),
      restart toast (z6) and search popover (z6) so the handle is never covered at
-     full (owner complaint 2); it stays under the tab bar (z900) and tour chrome
-     (z1385+). Scoped to [data-snap] so the 311 / unavailable panels (capped +
+     full (owner complaint 2); it stays under the tour chrome (z1385+). Scoped
+     to [data-snap] so the 311 / unavailable panels (capped +
      scrolling via the rule below) are untouched. */
   .cs-insights[data-snap] {
     overflow: hidden;
@@ -594,15 +673,31 @@
   .cs-insights[data-snap="peek"] .cs-sheet-body {
     display: none;
   }
-  /* The peek brief line: scope name + the filtered counts, single line, clipped.
-     Only shown at peek — at half/full the header badge + digest brief carry the
-     same numbers, so it would be redundant. */
-  .cs-sheet-brief {
+  /* Peek actions: keep the existing one-line scope/count summary, with a compact
+     nearby-location action beside it. The row appears only at peek; half/full
+     already expose the full search and controls. */
+  .cs-sheet-peek {
     display: none;
-    margin: 2px 0 0;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    margin: 0;
+  }
+  .cs-insights[data-snap="peek"] .cs-sheet-peek {
+    display: flex;
+  }
+  .cs-sheet-brief {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    padding: 8px 0;
+    border: 0;
+    background: transparent;
     color: var(--muted, #6a756f);
+    font-family: inherit;
     font-size: 13px;
     line-height: 1.35;
+    text-align: left;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -611,9 +706,6 @@
   .cs-sheet-brief strong {
     color: var(--ink, #111c18);
     font-weight: 750;
-  }
-  .cs-insights[data-snap="peek"] .cs-sheet-brief {
-    display: block;
   }
   /* While dragging: no height transition (the finger drives it live). */
   .cs-insights[data-dragging] {
@@ -628,6 +720,12 @@
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
     background: var(--surface, #fffdf8);
+  }
+  /* A snap transition moves the local-news rows through the search field's old
+     screen position. Ignore link taps during those few frames so a delayed or
+     synthesized mobile click can never open an article that slid under a finger. */
+  .cs-insights[data-settling] .cs-news a {
+    pointer-events: none;
   }
   /* Grab handle: the sole drag surface (handle-only drag avoids map-gesture
      conflict). A 44px hit band with a subtle warm-paper pill. */
@@ -730,9 +828,8 @@
    1024 (or any fine pointer) the desktop 372px panel stands. */
 @media (min-width: 641px) and (max-width: 1024px) and (pointer: coarse) {
   .cs-insights { width: 320px; }
-  /* Same iOS dynamic-viewport tracking as the phone block (T2); desktop >1024
-     keeps plain 100vh. */
-  .cs-shell { height: 100dvh; }
+  /* The surrounding host already supplies the available height. */
+  .cs-shell { height: 100%; }
 }
 
 /* Touch tap target for the signals "← All boroughs" pill (B2 item 3). Pointer-
@@ -969,6 +1066,14 @@
   .cs-window-select,
   .cs-explore-link {
     min-height: 44px;
+  }
+  /* iPad/large touch layouts sit above the phone width breakpoint but have the
+     same mobile form-control zoom behavior. */
+  .cs-window-select,
+  .cs-dd-field select,
+  .cs-dd-search {
+    min-height: 44px;
+    font-size: 16px;
   }
   /* Inline digest news links: pad the line box to a 44px tap target without
      changing the inline text look on fine-pointer desktop. */

@@ -1,11 +1,12 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef } from "react";
-import type { Map as MapboxMap } from "mapbox-gl";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { Marker, type FilterSpecification, type Map as MapboxMap } from "mapbox-gl";
 
 import { MQ } from "@/lib/map-feature/breakpoints";
-import { boroughBounds } from "@/lib/map-feature/map/bounds";
+import { areaBounds, boroughBounds } from "@/lib/map-feature/map/bounds";
 import { BOROUGH_CENTERS, computeFitPadding, guardPadding, type Padding } from "@/lib/map-feature/map/camera";
+import { neighborhoodLabelCollection } from "@/lib/map-feature/map/neighborhood-labels";
 import { useFormFactor } from "@/lib/map-feature/use-form-factor";
 import type { SheetSnap } from "@/lib/map-feature/use-sheet-state";
 import { MapboxCanvas } from "./mapbox-canvas";
@@ -19,6 +20,7 @@ import { MapboxCanvas } from "./mapbox-canvas";
 // A per-neighborhood fill: `color` is a concrete map color (Mapbox paint can't
 // read CSS vars) and `opacity` is scaled by the neighborhood's top signal score.
 export type AreaTint = { color: string; opacity: number };
+type PointSource = "search" | "geolocation";
 
 type PolygonFeature = { properties?: Record<string, unknown> | null };
 type PolygonCollection = { features?: PolygonFeature[] };
@@ -46,6 +48,9 @@ type Props = {
   // When set (from a search result), fly to this [lng, lat] instead of fitting
   // the borough bounds. Null on a plain drill-in / neighborhood click.
   focusPoint: [number, number] | null;
+  userLocationPoint: [number, number] | null;
+  searchedLocationPoint: [number, number] | null;
+  searchedLocationLabel: string | null;
   onSelectArea: (areaId: number) => void;
   // Phone bottom-sheet coupling (from useSheetState, in the host). `sheetPx` is
   // the SETTLED snap height reserved as bottom fit/easeTo padding; `sheetSnap` is
@@ -66,6 +71,16 @@ const NEUTRAL = "#c7ccd1";
 const BOROUGH_OUTLINE = "#2563eb";
 const NEUTRAL_OPACITY = 0.14;
 const FOCUS_ZOOM = 13.5;
+const SCOPE_FIT_DURATION = 450;
+const BASEMAP_NEIGHBORHOOD_LABEL_LAYER = "settlement-subdivision-label";
+
+function unselectedLabelFilter(areaId: number | null): FilterSpecification {
+  return areaId === null ? ["has", "id"] : ["!=", ["get", "id"], areaId];
+}
+
+function selectedLabelFilter(areaId: number | null): FilterSpecification {
+  return ["==", ["get", "id"], areaId ?? -1];
+}
 
 // Fly-to options for a searched/selected point. On phone the target is biased
 // into the visible band ABOVE the sheet (an upward offset lifts the center so it
@@ -91,6 +106,9 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
   metaByArea,
   selectedAreaId,
   focusPoint,
+  userLocationPoint,
+  searchedLocationPoint,
+  searchedLocationLabel,
   onSelectArea,
   sheetPx,
   sheetSnap
@@ -104,6 +122,16 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
   selectedAreaIdRef.current = selectedAreaId;
   const focusPointRef = useRef<[number, number] | null>(focusPoint);
   focusPointRef.current = focusPoint;
+  const userLocationPointRef = useRef<[number, number] | null>(userLocationPoint);
+  userLocationPointRef.current = userLocationPoint;
+  const searchedLocationPointRef = useRef<[number, number] | null>(searchedLocationPoint);
+  searchedLocationPointRef.current = searchedLocationPoint;
+  const searchedLocationLabelRef = useRef<string | null>(searchedLocationLabel);
+  searchedLocationLabelRef.current = searchedLocationLabel;
+  const markerRefs = useRef<Record<PointSource, Marker | null>>({
+    search: null,
+    geolocation: null
+  });
   const hoverStateRef = useRef<number | null>(null);
   const onSelectRef = useRef(onSelectArea);
   onSelectRef.current = onSelectArea;
@@ -117,6 +145,46 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
   // whole component at pointer speed for a purely cosmetic label.
   const tipRef = useRef<HTMLDivElement | null>(null);
   const center = BOROUGH_CENTERS[borough] ?? [-73.94, 40.7];
+  const labelData = useMemo(() => neighborhoodLabelCollection(features), [features]);
+
+  const syncPointMarker = useCallback(
+    (
+      map: MapboxMap,
+      source: PointSource,
+      point: [number, number] | null,
+      label: string | null
+    ) => {
+      markerRefs.current[source]?.remove();
+      markerRefs.current[source] = null;
+      if (!point) {
+        return;
+      }
+      const element = document.createElement("div");
+      element.className = `cs-focus-marker cs-focus-marker--${source}`;
+      element.dataset.locationKind = source;
+      element.setAttribute("role", "img");
+      const fallbackLabel = source === "geolocation" ? "Your current location" : "Searched address";
+      element.setAttribute("aria-label", label ?? fallbackLabel);
+      element.title = label ?? fallbackLabel;
+      markerRefs.current[source] = new Marker({
+        element,
+        anchor: source === "geolocation" ? "bottom" : "center"
+      })
+        .setLngLat(point)
+        .addTo(map);
+    },
+    []
+  );
+
+  useEffect(
+    () => () => {
+      markerRefs.current.search?.remove();
+      markerRefs.current.geolocation?.remove();
+      markerRefs.current.search = null;
+      markerRefs.current.geolocation = null;
+    },
+    []
+  );
 
   // Form-factor aware camera geometry. Held in a ref so imperative Mapbox
   // handlers (onReady, sourcedata finish) read the CURRENT value, never a stale
@@ -135,93 +203,50 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
     isCoarse: ff.isCoarse
   };
 
-  // Tap-to-peek (coarse pointers only): the FIRST tap on an NTA shows its outline
-  // + name/count tag WITHOUT selecting; a SECOND tap on the same NTA (or a tap on
-  // the tag) commits onSelectArea. Held in a ref so the imperative Mapbox click
-  // handler reads the current peek without re-subscribing. Fine-pointer devices
-  // never enter this path (guarded by camRef.current.isCoarse), so a single click
-  // still selects exactly as before.
-  const peekIdRef = useRef<number | null>(null);
-  // The keydown listener attached while the peek tag is a focusable button; held
-  // in a ref so the off-branch can detach the exact listener the on-branch added.
-  const peekKeyHandlerRef = useRef<((e: KeyboardEvent) => void) | null>(null);
-
-  // Enter/exit the tag's touch affordance: a 44px, tappable pill (default
-  // .cs-map-tip is pointer-events:none). Styled inline to avoid touching the
-  // shared redesign.css tip block.
-  const setPeekTagAffordance = useCallback((on: boolean, label?: string) => {
-    const el = tipRef.current;
-    if (!el) return;
-    if (on) {
-      el.style.pointerEvents = "auto";
-      el.style.minHeight = "44px";
-      el.style.display = "inline-flex";
-      el.style.alignItems = "center";
-      // While it's an actual tap target, expose it as a button (it's an aria-
-      // hidden decorative hover label the rest of the time).
-      el.setAttribute("role", "button");
-      if (label) el.setAttribute("aria-label", label);
-      el.removeAttribute("aria-hidden");
-      // Keyboard AT parity with the onClick: make the pill focusable and commit
-      // on Enter / Space (preventDefault on Space so it doesn't scroll the page).
-      el.setAttribute("tabindex", "0");
-      if (!peekKeyHandlerRef.current) {
-        const handler = (e: KeyboardEvent) => {
-          if (e.key === "Enter") {
-            commitPeekRef.current();
-          } else if (e.key === " ") {
-            e.preventDefault();
-            commitPeekRef.current();
-          }
-        };
-        peekKeyHandlerRef.current = handler;
-        el.addEventListener("keydown", handler);
+  // One camera owner for every navigation path. Search/GPS keeps its precise
+  // point focus. Touch selections fit the complete polygon above the mobile
+  // sheet. Clearing the selection restores the borough. Fine-pointer desktop
+  // selections can opt out so their established click-without-camera-jump
+  // behavior remains intact.
+  const frameCurrentScope = useCallback(
+    (
+      map: MapboxMap,
+      duration: number,
+      { preserveDesktopSelection = false }: { preserveDesktopSelection?: boolean } = {}
+    ) => {
+      const camera = camRef.current;
+      const focus = focusPointRef.current;
+      if (focus) {
+        map.stop();
+        map.easeTo({
+          ...focusEaseOptions(map, focus, camera.isPhone, camera.sheetPx),
+          duration: duration === 0 ? 0 : 700
+        });
+        return;
       }
-    } else {
-      el.style.pointerEvents = "";
-      el.style.minHeight = "";
-      el.style.display = "";
-      el.style.alignItems = "";
-      el.removeAttribute("role");
-      el.removeAttribute("aria-label");
-      el.removeAttribute("tabindex");
-      if (peekKeyHandlerRef.current) {
-        el.removeEventListener("keydown", peekKeyHandlerRef.current);
-        peekKeyHandlerRef.current = null;
+
+      const selected = selectedAreaIdRef.current;
+      const frameSelectedArea = selected !== null && (camera.isPhone || camera.isCoarse);
+      if (selected !== null && !frameSelectedArea && preserveDesktopSelection) {
+        return;
       }
-      el.setAttribute("aria-hidden", "true");
-      el.style.opacity = "0";
-    }
-  }, []);
 
-  const clearPeek = useCallback(() => {
-    // No active peek: nothing to clear. Guard FIRST so a desktop pan/zoom
-    // (movestart → clearPeek) never runs setPeekTagAffordance(false), whose
-    // off-branch zeroes the shared hover tag's opacity and hides the live hover
-    // name until the cursor crosses to a different NTA.
-    if (peekIdRef.current === null) {
-      return;
-    }
-    const map = mapRef.current;
-    if (map) {
-      map.setFeatureState({ source: "nta", id: peekIdRef.current }, { hover: false });
-    }
-    peekIdRef.current = null;
-    setPeekTagAffordance(false);
-  }, [setPeekTagAffordance]);
+      const selectedBounds =
+        selected !== null && frameSelectedArea ? areaBounds(features, selected) : null;
+      const bounds = selectedBounds ?? boroughBounds(boroughGeoJson, borough);
+      if (!bounds) {
+        return;
+      }
 
-  const commitPeek = useCallback(() => {
-    const id = peekIdRef.current;
-    clearPeek();
-    if (id !== null) {
-      onSelectRef.current(id);
-    }
-  }, [clearPeek]);
-  // Mirror so the tag's keydown listener (attached in setPeekTagAffordance, which
-  // is declared above commitPeek) can call the current commitPeek without a
-  // forward reference or re-subscribing.
-  const commitPeekRef = useRef(commitPeek);
-  commitPeekRef.current = commitPeek;
+      map.stop();
+      map.fitBounds(bounds, {
+        padding: guardPadding(map, camera.padding, camera.sheetPx),
+        duration,
+        ...(selectedBounds ? { maxZoom: FOCUS_ZOOM } : {})
+      });
+    },
+    [borough, boroughGeoJson, features]
+  );
 
   // Give every NTA its tint (persistent for signal-bearing neighborhoods, a
   // faint neutral otherwise). Setting a cleared state on neutral areas ensures a
@@ -253,10 +278,26 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
   const onReady = useCallback(
     (map: MapboxMap) => {
       mapRef.current = map;
+      // On touch, two quick taps must remain two selections rather than becoming
+      // Mapbox's tap-to-zoom gesture. Pan and pinch zoom stay enabled.
+      if (camRef.current.isCoarse) {
+        map.doubleClickZoom.disable();
+      }
 
       const data = { type: "FeatureCollection", features: toFeatureList(features) };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       map.addSource("nta", { type: "geojson", data, promoteId: "id" } as any);
+      // Each NTA has exactly one fixed Point anchor. Polygon symbol anchors are
+      // recalculated per clipped map tile and can duplicate while zooming.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      map.addSource("nta-labels", { type: "geojson", data: labelData } as any);
+
+      // The basemap has its own neighborhood-name layer. Hide only that layer
+      // while the Civic Map's clearer NTA labels are active so users never see a
+      // faint second copy of the same name; streets and city labels remain.
+      if (map.getLayer(BASEMAP_NEIGHBORHOOD_LABEL_LAYER)) {
+        map.setLayoutProperty(BASEMAP_NEIGHBORHOOD_LABEL_LAYER, "visibility", "none");
+      }
 
       map.addLayer({
         id: "nta-fill",
@@ -345,6 +386,81 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
 
+      // Application-owned neighborhood names sit above the signal fills instead
+      // of relying on the basemap's later/less-complete place labels. Collision
+      // detection keeps the borough overview calm; more names naturally appear
+      // as zoom creates room. Compact, familiar names get first placement.
+      map.addLayer({
+        id: "nta-label",
+        type: "symbol",
+        source: "nta-labels",
+        minzoom: 8.6,
+        filter: unselectedLabelFilter(selectedAreaIdRef.current),
+        layout: {
+          "symbol-placement": "point",
+          "symbol-sort-key": ["get", "labelPriority"],
+          "text-field": ["get", "labelText"],
+          "text-font": ["DIN Pro Medium", "Arial Unicode MS Regular"],
+          "text-size": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            8.6,
+            9.5,
+            10.5,
+            10.75,
+            12.5,
+            12,
+            15,
+            13
+          ],
+          "text-max-width": ["get", "labelMaxWidth"],
+          "text-line-height": 1.05,
+          "text-letter-spacing": 0.01,
+          "text-padding": 2,
+          "text-allow-overlap": false,
+          "text-ignore-placement": false
+        },
+        paint: {
+          "text-color": "#34423c",
+          "text-opacity": 0.96,
+          "text-halo-color": "rgba(255, 255, 255, 0.96)",
+          "text-halo-width": 1.4,
+          "text-halo-blur": 0.25
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
+
+      // The active neighborhood never loses its name to collision rules. It is
+      // drawn separately so selection can be guaranteed without making every
+      // label overlap on a small phone screen.
+      map.addLayer({
+        id: "nta-selected-label",
+        type: "symbol",
+        source: "nta-labels",
+        minzoom: 8,
+        filter: selectedLabelFilter(selectedAreaIdRef.current),
+        layout: {
+          "symbol-placement": "point",
+          "text-field": ["get", "labelText"],
+          "text-font": ["DIN Pro Bold", "Arial Unicode MS Regular"],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 8, 11.5, 12, 13, 15, 14],
+          "text-max-width": ["get", "labelMaxWidth"],
+          "text-line-height": 1.05,
+          "text-letter-spacing": 0.01,
+          "text-padding": 0,
+          "text-allow-overlap": true,
+          "text-ignore-placement": true
+        },
+        paint: {
+          "text-color": SELECT_INK,
+          "text-halo-color": "rgba(255, 255, 255, 0.98)",
+          "text-halo-width": 1.8,
+          "text-halo-blur": 0.2
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
+
       // Hover = bright outline + name tag by the cursor. Touch devices
       // synthesize mousemove on tap but never mouseleave, which would strand
       // both forever — so hover only runs where a real pointer exists (checked
@@ -398,72 +514,16 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
         hideTip();
       });
 
-      map.on("click", "nta-fill", (event) => {
+      map.on("click", ["nta-selected-label", "nta-label", "nta-fill"], (event) => {
         clearHover();
-        const id = event.features?.[0]?.id;
+        hideTip();
+        const feature = event.features?.[0];
+        const id = feature?.id ?? feature?.properties?.id;
         if (typeof id !== "number") {
           return;
         }
-        // Fine pointer: single click selects, exactly as before.
-        if (!camRef.current.isCoarse) {
-          hideTip();
-          onSelectRef.current(id);
-          return;
-        }
-        // Coarse pointer: two-step peek. Second tap on the same NTA commits.
-        if (peekIdRef.current === id) {
-          commitPeek();
-          return;
-        }
-        // First tap here (or moving the peek off another NTA): borrow the hover
-        // feature-state for the same outline the desktop hover shows, and park
-        // the name/count tag just above the tap point (finger-safe) with a clear
-        // "Tap again to open" affordance — this also keeps the guided tour's
-        // "tap a neighborhood" step legible on touch (the map takes no tourOpen
-        // prop, so peek is always two-tap; the affordance carries the intent).
-        if (peekIdRef.current !== null) {
-          map.setFeatureState({ source: "nta", id: peekIdRef.current }, { hover: false });
-        }
-        peekIdRef.current = id;
-        map.setFeatureState({ source: "nta", id }, { hover: true });
-        const tipEl = tipRef.current;
-        if (tipEl) {
-          const meta = metaRef.current[id];
-          const name = meta?.name ?? "";
-          const count = meta?.signals ?? 0;
-          const tail =
-            count === 0 ? "no signals yet" : `${count} ${count === 1 ? "signal" : "signals"}`;
-          if (name) {
-            tipEl.textContent = `${name} · ${tail} · Tap again to open`;
-            setPeekTagAffordance(true, `Open ${name}`);
-            tipEl.style.opacity = "1";
-            const y = Math.max(8, event.point.y - 48);
-            tipEl.style.transform = `translate(${event.point.x + 12}px, ${y}px)`;
-          } else {
-            clearPeek();
-          }
-        }
+        onSelectRef.current(id);
       });
-
-      // A tap on water / empty canvas clears the peek (coarse only). The layer
-      // handler above fires for NTA taps; this general handler only acts when the
-      // tap missed every NTA, so the two never fight over the same tap.
-      map.on("click", (event) => {
-        if (!camRef.current.isCoarse || peekIdRef.current === null) {
-          return;
-        }
-        const hits = map.queryRenderedFeatures(event.point, { layers: ["nta-fill"] });
-        if (hits.length === 0) {
-          clearPeek();
-        }
-      });
-
-      // The peek tag is parked at fixed screen pixels for the tapped point; a pan
-      // or zoom (user gesture OR the search easeTo) moves the polygon out from
-      // under it, so drop the peek when the camera starts moving rather than let
-      // the tag float disconnected. clearPeek no-ops when there's no active peek,
-      // so the fine-pointer path is unaffected.
-      map.on("movestart", clearPeek);
 
       const finish = () => {
         readyRef.current = true;
@@ -473,11 +533,19 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
           map.setFeatureState({ source: "nta", id: selected }, { selected: true });
           selectedStateRef.current = selected;
         }
-        const focus = focusPointRef.current;
-        if (focus) {
-          const { isPhone, sheetPx: sp } = camRef.current;
-          map.easeTo(focusEaseOptions(map, focus, isPhone, sp));
-        }
+        syncPointMarker(
+          map,
+          "geolocation",
+          userLocationPointRef.current,
+          "Your current location"
+        );
+        syncPointMarker(
+          map,
+          "search",
+          searchedLocationPointRef.current,
+          searchedLocationLabelRef.current
+        );
+        frameCurrentScope(map, 0);
       };
       if (map.isSourceLoaded("nta")) {
         finish();
@@ -491,15 +559,6 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
         map.on("sourcedata", handler);
       }
 
-      // Fit the borough only when we're not flying to a searched point.
-      if (!focusPointRef.current) {
-        const bounds = boroughBounds(boroughGeoJson, borough);
-        if (bounds) {
-          const { padding, sheetPx: sp } = camRef.current;
-          map.fitBounds(bounds, { padding: guardPadding(map, padding, sp), duration: 0 });
-        }
-      }
-
       // onReady just built the source for THIS borough (latest closure's value —
       // MapboxCanvas invokes the freshest onReady on load). Advance prevBoroughRef
       // to match: a cross-borough change that early-returned before the source
@@ -507,7 +566,15 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
       // that old borough would hit the identity guard and silently no-op.
       prevBoroughRef.current = borough;
     },
-    [features, boroughGeoJson, borough, applyTints, commitPeek, clearPeek, setPeekTagAffordance]
+    [
+      features,
+      boroughGeoJson,
+      borough,
+      applyTints,
+      frameCurrentScope,
+      labelData,
+      syncPointMarker
+    ]
   );
 
   // T7: swap boroughs IN PLACE — the host no longer remounts this via key, so a
@@ -517,8 +584,8 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
   // owns the initial borough's source, layers and fit). Mirrors the per-borough
   // half of onReady: re-point the NTA source + outline, wipe every piece of
   // per-mount transient state a remount used to reset, then re-tint/re-select
-  // once the new data has parsed. The camera is left to the focusPoint effect and
-  // the borough-keyed refit effect below.
+  // once the new data has parsed. The shared camera coordinator below owns the
+  // corresponding viewport change.
   const prevBoroughRef = useRef(borough);
   useEffect(() => {
     if (prevBoroughRef.current === borough) {
@@ -539,7 +606,7 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
       return;
     }
     prevBoroughRef.current = borough;
-    // Clear the outgoing borough's selection/hover/peek feature-state WHILE those
+    // Clear the outgoing borough's selection/hover feature-state WHILE those
     // features still exist, so none can resurface (setData may preserve state by
     // id). Tints aren't cleared here — applyTints below rewrites every feature.
     if (hoverStateRef.current !== null) {
@@ -550,11 +617,13 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
       map.setFeatureState({ source: "nta", id: selectedStateRef.current }, { selected: false });
       selectedStateRef.current = null;
     }
-    clearPeek();
-    // Re-point the polygon source + the borough context outline.
+    // Re-point the polygon, label, and borough context sources together.
     const source = map.getSource("nta");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (source as any)?.setData({ type: "FeatureCollection", features: toFeatureList(features) });
+    const labelSource = map.getSource("nta-labels");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (labelSource as any)?.setData(labelData);
     if (map.getLayer("borough-outline")) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       map.setFilter("borough-outline", ["==", ["get", "BoroName"], borough] as any);
@@ -584,7 +653,7 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
       detach = () => map.off("sourcedata", handler);
     }
     return () => detach();
-  }, [borough, features, applyTints, clearPeek]);
+  }, [borough, features, labelData, applyTints]);
 
   // Reapply tints when the active filter changes them.
   useEffect(() => {
@@ -594,28 +663,105 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
     }
   }, [tintByArea, applyTints]);
 
-  // Re-fit the borough when the form-factor CLASS changes mid-session (e.g.
-  // rotation) so the reserved band tracks the new layout. Skipped while flying
-  // to a searched point (focusPoint owns the camera there). Keyed on the class
-  // booleans only, NOT sheetPx, so a soft keyboard doesn't yank the camera.
+  // Reflect selection as a highlight. The camera coordinator below independently
+  // frames the selected polygon on touch without coupling rendering to movement.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !readyRef.current || focusPointRef.current) {
+    if (!map || !readyRef.current) {
       return;
     }
-    const bounds = boroughBounds(boroughGeoJson, borough);
-    if (bounds) {
-      const { padding, sheetPx: sp } = camRef.current;
-      map.fitBounds(bounds, { padding: guardPadding(map, padding, sp), duration: 550 });
+    if (map.getLayer("nta-label")) {
+      map.setFilter("nta-label", unselectedLabelFilter(selectedAreaId));
     }
-  }, [ff.isPhone, ff.isTabletPortrait, boroughGeoJson, borough]);
+    if (map.getLayer("nta-selected-label")) {
+      map.setFilter("nta-selected-label", selectedLabelFilter(selectedAreaId));
+    }
+    if (selectedStateRef.current !== null && selectedStateRef.current !== selectedAreaId) {
+      map.setFeatureState({ source: "nta", id: selectedStateRef.current }, { selected: false });
+    }
+    selectedStateRef.current = selectedAreaId;
+    if (selectedAreaId !== null) {
+      map.setFeatureState({ source: "nta", id: selectedAreaId }, { selected: true });
+    }
+  }, [selectedAreaId]);
 
-  // Rotations that stay within one form-factor band (iPad portrait<->landscape,
-  // small phones whose landscape width stays <=640) don't change ff.isPhone/
-  // isTabletPortrait, so the band-keyed refit above misses them and the framing
-  // goes stale. Subscribe to orientation directly and refit (debounced ~280ms,
-  // phone/tablet only, and skipped while a searched focusPoint owns the camera —
-  // desktop keeps no orientation refit).
+  // Coordinate scope, sheet, and form-factor changes through one camera routine.
+  // A simultaneous area selection + peek→half sheet change frames once using the
+  // new settled height; a sheet-only transition waits for its 220ms animation.
+  const cameraRefitTimer = useRef<number | null>(null);
+  const previousCameraInputsRef = useRef({
+    borough,
+    selectedAreaId,
+    focusPoint,
+    sheetSnap,
+    isPhone: ff.isPhone,
+    isTabletPortrait: ff.isTabletPortrait,
+    isCoarse: ff.isCoarse
+  });
+  useEffect(() => {
+    const previous = previousCameraInputsRef.current;
+    const scopeChanged =
+      previous.borough !== borough ||
+      previous.selectedAreaId !== selectedAreaId ||
+      previous.focusPoint !== focusPoint;
+    const layoutChanged =
+      previous.isPhone !== ff.isPhone ||
+      previous.isTabletPortrait !== ff.isTabletPortrait ||
+      previous.isCoarse !== ff.isCoarse;
+    const snapChanged = previous.sheetSnap !== sheetSnap;
+    previousCameraInputsRef.current = {
+      borough,
+      selectedAreaId,
+      focusPoint,
+      sheetSnap,
+      isPhone: ff.isPhone,
+      isTabletPortrait: ff.isTabletPortrait,
+      isCoarse: ff.isCoarse
+    };
+
+    if (!scopeChanged && !layoutChanged && !snapChanged) {
+      return;
+    }
+    const map = mapRef.current;
+    if (!map || !readyRef.current) {
+      return;
+    }
+    if (cameraRefitTimer.current !== null) {
+      window.clearTimeout(cameraRefitTimer.current);
+      cameraRefitTimer.current = null;
+    }
+
+    const frame = () => {
+      cameraRefitTimer.current = null;
+      frameCurrentScope(map, SCOPE_FIT_DURATION, {
+        preserveDesktopSelection: !layoutChanged
+      });
+    };
+    if (ff.isPhone && snapChanged && !scopeChanged && !layoutChanged) {
+      cameraRefitTimer.current = window.setTimeout(frame, 280);
+    } else {
+      frame();
+    }
+
+    return () => {
+      if (cameraRefitTimer.current !== null) {
+        window.clearTimeout(cameraRefitTimer.current);
+        cameraRefitTimer.current = null;
+      }
+    };
+  }, [
+    borough,
+    selectedAreaId,
+    focusPoint,
+    sheetSnap,
+    ff.isPhone,
+    ff.isTabletPortrait,
+    ff.isCoarse,
+    frameCurrentScope
+  ]);
+
+  // Rotations can stay inside one width band, so subscribe directly and reframe
+  // the current point/neighborhood/borough after the viewport settles.
   const orientRefitTimer = useRef<number | null>(null);
   useEffect(() => {
     if (
@@ -628,18 +774,15 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
     const mq = window.matchMedia("(orientation: portrait)");
     const onChange = () => {
       const map = mapRef.current;
-      if (!map || !readyRef.current || focusPointRef.current) {
+      if (!map || !readyRef.current) {
         return;
       }
       if (orientRefitTimer.current !== null) {
         window.clearTimeout(orientRefitTimer.current);
       }
       orientRefitTimer.current = window.setTimeout(() => {
-        const bounds = boroughBounds(boroughGeoJson, borough);
-        if (bounds) {
-          const { padding, sheetPx: sp } = camRef.current;
-          map.fitBounds(bounds, { padding: guardPadding(map, padding, sp), duration: 550 });
-        }
+        orientRefitTimer.current = null;
+        frameCurrentScope(map, SCOPE_FIT_DURATION);
       }, 280);
     };
     mq.addEventListener("change", onChange);
@@ -647,70 +790,25 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
       mq.removeEventListener("change", onChange);
       if (orientRefitTimer.current !== null) {
         window.clearTimeout(orientRefitTimer.current);
+        orientRefitTimer.current = null;
       }
     };
-  }, [ff.isPhone, ff.isTabletPortrait, boroughGeoJson, borough]);
+  }, [ff.isPhone, ff.isTabletPortrait, frameCurrentScope]);
 
-  // Re-fit when the bottom sheet SETTLES on a new snap (phone only). Keyed on the
-  // discrete snap TOKEN, not the continuous sheetPx, so a soft keyboard never
-  // yanks the camera; debounced ~280ms (past the snap animation) so a rapid
-  // peek→full→half refits once. Skipped while a searched focusPoint owns the
-  // camera, and skipped on the first run (token unchanged) so it never double-fits
-  // over onReady's initial fit.
-  const prevSnapRef = useRef(sheetSnap);
-  const snapRefitTimer = useRef<number | null>(null);
-  useEffect(() => {
-    if (!ff.isPhone || prevSnapRef.current === sheetSnap) {
-      prevSnapRef.current = sheetSnap;
-      return;
-    }
-    prevSnapRef.current = sheetSnap;
-    const map = mapRef.current;
-    if (!map || !readyRef.current || focusPointRef.current) {
-      return;
-    }
-    if (snapRefitTimer.current !== null) {
-      window.clearTimeout(snapRefitTimer.current);
-    }
-    snapRefitTimer.current = window.setTimeout(() => {
-      const bounds = boroughBounds(boroughGeoJson, borough);
-      if (bounds) {
-        const { padding, sheetPx: sp } = camRef.current;
-        map.fitBounds(bounds, { padding: guardPadding(map, padding, sp), duration: 550 });
-      }
-    }, 280);
-    return () => {
-      if (snapRefitTimer.current !== null) {
-        window.clearTimeout(snapRefitTimer.current);
-      }
-    };
-  }, [sheetSnap, ff.isPhone, boroughGeoJson, borough]);
-
-  // Reflect selection as a highlight (movement is handled by focusPoint so a
-  // plain click doesn't yank the map — the neighborhood is already in view).
+  // Keep physical location and searched address visible as separate markers.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !readyRef.current) {
       return;
     }
-    if (selectedStateRef.current !== null && selectedStateRef.current !== selectedAreaId) {
-      map.setFeatureState({ source: "nta", id: selectedStateRef.current }, { selected: false });
-    }
-    selectedStateRef.current = selectedAreaId;
-    if (selectedAreaId !== null) {
-      map.setFeatureState({ source: "nta", id: selectedAreaId }, { selected: true });
-    }
-  }, [selectedAreaId]);
-
-  // Fly to a searched point.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !readyRef.current || !focusPoint) {
-      return;
-    }
-    const { isPhone, sheetPx: sp } = camRef.current;
-    map.easeTo(focusEaseOptions(map, focusPoint, isPhone, sp));
-  }, [focusPoint]);
+    syncPointMarker(map, "geolocation", userLocationPoint, "Your current location");
+    syncPointMarker(map, "search", searchedLocationPoint, searchedLocationLabel);
+  }, [
+    userLocationPoint,
+    searchedLocationPoint,
+    searchedLocationLabel,
+    syncPointMarker
+  ]);
 
   return (
     <div className="cs-deepdive-map-wrap">
@@ -722,7 +820,6 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
         className="cs-map-tip"
         style={{ opacity: 0 }}
         aria-hidden="true"
-        onClick={commitPeek}
       />
     </div>
   );

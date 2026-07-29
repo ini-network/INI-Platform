@@ -1,6 +1,5 @@
 "use client"; // Add this to use hooks
 
-import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
@@ -49,8 +48,17 @@ export default function RootLayout({
           {children}
         </main>
 
-        {/* Render global AI Copilot on all pages except the login page */}
-        {!isLoginPage && <Copilot />}
+        {/* Keep the fixed Copilot launcher off phone-sized map pages, where it
+            overlaps the bottom sheet and Mapbox attribution. Desktop map and all
+            other pages retain it. */}
+        {!isLoginPage &&
+          (pathname.startsWith("/map") ? (
+            <div className="cs-map-copilot">
+              <Copilot />
+            </div>
+          ) : (
+            <Copilot />
+          ))}
 
         {/* Global modals for map feature */}
         <NewsModalHost />

@@ -61,7 +61,7 @@ export const PanelDigest = memo(function PanelDigest({
   const [state, setState] = useState<NewsState>("loading");
   // Per-borough cache so re-clicking a borough never refetches.
   const cacheRef = useRef<Map<string, NewsListItem[]>>(new Map());
-  // Touch pointers get "tap … tap again" copy for the two-step neighborhood peek.
+  // Touch pointers get the same one-action behavior with touch-appropriate copy.
   const { isCoarse } = useFormFactor();
 
   useEffect(() => {
@@ -252,7 +252,7 @@ export const PanelDigest = memo(function PanelDigest({
           </div>
           <p className={styles.scopeSub}>
             {isCoarse
-              ? "Tap a colored neighborhood, then tap again to open it."
+              ? "Tap a neighborhood for its full picture."
               : "Click a colored neighborhood for its full picture."}
           </p>
           {tourNote}

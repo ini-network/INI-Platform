@@ -17,6 +17,11 @@ export type SheetSnap = "peek" | "half" | "full";
 // peek is a floored constant (grab handle + one-line brief) — NOT vv-scaled, so a
 // tall phone doesn't blow the peek band out of proportion.
 const PEEK_PX = 96;
+// The global site header is h-16 (4rem). Bottom-sheet snaps are measured inside
+// the visible map region below it; only 12px breathing room is reserved at each
+// edge because AppShellV2 no longer renders its former 56px bottom tab bar.
+const HOST_HEADER_PX = 64;
+const SHEET_MARGIN_PX = 12;
 // Release velocity (px/ms) past which a flick biases one snap step in its
 // direction instead of settling on the nearest snap. ~500 px/s.
 const FLICK = 0.5;
@@ -60,6 +65,8 @@ export function readSafeAreaBottom(): number {
 export interface SheetState {
   snap: SheetSnap;
   setSnap: (snap: SheetSnap) => void;
+  viewportHeight: number;
+  viewportBottomInset: number;
   isDragging: boolean;
   // Live px height: tracks the finger while dragging, else the settled snap height.
   height: number;
@@ -100,27 +107,36 @@ export function useSheetState(): SheetState {
   }, []);
 
   const heights = useMemo<Heights>(() => {
-    // Clamp full so the sheet top can't cross above the 60px topbar into
-    // negative space on short / notched viewports (unclamped, the top ran to
-    // -9..-92px, hiding the grab handle — the sole drag surface). 68 = the
-    // tab-bar band the sheet is anchored above (12 + 56); 12 = top margin. The
-    // CSS max-height mirrors this as a looser backstop that can't exceed it.
+    // Clamp full to the map region below the host header, keeping the handle
+    // inside 12px top/bottom breathing room even on short/notched viewports.
+    // CSS mirrors this as a backstop; the visual viewport drives the live value.
     // Floor at PEEK_PX: a soft keyboard shrinking vv.height can drive the clamp
     // below peek (or negative), which would invert the snap order and make the
     // drag clamps degenerate — never let full fall under peek.
-    const full = Math.max(PEEK_PX, Math.min(Math.round(vh * 0.9), vh - 60 - 68 - safeBottom - 12));
+    const availableHeight = Math.max(PEEK_PX, vh - HOST_HEADER_PX);
+    const full = Math.max(
+      PEEK_PX,
+      Math.min(
+        Math.round(availableHeight * 0.9),
+        availableHeight - safeBottom - SHEET_MARGIN_PX * 2
+      )
+    );
     return {
       peek: PEEK_PX,
       // Compute half AFTER full and cap it there: under a soft keyboard (small vh)
-      // round(vh*0.5) can exceed full, inverting the peek<=half<=full order that
+      // half of the available height can exceed full, inverting the
+      // peek<=half<=full order that
       // nearestSnap/stepBy/drag clamps assume. peek stays as-is (full already
       // floors at PEEK_PX, so the chain holds).
-      half: Math.min(Math.round(vh * 0.5), full),
+      half: Math.min(Math.max(PEEK_PX, Math.round(availableHeight * 0.5)), full),
       full
     };
   }, [vh, safeBottom]);
 
-  const [snap, setSnap] = useState<SheetSnap>("peek");
+  // The controls are the primary mobile entry point, so open at half rather than
+  // hiding them behind a handle-only peek on first load. Users can still drag
+  // down to peek when they want the map to take over.
+  const [snap, setSnap] = useState<SheetSnap>("half");
   const [isDragging, setIsDragging] = useState(false);
   const [dragHeight, setDragHeight] = useState<number | null>(null);
 
@@ -292,6 +308,8 @@ export function useSheetState(): SheetState {
   return {
     snap,
     setSnap,
+    viewportHeight: vv.height,
+    viewportBottomInset: vv.bottomInset,
     isDragging,
     height,
     settledHeight,
