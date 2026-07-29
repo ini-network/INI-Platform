@@ -1142,9 +1142,8 @@ export function SignalsMapExperience({
           <button
             type="button"
             ref={neighborhoodBtnRef}
-            className={`${styles.browseBtn}${
-              neighborhoodPickerOpen ? ` ${styles.browseBtnActive}` : ""
-            }`}
+            className={`${styles.browseBtn}${neighborhoodPickerOpen ? ` ${styles.browseBtnActive}` : ""
+              }`}
             data-tour={view === "city" ? "browse" : undefined}
             aria-label={neighborhoodButtonLabel}
             aria-expanded={neighborhoodPickerOpen}
@@ -1155,9 +1154,8 @@ export function SignalsMapExperience({
           >
             <span className={styles.browseBtnText}>{neighborhoodButtonText}</span>
             <svg
-              className={`${styles.filterCaret}${
-                neighborhoodPickerOpen ? ` ${styles.filterCaretOpen}` : ""
-              }`}
+              className={`${styles.filterCaret}${neighborhoodPickerOpen ? ` ${styles.filterCaretOpen}` : ""
+                }`}
               viewBox="0 0 24 24"
               aria-hidden="true"
             >
@@ -1170,9 +1168,8 @@ export function SignalsMapExperience({
             type="button"
             ref={filterBtnRef}
             data-tour="filter"
-            className={`${styles.filterBtn}${
-              activeChip !== "all" ? ` ${styles.filterBtnActive}` : ""
-            }`}
+            className={`${styles.filterBtn}${activeChip !== "all" ? ` ${styles.filterBtnActive}` : ""
+              }`}
             style={
               activeChip !== "all"
                 ? ({ "--chip-accent": activeAccent } as CSSProperties)
@@ -1198,9 +1195,8 @@ export function SignalsMapExperience({
             )}
             {activeChip === "all" ? "Filter" : `Filter · ${chipLabel}`}
             <svg
-              className={`${styles.filterCaret}${
-                filtersOpen ? ` ${styles.filterCaretOpen}` : ""
-              }`}
+              className={`${styles.filterCaret}${filtersOpen ? ` ${styles.filterCaretOpen}` : ""
+                }`}
               viewBox="0 0 24 24"
               aria-hidden="true"
             >
@@ -1258,7 +1254,7 @@ export function SignalsMapExperience({
         </div>
       ) : null}
 
-      {isNeighborhoodScope &&
+      {/*{isNeighborhoodScope &&
       selectedAreaId !== null &&
       !tourOpen &&
       !neighborhoodPickerOpen &&
@@ -1285,7 +1281,8 @@ export function SignalsMapExperience({
             Request Real-time Insights
           </button>
         </section>
-      ) : null}
+      ) : null} 
+      */}
 
       <PanelDigest
         briefCount={filtered.length}
