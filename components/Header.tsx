@@ -75,13 +75,13 @@ export default function Header() {
 
     // Declares structural navigation paths
     const navLinks = [
-        { name: "Home", href: "/" },
-        ...(user ? [{ name: "My Matches", href: "/matches" }] : []),
-        { name: "Directory", href: "/directory" },
-        { name: "Network Map", href: "/explore" },
-        { name: "Join Us", href: "/partners" },
-        { name: "America 250", href: "/america250" },
-        { name: "About", href: "/about" },
+        { name: "Home", href: "/", protected: false },
+        ...(user ? [{ name: "My Matches", href: "/matches", protected: true }] : [{ name: "My Matches 🔒", href: "/login?redirectReason=auth_required&from=/matches", protected: true }]),
+        { name: "Directory", href: "/directory", protected: false },
+        { name: user ? "Network Map" : "Network Map 🔒", href: user ? "/explore" : "/login?redirectReason=auth_required&from=/explore", protected: true },
+        { name: "Join Us", href: "/partners", protected: false },
+        { name: "America 250", href: "/america250", protected: false },
+        { name: "About", href: "/about", protected: false },
     ];
 
     return (
@@ -106,6 +106,7 @@ export default function Header() {
                                 <Link
                                     key={link.name}
                                     href={link.href}
+                                    title={link.protected && !user ? "Sign in required to access" : undefined}
                                     className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${isActive ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                                         }`}
                                 >
@@ -123,7 +124,7 @@ export default function Header() {
                                         : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                                     }`}
                             >
-                                <span>Public-data Map</span>
+                                <span>{!user ? "🔒 Public-data Map" : "Public-data Map"}</span>
                                 <svg
                                     className={`w-3.5 h-3.5 transition-transform duration-200 ${isMapOpen ? "rotate-180" : ""}`}
                                     fill="none"
@@ -137,25 +138,25 @@ export default function Header() {
                             {isMapOpen && (
                                 <div className="absolute left-0 mt-2 top-full w-48 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 p-1.5 space-y-1">
                                     <Link
-                                        href="/map"
+                                        href={user ? "/map" : "/login?redirectReason=auth_required&from=/map"}
                                         onClick={() => setIsMapOpen(false)}
                                         className={`block px-3.5 py-2.5 text-xs font-bold rounded-xl transition-colors ${pathname === "/map" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}
                                     >
-                                        🗺️ Interactive Map
+                                        🗺️ Interactive Map {!user && "🔒"}
                                     </Link>
                                     <Link
-                                        href="/news"
+                                        href={user ? "/news" : "/login?redirectReason=auth_required&from=/news"}
                                         onClick={() => setIsMapOpen(false)}
                                         className={`block px-3.5 py-2.5 text-xs font-bold rounded-xl transition-colors ${pathname === "/news" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}
                                     >
-                                        📰 Civic News
+                                        📰 Civic News {!user && "🔒"}
                                     </Link>
                                     <Link
-                                        href="/reports"
+                                        href={user ? "/reports" : "/login?redirectReason=auth_required&from=/reports"}
                                         onClick={() => setIsMapOpen(false)}
                                         className={`block px-3.5 py-2.5 text-xs font-bold rounded-xl transition-colors ${pathname === "/reports" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}
                                     >
-                                        🗣️ Civic Stories
+                                        🗣️ Civic Stories {!user && "🔒"}
                                     </Link>
                                 </div>
                             )}
@@ -274,14 +275,14 @@ export default function Header() {
                             <div className="px-4 py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                                 🗺️ Public-data Map Features
                             </div>
-                            <Link href="/map" onClick={() => setIsMobileMenuOpen(false)} className={`block px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === "/map" ? "bg-blue-50 text-blue-700 shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
-                                Interactive Map
+                            <Link href={user ? "/map" : "/login?redirectReason=auth_required&from=/map"} onClick={() => setIsMobileMenuOpen(false)} className={`block px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === "/map" ? "bg-blue-50 text-blue-700 shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+                                Interactive Map {!user && "🔒"}
                             </Link>
-                            <Link href="/news" onClick={() => setIsMobileMenuOpen(false)} className={`block px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === "/news" ? "bg-blue-50 text-blue-700 shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
-                                Civic News
+                            <Link href={user ? "/news" : "/login?redirectReason=auth_required&from=/news"} onClick={() => setIsMobileMenuOpen(false)} className={`block px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === "/news" ? "bg-blue-50 text-blue-700 shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+                                Civic News {!user && "🔒"}
                             </Link>
-                            <Link href="/reports" onClick={() => setIsMobileMenuOpen(false)} className={`block px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === "/reports" ? "bg-blue-50 text-blue-700 shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
-                                Civic Stories
+                            <Link href={user ? "/reports" : "/login?redirectReason=auth_required&from=/reports"} onClick={() => setIsMobileMenuOpen(false)} className={`block px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === "/reports" ? "bg-blue-50 text-blue-700 shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+                                Civic Stories {!user && "🔒"}
                             </Link>
                         </div>
 

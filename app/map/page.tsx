@@ -1,3 +1,6 @@
+import { redirect } from "next/navigation";
+import { createClient as createServerClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
 import { MapExperience } from "@/components/map-feature/map/map-experience";
 import { AppShellV2 } from "@/components/map-feature/shell/app-shell-v2";
 import {
@@ -24,6 +27,14 @@ export default async function MapPage({
 }: {
   searchParams?: Promise<SearchParams> | SearchParams;
 }) {
+  const cookieStore = await cookies();
+  const supabase = createServerClient(cookieStore);
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login?redirectReason=auth_required&from=/map");
+  }
+
   const params = (await searchParams) ?? {};
   const boroughParam = firstParam(params, "borough");
   const borough = boroughParam && BOROUGHS.includes(boroughParam) ? boroughParam : "Brooklyn";

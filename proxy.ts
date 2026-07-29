@@ -45,28 +45,19 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   // THE BOUNCER LOGIC
+  // List routes that require authentication
+  const protectedRoutes = ['/admin', '/profile', '/map', '/explore', '/matches', '/news', '/reports'];
 
-  // 1. Only list routes that STRICTLY require a user to be logged in
-  // (e.g., editing their profile or accessing admin tools)
-  const protectedRoutes = ['/admin', '/profile'];
-
-  // 2. Check if the current path matches any of the protected routes
-  // Notice we removed `request.nextUrl.pathname === '/' ||`
   const isProtectedRoute = protectedRoutes.some(route =>
     request.nextUrl.pathname.startsWith(route)
   );
 
   if (!user && isProtectedRoute) {
-    // Redirect them to the login page
+    // Redirect them to the login page with context query parameters
     const url = request.nextUrl.clone();
     url.pathname = '/login';
-    return NextResponse.redirect(url);
-  }
-
-  if (!user && isProtectedRoute) {
-    // Redirect them to the login page
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
+    url.searchParams.set('redirectReason', 'auth_required');
+    url.searchParams.set('from', request.nextUrl.pathname);
     return NextResponse.redirect(url);
   }
 

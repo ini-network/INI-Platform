@@ -6,6 +6,8 @@ import { createClient } from '../../utils/supabase/client';
 import ProfileModal from "@/components/ProfileModal";
 import NetworkMap, { ForceGraphMethods } from "@/components/NetworkMap";
 
+import { useRouter } from "next/navigation";
+
 // --- STRICT TYPESCRIPT INTERFACES ---
 interface Contact {
   id: string;
@@ -200,6 +202,7 @@ const SearchableDropdown = ({ options, value, onChange, placeholder }: { options
 };
 
 export default function ExploreMap() {
+  const router = useRouter();
   const [globalSubFilter, setGlobalSubFilter] = useState<"cuny" | "partner" | "all">("cuny");
   const [allContacts, setAllContacts] = useState<Contact[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -232,17 +235,25 @@ export default function ExploreMap() {
     const supabase = createClient();
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      setIsLoggedIn(!!user);
+      if (!user) {
+        router.push('/login?redirectReason=auth_required&from=/explore');
+      } else {
+        setIsLoggedIn(true);
+      }
     };
     checkUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        setIsLoggedIn(!!session?.user);
+        if (!session?.user) {
+          router.push('/login?redirectReason=auth_required&from=/explore');
+        } else {
+          setIsLoggedIn(true);
+        }
       }
     );
     return () => subscription.unsubscribe();
-  }, []);
+  }, [router]);
 
   // Listen for AI Copilot inspect-profile click requests globally
   useEffect(() => {

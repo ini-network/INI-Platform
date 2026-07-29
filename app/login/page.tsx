@@ -5,6 +5,34 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
+
+function AuthNotice() {
+    const searchParams = useSearchParams();
+    const redirectReason = searchParams.get('redirectReason');
+    const from = searchParams.get('from') || '';
+
+    if (redirectReason !== 'auth_required') return null;
+
+    let featureName = "this feature";
+    if (from.startsWith('/map')) featureName = "the Public-data Map";
+    else if (from.startsWith('/explore')) featureName = "the Network Map";
+    else if (from.startsWith('/matches')) featureName = "the Public Match System";
+    else if (from.startsWith('/news')) featureName = "Civic News";
+    else if (from.startsWith('/reports')) featureName = "Civic Stories";
+
+    return (
+        <div className="mb-6 p-4 bg-amber-50 text-amber-900 text-sm font-medium rounded-xl border border-amber-200/80 flex items-start gap-2.5 shadow-xs animate-in fade-in slide-in-from-top-2">
+            <span className="text-base leading-none">🔒</span>
+            <div>
+                <strong className="font-bold block text-amber-950 mb-0.5">Sign-In Required</strong>
+                Please log in or create an account to access {featureName}.
+            </div>
+        </div>
+    );
+}
+
 /**
  * LoginPage Component
  * 
@@ -182,6 +210,9 @@ export default function LoginPage() {
                 </div>
 
                 {/* Messages */}
+                <Suspense fallback={null}>
+                    <AuthNotice />
+                </Suspense>
                 {errorMessage && <div
                     className="mb-6 p-3.5 bg-red-50/80 text-red-600 text-sm font-medium rounded-xl border border-red-100 flex items-start gap-2">
                     <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
