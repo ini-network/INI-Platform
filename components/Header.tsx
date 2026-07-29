@@ -114,17 +114,16 @@ export default function Header() {
                             );
                         })}
 
-                        {/* Civic Map Dropdown */}
+                        {/* Public-data Map Dropdown */}
                         <div className="relative flex items-center" ref={mapDropdownRef}>
                             <button
                                 onClick={() => setIsMapOpen(!isMapOpen)}
-                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 focus:outline-none ${
-                                    ["/map", "/news", "/reports"].includes(pathname)
+                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 focus:outline-none ${["/map", "/news", "/reports"].includes(pathname)
                                         ? "bg-white text-blue-700 shadow-sm"
                                         : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                                }`}
+                                    }`}
                             >
-                                <span>Civic Map</span>
+                                <span>Public-data Map</span>
                                 <svg
                                     className={`w-3.5 h-3.5 transition-transform duration-200 ${isMapOpen ? "rotate-180" : ""}`}
                                     fill="none"
@@ -168,8 +167,8 @@ export default function Header() {
                                 <button
                                     onClick={() => setIsAdminOpen(!isAdminOpen)}
                                     className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 focus:outline-none ${pathname.startsWith("/admin")
-                                            ? "bg-white text-blue-700 shadow-sm"
-                                            : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                                        ? "bg-white text-blue-700 shadow-sm"
+                                        : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                                         }`}
                                 >
                                     <span>⚙️ Admin</span>
@@ -192,8 +191,8 @@ export default function Header() {
                                             href="/admin/matches"
                                             onClick={() => setIsAdminOpen(false)}
                                             className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold rounded-xl transition-colors ${pathname === "/admin/matches"
-                                                    ? "bg-blue-50 text-blue-700"
-                                                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                                ? "bg-blue-50 text-blue-700"
+                                                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                                                 }`}
                                         >
                                             <span className="text-sm">🤖</span> Matchmaker Admin
@@ -202,8 +201,8 @@ export default function Header() {
                                             href="/admin/marketing"
                                             onClick={() => setIsAdminOpen(false)}
                                             className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold rounded-xl transition-colors ${pathname === "/admin/marketing"
-                                                    ? "bg-blue-50 text-blue-700"
-                                                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                                ? "bg-blue-50 text-blue-700"
+                                                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                                                 }`}
                                         >
                                             <span className="text-sm">📢</span> Marketing Broadcasts
@@ -270,10 +269,10 @@ export default function Header() {
                             );
                         })}
 
-                        {/* Civic Map Mobile Links */}
+                        {/* Public-data Map Mobile Links */}
                         <div className="pt-4 mt-4 border-t border-slate-100 space-y-1.5">
                             <div className="px-4 py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                🗺️ Civic Map Features
+                                🗺️ Public-data Map Features
                             </div>
                             <Link href="/map" onClick={() => setIsMobileMenuOpen(false)} className={`block px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === "/map" ? "bg-blue-50 text-blue-700 shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
                                 Interactive Map
@@ -296,8 +295,8 @@ export default function Header() {
                                     href="/admin/matches"
                                     onClick={() => setIsMobileMenuOpen(false)}
                                     className={`flex items-center gap-2 px-4 py-3 text-sm font-bold rounded-xl transition-colors ${pathname === "/admin/matches"
-                                            ? "bg-blue-50 text-blue-700 shadow-sm"
-                                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                        ? "bg-blue-50 text-blue-700 shadow-sm"
+                                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                                         }`}
                                 >
                                     <span className="text-sm">🤖</span> Matchmaker Admin
@@ -306,8 +305,8 @@ export default function Header() {
                                     href="/admin/marketing"
                                     onClick={() => setIsMobileMenuOpen(false)}
                                     className={`flex items-center gap-2 px-4 py-3 text-sm font-bold rounded-xl transition-colors ${pathname === "/admin/marketing"
-                                            ? "bg-blue-50 text-blue-700 shadow-sm"
-                                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                        ? "bg-blue-50 text-blue-700 shadow-sm"
+                                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                                         }`}
                                 >
                                     <span className="text-sm">📢</span> Marketing Broadcasts
