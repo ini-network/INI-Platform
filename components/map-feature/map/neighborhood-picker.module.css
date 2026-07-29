@@ -1,0 +1,356 @@
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 2px 0 4px;
+  color: var(--ink, #111c18);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: var(--muted, #6a756f);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.closeButton,
+.clearButton {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted, #6a756f);
+  cursor: pointer;
+}
+
+.closeButton {
+  width: 44px;
+  height: 44px;
+  margin: -10px -8px 0 0;
+  border-radius: var(--radius-pill, 999px);
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.closeButton:hover {
+  background: var(--surface-soft, #fbf8f1);
+  color: var(--ink, #111c18);
+}
+
+.closeButton svg,
+.clearButton svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.boroughScroller {
+  display: flex;
+  gap: 7px;
+  max-width: 100%;
+  margin-inline: -2px;
+  padding: 2px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.boroughScroller::-webkit-scrollbar {
+  display: none;
+}
+
+.boroughButton {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.12));
+  border-radius: var(--radius-pill, 999px);
+  background: var(--surface, #fffdf8);
+  color: var(--ink-soft, #33423b);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 750;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.boroughButton:hover {
+  border-color: color-mix(in srgb, var(--primary, #7c3aed) 42%, transparent);
+  color: var(--primary, #7c3aed);
+}
+
+.boroughButtonActive,
+.boroughButtonActive:hover {
+  border-color: var(--primary, #7c3aed);
+  background: var(--primary, #7c3aed);
+  color: #fff;
+}
+
+.searchField {
+  display: flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 0 4px 0 14px;
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.14));
+  border-radius: var(--radius-pill, 999px);
+  background: var(--surface-soft, #fbf8f1);
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.searchField:focus-within {
+  border-color: rgba(17, 28, 24, 0.34);
+  background: var(--surface, #fffdf8);
+}
+
+.searchIcon {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: var(--muted, #6a756f);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.searchInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--ink, #111c18) !important;
+  font-family: inherit;
+  font-size: 16px;
+}
+
+.searchInput::placeholder {
+  color: var(--muted, #6a756f) !important;
+  opacity: 1;
+}
+
+.searchInput::-webkit-search-cancel-button {
+  display: none;
+}
+
+.clearButton {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill, 999px);
+}
+
+.clearButton:hover {
+  color: var(--ink, #111c18);
+}
+
+.results {
+  min-height: 92px;
+}
+
+.areaList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.areaList li + li {
+  border-top: 1px solid var(--line, rgba(20, 30, 25, 0.1));
+}
+
+.areaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  min-height: 58px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: var(--radius-sm, 9px);
+  background: transparent;
+  color: var(--ink, #111c18);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.areaRow:hover,
+.areaRowSelected {
+  background: color-mix(in srgb, var(--primary, #7c3aed) 9%, transparent);
+}
+
+.allRow {
+  margin-bottom: 4px;
+  border: 1px solid color-mix(in srgb, var(--primary, #7c3aed) 18%, transparent);
+  background: color-mix(in srgb, var(--primary, #7c3aed) 5%, transparent);
+}
+
+.areaCopy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.areaName {
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.areaMeta {
+  color: var(--muted, #6a756f);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.areaMetaEmpty {
+  color: var(--faint, #89928c);
+}
+
+.checkIcon {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  padding: 3px;
+  border-radius: var(--radius-pill, 999px);
+  background: var(--primary, #7c3aed);
+  fill: none;
+  stroke: #fff;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.rowArrow {
+  flex: 0 0 auto;
+  color: var(--muted, #6a756f);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.emptyState {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  padding: 24px 18px;
+  border: 1px dashed var(--line-strong, #cdc4b1);
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface-soft, #fbf8f1);
+  text-align: center;
+}
+
+.emptyTitle,
+.emptyText {
+  margin: 0;
+}
+
+.emptyTitle {
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.emptyText {
+  max-width: 34ch;
+  color: var(--muted, #6a756f);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.emptyAction {
+  min-height: 44px;
+  margin-top: 4px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-pill, 999px);
+  background: transparent;
+  color: var(--primary, #7c3aed);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.emptyAction:hover {
+  background: color-mix(in srgb, var(--primary, #7c3aed) 9%, transparent);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.closeButton:focus-visible,
+.boroughButton:focus-visible,
+.clearButton:focus-visible,
+.areaRow:focus-visible,
+.emptyAction:focus-visible {
+  outline: 2px solid var(--primary, #7c3aed);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .boroughButton {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 420px) {
+  .picker {
+    gap: 12px;
+  }
+
+  .subtitle {
+    max-width: 30ch;
+  }
+
+  .areaRow {
+    min-height: 60px;
+    padding-inline: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .closeButton,
+  .boroughButton,
+  .searchField,
+  .areaRow {
+    transition: none;
+  }
+}

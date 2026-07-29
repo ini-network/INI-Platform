@@ -2,9 +2,14 @@
 
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
-import { findAreaContaining, findBoroughContaining, type PipGeometry } from "@/lib/map-feature/geocode";
+import {
+  findAreaContaining,
+  findBoroughContaining,
+  type GeocodeResult,
+  type PipGeometry
+} from "@/lib/map-feature/geocode";
 import { useFormFactor } from "@/lib/map-feature/use-form-factor";
-import { useSheetState } from "@/lib/map-feature/use-sheet-state";
+import { useSheetState, type SheetSnap } from "@/lib/map-feature/use-sheet-state";
 import {
   SIGNAL_CHIPS,
   isEmerging,
@@ -12,7 +17,15 @@ import {
   type NeighborhoodSignalsResponse
 } from "@/lib/map-feature/signal-types";
 import { BoroughOverviewMap, type BoroughStyles } from "./borough-overview-map";
+import {
+  CoverageRequestDialog,
+  type CoverageRequestArea
+} from "./coverage-request-dialog";
 import { MapSearchBox } from "./map-search-box";
+import {
+  NeighborhoodPicker,
+  type NeighborhoodPickerOption
+} from "./neighborhood-picker";
 import { NeighborhoodSignalsMap, type AreaTint } from "./neighborhood-signals-map";
 import { PanelDigest } from "./panel-digest";
 import { SignalFilterBar, type FilterChip } from "./signal-filter-bar";
@@ -36,8 +49,30 @@ const MAP_ACCENTS: Record<string, string> = {
 };
 
 type MapView = "city" | "borough";
+type PointSource = "search" | "geolocation";
+type LocationStatus = "idle" | "locating";
 
 type NtaFeature = { properties?: Record<string, unknown> | null; geometry?: PipGeometry };
+
+function LocateIcon() {
+  return (
+    <svg className={styles.locateIcon} viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+      <circle cx="12" cy="12" r="7" />
+    </svg>
+  );
+}
+
+function locationErrorMessage(error: GeolocationPositionError): string {
+  if (error.code === error.PERMISSION_DENIED) {
+    return "Location access is off. Allow it in your browser settings, or search by address.";
+  }
+  if (error.code === error.TIMEOUT) {
+    return "Your location took too long to load. Try again, or search by address.";
+  }
+  return "We couldn't get your location. Check your connection, or search by address.";
+}
 
 type Props = {
   initialSignals: NeighborhoodSignalsResponse | null;
@@ -48,6 +83,8 @@ type Props = {
   neighborhoodGeoJson: unknown;
   activeBorough: string;
   onSelectBorough: (borough: string) => void;
+  initialAreaId: number | null;
+  onAreaChange: (areaId: number | null) => void;
   // Guided-tour wiring (host = this component; overlay rendered here in a later
   // step). `tourOpen` opens/replays the tour; `onTourClose` persists the seen-key
   // and closes it; `tourBlockedTick` increments when the parent soft-blocks a
@@ -98,21 +135,46 @@ export function SignalsMapExperience({
   neighborhoodGeoJson,
   activeBorough,
   onSelectBorough,
+  initialAreaId,
+  onAreaChange,
   tourOpen,
   onTourClose,
   onTourBridge,
   tourBlockedTick
 }: Props) {
   const [activeChip, setActiveChip] = useState<string>("all");
-  const [view, setView] = useState<MapView>("city");
+  const [view, setView] = useState<MapView>(initialAreaId === null ? "city" : "borough");
   // Camera framing for the borough overview map, independent of `view`: 'city'
   // fits all five boroughs (first load + back-to-city), 'borough' the selected
   // one. A borough click flips it to 'borough' but never changes `view` (which
   // stays "city"), so this is the sole re-framing signal for the overview map.
-  const [cameraScope, setCameraScope] = useState<"city" | "borough">("city");
-  const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
+  const [cameraScope, setCameraScope] = useState<"city" | "borough">(
+    initialAreaId === null ? "city" : "borough"
+  );
+  const [selectedAreaId, setSelectedAreaIdState] = useState<number | null>(initialAreaId);
   const [focusPoint, setFocusPoint] = useState<[number, number] | null>(null);
+  const [userLocationPoint, setUserLocationPoint] = useState<[number, number] | null>(null);
+  const [searchedLocationPoint, setSearchedLocationPoint] = useState<[number, number] | null>(
+    null
+  );
+  const [searchedLocationLabel, setSearchedLocationLabel] = useState<string | null>(null);
   const [searchNote, setSearchNote] = useState<string | null>(null);
+  const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
+  const locationRequestIdRef = useRef(0);
+  const autoLocateAttemptedRef = useRef(false);
+  const suppressAutoLocateRef = useRef(false);
+  const restoredAreaOnMountRef = useRef(initialAreaId !== null);
+  const tourOpenRef = useRef(tourOpen);
+  useEffect(() => {
+    tourOpenRef.current = tourOpen;
+  }, [tourOpen]);
+  const updateSelectedAreaId = useCallback(
+    (next: number | null) => {
+      setSelectedAreaIdState(next);
+      onAreaChange(next);
+    },
+    [onAreaChange]
+  );
   // Bumped on every borough click (via BoroughOverviewMap.onDrillIn, which fires
   // even when the already-selected borough is re-clicked). The tour reads this
   // tick to detect a real borough click for its "click a colored borough" stop.
@@ -127,13 +189,27 @@ export function SignalsMapExperience({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filterRegionId = useId();
   const filterBtnRef = useRef<HTMLButtonElement | null>(null);
+  const [neighborhoodPickerOpen, setNeighborhoodPickerOpen] = useState(false);
+  const neighborhoodRegionId = useId();
+  const neighborhoodBtnRef = useRef<HTMLButtonElement | null>(null);
+  const coverageBtnRef = useRef<HTMLButtonElement | null>(null);
+  const [coverageArea, setCoverageArea] = useState<CoverageRequestArea | null>(null);
 
   // Phone bottom-sheet snap state (peek/half/full). useSheetState internally
   // mounts useVisualViewport, so --app-vh stays live (the sheet's max-height +
   // the snap heights track the visual viewport that shrinks above the soft
   // keyboard). Inert off phone — every consumer below is gated by ff.isPhone.
-  const { snap, setSnap, isDragging, height: sheetHeight, settledHeight, handleProps, consumeDragMoved } =
-    useSheetState();
+  const {
+    snap,
+    setSnap,
+    viewportHeight,
+    viewportBottomInset,
+    isDragging,
+    height: sheetHeight,
+    settledHeight,
+    handleProps,
+    consumeDragMoved
+  } = useSheetState();
   // Phone-only label shrink: "Browse neighborhoods" + Filter can't share the
   // narrow sheet row; the short label keeps the strip to two rows. The tour's
   // browse anchor/behavior are unchanged (B4 aligns the tour copy per form
@@ -146,6 +222,18 @@ export function SignalsMapExperience({
   const settleTimerRef = useRef<number | null>(null);
   const prevSnapRef = useRef(snap);
   const prevDraggingRef = useRef(isDragging);
+  const searchSnapBeforeFocusRef = useRef<SheetSnap>("half");
+  const searchHasFocusRef = useRef(false);
+  const searchViewportHeightBeforeFocusRef = useRef(0);
+  const searchSawKeyboardRef = useRef(false);
+  const latestSnapRef = useRef(snap);
+
+  // Blur restoration runs in a later task so the user's target click can finish.
+  // Keep a commit-synchronous snapshot to tell whether that click deliberately
+  // changed the sheet before the restore task runs.
+  useLayoutEffect(() => {
+    latestSnapRef.current = snap;
+  }, [snap]);
 
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
@@ -160,6 +248,10 @@ export function SignalsMapExperience({
     const features = (boroughGeoJson as { features?: NtaFeature[] } | null)?.features;
     return Array.isArray(features) ? features : [];
   }, [boroughGeoJson]);
+  const isSearchResultInNyc = useCallback(
+    (result: GeocodeResult) => findBoroughContaining(result.center, boroughFeaturesAll) !== null,
+    [boroughFeaturesAll]
+  );
 
   // All signals grouped by borough (both borough- and neighborhood-grain rows).
   const byBorough = useMemo(() => {
@@ -268,6 +360,27 @@ export function SignalsMapExperience({
     return result;
   }, [boroughFeatures, byAreaId]);
 
+  // One location-picker option per NTA polygon. Counts follow the active signal
+  // filter, but zero-match neighborhoods remain visible so residents can still
+  // request coverage where the current map has no signal.
+  const neighborhoodOptions = useMemo<NeighborhoodPickerOption[]>(() => {
+    const options: NeighborhoodPickerOption[] = [];
+    for (const feature of ntaFeatures) {
+      const props = feature.properties ?? {};
+      const id = props.id;
+      const name = props.name;
+      const borough = props.borough;
+      if (typeof id !== "number" || typeof name !== "string" || typeof borough !== "string") {
+        continue;
+      }
+      const signalCount = (byAreaId.get(id) ?? []).filter((signal) =>
+        matchesChip(signal, activeChip)
+      ).length;
+      options.push({ id, name, borough, signalCount });
+    }
+    return options;
+  }, [ntaFeatures, byAreaId, activeChip]);
+
   // --- current reading scope (borough-wide, or one neighborhood) --------------
   const isNeighborhoodScope = view === "borough" && selectedAreaId !== null;
   const boroughSignals = useMemo(
@@ -277,6 +390,10 @@ export function SignalsMapExperience({
   const selectedSignals = useMemo(
     () => (selectedAreaId !== null ? byAreaId.get(selectedAreaId) ?? [] : []),
     [byAreaId, selectedAreaId]
+  );
+  const activeBoroughFilteredCount = useMemo(
+    () => boroughSignals.filter((signal) => matchesChip(signal, activeChip)).length,
+    [boroughSignals, activeChip]
   );
   const selectedMeta = selectedAreaId !== null ? areaMetaById.get(selectedAreaId) : undefined;
   const selectedName =
@@ -331,70 +448,335 @@ export function SignalsMapExperience({
   const activeChipMeta = chips.find((chip) => chip.key === activeChip);
   const chipLabel = activeChipMeta?.label ?? "matching";
   const activeAccent = activeChipMeta?.accent ?? "var(--primary)";
+  const neighborhoodButtonText =
+    view === "city"
+      ? isPhone
+        ? "Neighborhood"
+        : "Browse neighborhoods"
+      : selectedAreaId !== null
+        ? selectedName
+        : isPhone
+          ? "Neighborhood"
+          : "Choose neighborhood";
+  const neighborhoodButtonLabel =
+    view === "city"
+      ? "Browse neighborhoods"
+      : selectedAreaId !== null
+        ? `Change neighborhood, currently ${selectedName}`
+        : `Choose a neighborhood in ${activeBorough}`;
 
   // --- navigation handlers ----------------------------------------------------
+  const clearFocusedPoint = useCallback(() => {
+    locationRequestIdRef.current += 1;
+    setLocationStatus("idle");
+    setFocusPoint(null);
+    setSearchedLocationPoint(null);
+    setSearchedLocationLabel(null);
+  }, []);
+
   // Opens the zoomed neighborhood view for the active borough. Only the panel's
   // "Browse … neighborhoods" button calls this — borough map clicks never zoom.
   const openNeighborhoods = useCallback(() => {
+    setNeighborhoodPickerOpen(false);
     setView("borough");
-    setSelectedAreaId(null);
-    setFocusPoint(null);
+    updateSelectedAreaId(null);
+    clearFocusedPoint();
     setSearchNote(null);
     // Drilling in makes the map the hero — drop the sheet to peek (phone only;
     // setSnap is inert off phone). Gated while touring: the tour owns the sheet.
     if (!tourOpen) setSnap("peek");
-  }, [tourOpen, setSnap]);
+  }, [tourOpen, setSnap, updateSelectedAreaId, clearFocusedPoint]);
 
   const handleSelectArea = useCallback(
     (areaId: number) => {
-      setSelectedAreaId(areaId);
-      setFocusPoint(null);
+      setNeighborhoodPickerOpen(false);
+      updateSelectedAreaId(areaId);
+      clearFocusedPoint();
       setSearchNote(null);
       if (!tourOpen) setSnap("half");
     },
-    [tourOpen, setSnap]
+    [tourOpen, setSnap, updateSelectedAreaId, clearFocusedPoint]
   );
 
   const backToCity = useCallback(() => {
+    setNeighborhoodPickerOpen(false);
     setView("city");
-    setSelectedAreaId(null);
-    setFocusPoint(null);
+    updateSelectedAreaId(null);
+    clearFocusedPoint();
     setSearchNote(null);
     setCameraScope("city");
-  }, []);
+  }, [updateSelectedAreaId, clearFocusedPoint]);
 
   const backToBorough = useCallback(() => {
-    setSelectedAreaId(null);
-    setFocusPoint(null);
+    setNeighborhoodPickerOpen(false);
+    updateSelectedAreaId(null);
+    clearFocusedPoint();
     setSearchNote(null);
-  }, []);
+  }, [updateSelectedAreaId, clearFocusedPoint]);
 
-  const handleSearchPick = useCallback(
-    (center: [number, number], label: string) => {
-      // A committed search lands on a place — bring the sheet up to half so the
-      // result's brief is readable above the fold (phone only; gated off-tour).
-      if (!tourOpen) setSnap("half");
+  const closeNeighborhoodPicker = useCallback(() => {
+    setNeighborhoodPickerOpen(false);
+    if (!tourOpen) setSnap("half");
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => neighborhoodBtnRef.current?.focus());
+    }
+  }, [tourOpen, setSnap]);
+
+  const openNeighborhoodPicker = useCallback(() => {
+    if (tourOpen) {
+      openNeighborhoods();
+      return;
+    }
+    setFiltersOpen(false);
+    if (view === "city") {
+      setView("borough");
+      updateSelectedAreaId(null);
+      clearFocusedPoint();
+      setSearchNote(null);
+    }
+    setNeighborhoodPickerOpen(true);
+    setSnap("full");
+  }, [tourOpen, openNeighborhoods, view, updateSelectedAreaId, clearFocusedPoint, setSnap]);
+
+  const handlePickerBoroughChange = useCallback(
+    (borough: string) => {
+      onSelectBorough(borough);
+      setView("borough");
+      updateSelectedAreaId(null);
+      clearFocusedPoint();
+      setSearchNote(null);
+      setCameraScope("borough");
+      if (!tourOpen) setSnap("full");
+    },
+    [onSelectBorough, updateSelectedAreaId, clearFocusedPoint, tourOpen, setSnap]
+  );
+
+  const handlePickerSelectArea = useCallback(
+    (areaId: number) => {
+      if (areaId !== selectedAreaId) {
+        handleSelectArea(areaId);
+      } else if (!tourOpen) {
+        setSnap("half");
+      }
+      setNeighborhoodPickerOpen(false);
+      if (typeof window !== "undefined") {
+        window.requestAnimationFrame(() => neighborhoodBtnRef.current?.focus());
+      }
+    },
+    [selectedAreaId, handleSelectArea, tourOpen, setSnap]
+  );
+
+  const handlePickerSelectAll = useCallback(() => {
+    if (selectedAreaId !== null) {
+      backToBorough();
+    }
+    setNeighborhoodPickerOpen(false);
+    if (!tourOpen) setSnap("half");
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => neighborhoodBtnRef.current?.focus());
+    }
+  }, [selectedAreaId, backToBorough, tourOpen, setSnap]);
+
+  const resolvePoint = useCallback(
+    (
+      center: [number, number],
+      label: string,
+      source: PointSource,
+      accuracyMeters?: number
+    ) => {
+      // Both typed searches and device location go through the same NYC polygon
+      // resolution, so they cannot disagree about a borough or neighborhood.
+      setNeighborhoodPickerOpen(false);
+      if (!tourOpenRef.current) setSnap("half");
+      setFocusPoint(null);
+      if (source === "search") {
+        setSearchedLocationPoint(null);
+        setSearchedLocationLabel(null);
+      } else {
+        setUserLocationPoint(null);
+      }
       const area = findAreaContaining(center, ntaFeatures);
+      const approximateLocation =
+        source === "geolocation" &&
+        typeof accuracyMeters === "number" &&
+        accuracyMeters > 250;
+      const accuracyNote = approximateLocation
+        ? " Your phone shared an approximate location, so the neighborhood may be off near a boundary."
+        : "";
       if (area) {
-        onSelectBorough(area.borough ?? findBoroughContaining(center, boroughFeaturesAll) ?? activeBorough);
+        onSelectBorough(
+          area.borough ?? findBoroughContaining(center, boroughFeaturesAll) ?? activeBorough
+        );
         setView("borough");
-        setSelectedAreaId(area.areaId);
+        updateSelectedAreaId(area.areaId);
         setFocusPoint([center[0], center[1]]);
-        setSearchNote(null);
+        if (source === "search") {
+          setSearchedLocationPoint([center[0], center[1]]);
+          setSearchedLocationLabel(label);
+        } else {
+          setUserLocationPoint([center[0], center[1]]);
+        }
+        setSearchNote(
+          source === "geolocation"
+            ? `You're in ${area.name}.${accuracyNote} Your location is used only for this map and isn't saved.`
+            : null
+        );
         return;
       }
       const borough = findBoroughContaining(center, boroughFeaturesAll);
       if (borough) {
         onSelectBorough(borough);
         setView("borough");
-        setSelectedAreaId(null);
+        updateSelectedAreaId(null);
         setFocusPoint([center[0], center[1]]);
-        setSearchNote(`We couldn't match “${label}” to a neighborhood, but here's the surrounding area.`);
+        if (source === "search") {
+          setSearchedLocationPoint([center[0], center[1]]);
+          setSearchedLocationLabel(label);
+        } else {
+          setUserLocationPoint([center[0], center[1]]);
+        }
+        setSearchNote(
+          source === "geolocation"
+            ? `You're in ${borough}.${accuracyNote} We couldn't match a neighborhood boundary. Your location isn't saved.`
+            : `We couldn't match “${label}” to a neighborhood, but here's the surrounding area.`
+        );
         return;
       }
-      setSearchNote(`“${label}” looks to be outside New York City's neighborhoods.`);
+      updateSelectedAreaId(null);
+      setSearchNote(
+        source === "geolocation"
+          ? "Your current location is outside the Civic Map's New York City coverage."
+          : `“${label}” looks to be outside New York City's neighborhoods.`
+      );
     },
-    [ntaFeatures, boroughFeaturesAll, activeBorough, onSelectBorough, tourOpen, setSnap]
+    [
+      ntaFeatures,
+      boroughFeaturesAll,
+      activeBorough,
+      onSelectBorough,
+      setSnap,
+      updateSelectedAreaId
+    ]
+  );
+
+  const handleSearchPick = useCallback(
+    (center: [number, number], label: string) => {
+      suppressAutoLocateRef.current = true;
+      locationRequestIdRef.current += 1;
+      setLocationStatus("idle");
+      resolvePoint(center, label, "search");
+    },
+    [resolvePoint]
+  );
+
+  const handleSearchStart = useCallback(() => {
+    suppressAutoLocateRef.current = true;
+    locationRequestIdRef.current += 1;
+    setLocationStatus("idle");
+    setSearchNote(null);
+    setNeighborhoodPickerOpen(false);
+    setFiltersOpen(false);
+  }, []);
+
+  const requestCurrentLocation = useCallback(() => {
+    autoLocateAttemptedRef.current = true;
+    setNeighborhoodPickerOpen(false);
+    setFiltersOpen(false);
+    if (tourOpenRef.current) {
+      return;
+    }
+    if (typeof window !== "undefined" && !window.isSecureContext) {
+      setSearchNote(
+        "Near me needs a secure HTTPS connection on iPhone. Open the map over HTTPS, or search by address instead."
+      );
+      setSnap("half");
+      return;
+    }
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setSearchNote("This browser doesn't support location access. Search by address instead.");
+      setSnap("half");
+      return;
+    }
+
+    const requestId = locationRequestIdRef.current + 1;
+    locationRequestIdRef.current = requestId;
+    setUserLocationPoint(null);
+    setLocationStatus("locating");
+    setSearchNote("Finding your location…");
+    setSnap("half");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        if (requestId !== locationRequestIdRef.current) {
+          return;
+        }
+        setLocationStatus("idle");
+        resolvePoint(
+          [position.coords.longitude, position.coords.latitude],
+          "Your current location",
+          "geolocation",
+          position.coords.accuracy
+        );
+      },
+      (error) => {
+        if (requestId !== locationRequestIdRef.current) {
+          return;
+        }
+        setLocationStatus("idle");
+        setSearchNote(locationErrorMessage(error));
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  }, [resolvePoint, setSnap]);
+
+  // Never surprise a first-time visitor with a permission prompt. If they have
+  // already granted geolocation, reuse that choice once and open their local
+  // neighborhood automatically; otherwise the visible "Near me" button prompts.
+  useEffect(() => {
+    if (
+      !canSearch ||
+      tourOpen ||
+      restoredAreaOnMountRef.current ||
+      autoLocateAttemptedRef.current ||
+      typeof window === "undefined" ||
+      !window.isSecureContext ||
+      typeof navigator === "undefined" ||
+      !navigator.geolocation ||
+      !navigator.permissions
+    ) {
+      return;
+    }
+    let cancelled = false;
+    navigator.permissions
+      .query({ name: "geolocation" })
+      .then((permission) => {
+        if (
+          cancelled ||
+          tourOpenRef.current ||
+          autoLocateAttemptedRef.current ||
+          suppressAutoLocateRef.current ||
+          permission.state !== "granted"
+        ) {
+          return;
+        }
+        autoLocateAttemptedRef.current = true;
+        requestCurrentLocation();
+      })
+      .catch(() => {
+        // Permissions API support is optional. The button still uses the widely
+        // supported Geolocation API and will let the browser prompt on demand.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canSearch, tourOpen, requestCurrentLocation]);
+
+  useEffect(
+    () => () => {
+      // getCurrentPosition cannot be cancelled. Invalidate any late callback so
+      // leaving Civic Signals cannot change map or URL state after unmount.
+      locationRequestIdRef.current += 1;
+    },
+    []
   );
 
   // Fires on every borough click (including a re-click of the current borough).
@@ -408,11 +790,74 @@ export function SignalsMapExperience({
     if (!tourOpen) setSnap("half");
   }, [tourOpen, setSnap]);
 
-  // Search-field focus (phone) raises the sheet to full so the input + upward
-  // suggestions clear the soft keyboard. Passed to MapSearchBox; gated off-tour.
+  // Pointer-down records the pre-focus state but deliberately does not resize the
+  // sheet. iOS Safari must finish the native input tap before anything moves, or
+  // the link that slides under the finger can receive the completed click.
+  const handleSearchFocusIntentPhone = useCallback(() => {
+    if (tourOpen) {
+      return;
+    }
+    if (!searchHasFocusRef.current) {
+      searchHasFocusRef.current = true;
+      searchSnapBeforeFocusRef.current = snap === "peek" ? "half" : snap;
+      searchViewportHeightBeforeFocusRef.current = viewportHeight;
+      searchSawKeyboardRef.current = false;
+    }
+  }, [tourOpen, snap, viewportHeight]);
+
+  // Called after the input's click (or a non-pointer focus) has completed. The
+  // original snap is already captured, so expanding now cannot retarget the tap.
   const handleSearchFocusPhone = useCallback(() => {
-    if (!tourOpen) setSnap("full");
+    if (tourOpen) {
+      return;
+    }
+    handleSearchFocusIntentPhone();
+    setNeighborhoodPickerOpen(false);
+    setFiltersOpen(false);
+    setSnap("full");
+  }, [handleSearchFocusIntentPhone, tourOpen, setSnap]);
+
+  const handleSearchBlurPhone = useCallback(() => {
+    if (!searchHasFocusRef.current) {
+      return;
+    }
+    searchHasFocusRef.current = false;
+    searchSawKeyboardRef.current = false;
+    // Restore only while search still owns the full snap. A result, Near me, or
+    // Neighborhoods click may have intentionally selected half/peek before this
+    // delayed blur callback; its newer navigation state must win.
+    if (!tourOpen && latestSnapRef.current === "full") {
+      setSnap(searchSnapBeforeFocusRef.current);
+    }
   }, [tourOpen, setSnap]);
+
+  // The keyboard's toolbar can dismiss iOS Safari's keyboard without blurring
+  // the input. Detect the visual viewport closing and restore the pre-focus snap
+  // so the sheet does not stay full as in the user's third screenshot.
+  useEffect(() => {
+    if (!isPhone || !searchHasFocusRef.current) {
+      return;
+    }
+    const baseline = searchViewportHeightBeforeFocusRef.current;
+    const reduction = Math.max(0, baseline - viewportHeight);
+    const keyboardVisible = reduction > 120 || viewportBottomInset > 120;
+    if (keyboardVisible) {
+      searchSawKeyboardRef.current = true;
+      return;
+    }
+    if (
+      searchSawKeyboardRef.current &&
+      reduction < 80 &&
+      viewportBottomInset < 80
+    ) {
+      handleSearchBlurPhone();
+    }
+  }, [
+    isPhone,
+    viewportHeight,
+    viewportBottomInset,
+    handleSearchBlurPhone
+  ]);
 
   // A tap on the peek grab handle / brief row is user intent to see more — rise
   // to half. Guarded to peek so a click that lands after a real drag (which has
@@ -492,11 +937,11 @@ export function SignalsMapExperience({
       if (depth === 0) {
         backToCity();
       } else if (depth === 1) {
-        setSelectedAreaId(null);
+        updateSelectedAreaId(null);
       }
       // depth === 2: selection stays — no nav change.
     },
-    [backToCity]
+    [backToCity, updateSelectedAreaId]
   );
 
   // Tour v6: the loudest REAL neighborhood in the active borough — a genuine NTA
@@ -668,18 +1113,56 @@ export function SignalsMapExperience({
           <MapSearchBox
             token={mapboxToken}
             onPick={handleSearchPick}
+            isResultAllowed={isSearchResultInNyc}
             note={searchNote}
+            onSearchStart={handleSearchStart}
+            onPhoneFocusIntent={handleSearchFocusIntentPhone}
             onPhoneFocus={handleSearchFocusPhone}
+            onPhoneBlur={handleSearchBlurPhone}
           />
         ) : null}
-        {view === "city" && canDrill ? (
+        {canSearch ? (
           <button
             type="button"
-            className={styles.browseBtn}
-            data-tour="browse"
-            onClick={openNeighborhoods}
+            className={styles.locateBtn}
+            onClick={requestCurrentLocation}
+            disabled={locationStatus === "locating" || tourOpen}
+            aria-label="Use my current location"
+            aria-busy={locationStatus === "locating"}
           >
-            {isPhone ? "Browse" : "Browse neighborhoods"} <span aria-hidden="true">→</span>
+            <LocateIcon />
+            {locationStatus === "locating"
+              ? "Locating…"
+              : isPhone
+                ? "Near me"
+                : "Use my location"}
+          </button>
+        ) : null}
+        {canDrill ? (
+          <button
+            type="button"
+            ref={neighborhoodBtnRef}
+            className={`${styles.browseBtn}${
+              neighborhoodPickerOpen ? ` ${styles.browseBtnActive}` : ""
+            }`}
+            data-tour={view === "city" ? "browse" : undefined}
+            aria-label={neighborhoodButtonLabel}
+            aria-expanded={neighborhoodPickerOpen}
+            aria-controls={neighborhoodRegionId}
+            onClick={
+              neighborhoodPickerOpen ? closeNeighborhoodPicker : openNeighborhoodPicker
+            }
+          >
+            <span className={styles.browseBtnText}>{neighborhoodButtonText}</span>
+            <svg
+              className={`${styles.filterCaret}${
+                neighborhoodPickerOpen ? ` ${styles.filterCaretOpen}` : ""
+              }`}
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
           </button>
         ) : null}
         <div className={styles.filterRow}>
@@ -697,7 +1180,14 @@ export function SignalsMapExperience({
             }
             aria-expanded={filtersOpen}
             aria-controls={filterRegionId}
-            onClick={() => setFiltersOpen((open) => !open)}
+            onClick={() => {
+              const nextOpen = !filtersOpen;
+              setFiltersOpen(nextOpen);
+              if (nextOpen && neighborhoodPickerOpen) {
+                setNeighborhoodPickerOpen(false);
+                if (!tourOpen) setSnap("half");
+              }
+            }}
           >
             {activeChip !== "all" ? (
               <span className={styles.filterDot} aria-hidden="true" />
@@ -752,6 +1242,51 @@ export function SignalsMapExperience({
         </div>
       ) : null}
 
+      {neighborhoodPickerOpen && canDrill ? (
+        <div id={neighborhoodRegionId}>
+          <NeighborhoodPicker
+            activeBorough={activeBorough}
+            boroughs={BOROUGHS}
+            boroughSignalCount={activeBoroughFilteredCount}
+            options={neighborhoodOptions}
+            selectedAreaId={selectedAreaId}
+            onBoroughChange={handlePickerBoroughChange}
+            onSelectArea={handlePickerSelectArea}
+            onSelectAll={handlePickerSelectAll}
+            onClose={closeNeighborhoodPicker}
+          />
+        </div>
+      ) : null}
+
+      {isNeighborhoodScope &&
+      selectedAreaId !== null &&
+      !tourOpen &&
+      !neighborhoodPickerOpen &&
+      !filtersOpen ? (
+        <section
+          className={styles.coverageCallout}
+          aria-label={`Real-time Insights request for ${selectedName}`}
+        >
+          <p className={styles.coveragePrompt}>
+            Have something we should look into in {selectedName}?
+          </p>
+          <button
+            ref={coverageBtnRef}
+            type="button"
+            className={styles.coverageBtn}
+            onClick={() =>
+              setCoverageArea({
+                id: selectedAreaId,
+                name: selectedName,
+                borough: selectedMeta?.borough ?? activeBorough
+              })
+            }
+          >
+            Request Real-time Insights
+          </button>
+        </section>
+      ) : null}
+
       <PanelDigest
         briefCount={filtered.length}
         briefPosts={briefCommunityPosts}
@@ -775,6 +1310,9 @@ export function SignalsMapExperience({
           metaByArea={metaByArea}
           selectedAreaId={selectedAreaId}
           focusPoint={focusPoint}
+          userLocationPoint={userLocationPoint}
+          searchedLocationPoint={searchedLocationPoint}
+          searchedLocationLabel={searchedLocationLabel}
           onSelectArea={handleSelectArea}
           sheetPx={settledHeight}
           sheetSnap={snap}
@@ -833,28 +1371,45 @@ export function SignalsMapExperience({
             (CSS) since the header + digest brief then carry the same numbers.
             Tapping it rises the sheet to half. */}
         {isPhone && !unavailable ? (
-          <p
-            className="cs-sheet-brief"
-            role="button"
-            tabIndex={0}
-            onClick={expandFromPeek}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                expandFromPeek();
-              }
-            }}
-          >
-            <strong>{scopeName}</strong> — {filtered.length}{" "}
-            {filtered.length === 1 ? "issue" : "issues"} · {briefCommunityPosts}{" "}
-            {briefCommunityPosts === 1 ? "post" : "posts"}
-          </p>
+          <div className="cs-sheet-peek">
+            <button
+              type="button"
+              className="cs-sheet-brief"
+              aria-label="Open search and neighborhood controls"
+              onClick={expandFromPeek}
+            >
+              <strong>{scopeName}</strong> — {filtered.length}{" "}
+              {filtered.length === 1 ? "issue" : "issues"} · {briefCommunityPosts}{" "}
+              {briefCommunityPosts === 1 ? "post" : "posts"}
+            </button>
+            {canSearch ? (
+              <button
+                type="button"
+                className={`${styles.locateBtn} ${styles.locateBtnPeek}`}
+                onClick={requestCurrentLocation}
+                disabled={locationStatus === "locating" || tourOpen}
+                aria-label="Use my current location"
+                aria-busy={locationStatus === "locating"}
+              >
+                <LocateIcon />
+                {locationStatus === "locating" ? "Locating…" : "Near me"}
+              </button>
+            ) : null}
+          </div>
         ) : null}
         {/* Phone: the content scrolls inside .cs-sheet-body so the handle + brief
             stay OUTSIDE the scroller (owner complaints 1 & 3). Desktop/tablet render
             the same panelBody directly in the scrolling aside — DOM byte-identical. */}
         {isPhone ? <div className="cs-sheet-body">{panelBody}</div> : panelBody}
       </aside>
+
+      {coverageArea ? (
+        <CoverageRequestDialog
+          area={coverageArea}
+          onClose={() => setCoverageArea(null)}
+          returnFocusRef={coverageBtnRef}
+        />
+      ) : null}
 
       {/* Guided tour overlay — mounted only while open (fresh state each open),
           reading live host state as props. The rising-edge reset effect above

@@ -1,95 +1,293 @@
 "use client";
 
-import { memo, useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type KeyboardEvent
+} from "react";
 
-import { geocodeNyc, type GeocodeResult } from "@/lib/map-feature/geocode";
+import {
+  geocodeNyc,
+  type GeocodeFeatureType,
+  type GeocodeResult
+} from "@/lib/map-feature/geocode";
 import { useFormFactor } from "@/lib/map-feature/use-form-factor";
 import styles from "./map-signals.module.css";
 
-// Address / ZIP search for the signals map. Debounced Mapbox forward-geocoding
+// Address / ZIP / neighborhood search for the signals map. Debounced Mapbox forward-geocoding
 // (NYC-bounded) with a keyboard-navigable suggestion list. Purely about turning
 // text into a [lng, lat] + label; the parent decides what to do with the pick
 // (fly + resolve the containing neighborhood).
 
 const DEBOUNCE_MS = 300;
 const MIN_CHARS = 3;
+const MAX_VISIBLE_RESULTS = 6;
+
+const RESULT_TYPE_LABELS: Record<GeocodeFeatureType, string> = {
+  address: "Address",
+  street: "Street",
+  postcode: "ZIP code",
+  neighborhood: "Neighborhood",
+  locality: "Neighborhood",
+  place: "Place"
+};
 
 type Status = "idle" | "loading" | "results" | "empty" | "error";
 
 type Props = {
   token: string | undefined;
   onPick: (center: [number, number], label: string) => void;
+  // The Mapbox bbox is rectangular and overlaps New Jersey around Staten Island.
+  // The host can apply the actual five-borough polygons before suggestions show.
+  isResultAllowed?: (result: GeocodeResult) => boolean;
   // A short status line shown under the field, set by the parent after it
   // resolves a pick against the polygons (e.g. "No neighborhood matched").
   note?: string | null;
-  // Phone only: fired when the field gains focus so the host can raise the bottom
-  // sheet to full (clearing the soft keyboard). No-op off phone (host gates it).
+  // Clears any previously resolved location note as soon as a new search begins.
+  onSearchStart?: () => void;
+  // Phone only: records the pre-focus sheet state without moving anything. This
+  // runs on pointer-down so a later focus/blur can restore the correct snap.
+  onPhoneFocusIntent?: () => void;
+  // Raises the phone sheet only after the native tap has completed. Moving the
+  // field during pointer-down can make iOS Safari finish the tap on content that
+  // slid underneath the finger instead of opening the keyboard.
   onPhoneFocus?: () => void;
+  // Restores the sheet state that preceded keyboard focus.
+  onPhoneBlur?: () => void;
 };
 
-export const MapSearchBox = memo(function MapSearchBox({ token, onPick, note, onPhoneFocus }: Props) {
+export const MapSearchBox = memo(function MapSearchBox({
+  token,
+  onPick,
+  isResultAllowed,
+  note,
+  onSearchStart,
+  onPhoneFocusIntent,
+  onPhoneFocus,
+  onPhoneBlur
+}: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GeocodeResult[]>([]);
   const [status, setStatus] = useState<Status>("idle");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [resultsQuery, setResultsQuery] = useState("");
 
   const { isPhone } = useFormFactor();
 
   const listId = useId();
   const abortRef = useRef<AbortController | null>(null);
   const timerRef = useRef<number | null>(null);
+  const requestIdRef = useRef(0);
   const wrapRef = useRef<HTMLDivElement | null>(null);
-  // Set when a result is chosen: writing the label back into the input would
-  // otherwise re-fire the geocoder and reopen the list. Skip that one run.
-  const justPickedRef = useRef(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const blurTimerRef = useRef<number | null>(null);
+  const focusTimerRef = useRef<number | null>(null);
+  const pointerFocusRef = useRef(false);
+  const pointerSequenceRef = useRef(false);
+  const pendingBlurRef = useRef(false);
 
-  // Debounced geocode as the user types.
-  useEffect(() => {
-    const trimmed = query.trim();
-    if (timerRef.current !== null) {
-      window.clearTimeout(timerRef.current);
-    }
-    if (justPickedRef.current) {
-      justPickedRef.current = false;
+  const schedulePhoneBlur = useCallback(
+    (delayMs = 0) => {
+      if (blurTimerRef.current !== null) {
+        window.clearTimeout(blurTimerRef.current);
+      }
+      blurTimerRef.current = window.setTimeout(() => {
+        blurTimerRef.current = null;
+        if (!pendingBlurRef.current) {
+          return;
+        }
+        pendingBlurRef.current = false;
+        if (document.activeElement !== inputRef.current) {
+          onPhoneBlur?.();
+        }
+      }, delayMs);
+    },
+    [onPhoneBlur]
+  );
+
+  const queuePhoneExpansion = useCallback(() => {
+    if (!isPhone) {
       return;
     }
-    if (!token || trimmed.length < MIN_CHARS) {
+    if (blurTimerRef.current !== null) {
+      window.clearTimeout(blurTimerRef.current);
+      blurTimerRef.current = null;
+    }
+    pendingBlurRef.current = false;
+    if (focusTimerRef.current !== null) {
+      window.clearTimeout(focusTimerRef.current);
+    }
+    // A zero-delay task scheduled by click runs after Safari has committed the
+    // native tap/focus and keyboard request, so resizing the sheet cannot change
+    // that tap's target midway through the gesture.
+    focusTimerRef.current = window.setTimeout(() => {
+      focusTimerRef.current = null;
+      if (document.activeElement === inputRef.current) {
+        onPhoneFocus?.();
+      }
+    }, 0);
+  }, [isPhone, onPhoneFocus]);
+
+  // A different control receives focus on pointer-down, before its click. Never
+  // collapse the sheet during that gap: the target would slide away under the
+  // finger and the click could be lost or land elsewhere. Finish blur recovery
+  // only after the document click, with a pointer-up fallback for canceled taps.
+  useEffect(() => {
+    if (!isPhone) {
+      return;
+    }
+    const onPointerDown = () => {
+      pointerSequenceRef.current = true;
+    };
+    const onPointerUp = () => {
+      pointerSequenceRef.current = false;
+      if (pendingBlurRef.current) {
+        // Modern mobile browsers dispatch click immediately after pointer-up.
+        // The fallback also covers a canceled activation or older delayed click;
+        // a real click below replaces this timer with an immediate post-click one.
+        schedulePhoneBlur(500);
+      }
+    };
+    const onPointerCancel = () => {
+      pointerSequenceRef.current = false;
+      if (pendingBlurRef.current) {
+        schedulePhoneBlur();
+      }
+    };
+    const onDocumentClick = () => {
+      pointerSequenceRef.current = false;
+      if (pendingBlurRef.current) {
+        schedulePhoneBlur();
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("pointerup", onPointerUp, true);
+    document.addEventListener("pointercancel", onPointerCancel, true);
+    document.addEventListener("click", onDocumentClick, true);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("pointerup", onPointerUp, true);
+      document.removeEventListener("pointercancel", onPointerCancel, true);
+      document.removeEventListener("click", onDocumentClick, true);
+    };
+  }, [isPhone, schedulePhoneBlur]);
+
+  const pick = useCallback(
+    (result: GeocodeResult) => {
       abortRef.current?.abort();
+      requestIdRef.current += 1;
+      setQuery(result.label);
       setResults([]);
+      setResultsQuery("");
       setStatus("idle");
+      setOpen(false);
+      setActiveIndex(-1);
+      // A committed address is an end state: close the phone keyboard so the map
+      // and newly selected neighborhood are visible immediately.
+      inputRef.current?.blur();
+      onPick(result.center, result.label);
+    },
+    [onPick]
+  );
+
+  const runSearch = useCallback(
+    async (rawQuery: string, commitFirst = false) => {
+      const trimmed = rawQuery.trim();
+      if (!token || trimmed.length < MIN_CHARS) {
+        return;
+      }
+      if (timerRef.current !== null) {
+        window.clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      const requestId = requestIdRef.current + 1;
+      requestIdRef.current = requestId;
+      abortRef.current = controller;
+      setStatus("loading");
+      setOpen(true);
+
+      try {
+        const geocoded = await geocodeNyc(trimmed, token, controller.signal);
+        const allowed = isResultAllowed ? geocoded.filter(isResultAllowed) : geocoded;
+        const next = allowed.slice(0, MAX_VISIBLE_RESULTS);
+        if (controller.signal.aborted || requestId !== requestIdRef.current) {
+          return;
+        }
+        if (commitFirst && next.length > 0) {
+          pick(next[0]);
+          return;
+        }
+        setResults(next);
+        setResultsQuery(trimmed);
+        setActiveIndex(next.length > 0 ? 0 : -1);
+        setStatus(next.length > 0 ? "results" : "empty");
+        setOpen(true);
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          return;
+        }
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+        setResults([]);
+        setResultsQuery(trimmed);
+        setStatus("error");
+        setOpen(true);
+      }
+    },
+    [isResultAllowed, pick, token]
+  );
+
+  const onQueryChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextQuery = event.target.value;
+    const trimmed = nextQuery.trim();
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    abortRef.current?.abort();
+    requestIdRef.current += 1;
+    onSearchStart?.();
+    setQuery(nextQuery);
+    setResults([]);
+    setResultsQuery("");
+    setActiveIndex(-1);
+    if (!token || trimmed.length < MIN_CHARS) {
+      setStatus("idle");
+      setOpen(false);
       return;
     }
     setStatus("loading");
+    setOpen(true);
     timerRef.current = window.setTimeout(() => {
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
-      geocodeNyc(trimmed, token, controller.signal)
-        .then((next) => {
-          setResults(next);
-          setActiveIndex(next.length > 0 ? 0 : -1);
-          setStatus(next.length > 0 ? "results" : "empty");
-          setOpen(true);
-        })
-        .catch((err: unknown) => {
-          if (err instanceof DOMException && err.name === "AbortError") {
-            return;
-          }
-          setResults([]);
-          setStatus("error");
-          setOpen(true);
-        });
+      void runSearch(trimmed);
     }, DEBOUNCE_MS);
-    return () => {
+  };
+
+  // Abort both the debounce and any in-flight request on unmount.
+  useEffect(
+    () => () => {
       if (timerRef.current !== null) {
         window.clearTimeout(timerRef.current);
       }
-    };
-  }, [query, token]);
-
-  // Abort any in-flight request on unmount.
-  useEffect(() => () => abortRef.current?.abort(), []);
+      if (blurTimerRef.current !== null) {
+        window.clearTimeout(blurTimerRef.current);
+      }
+      if (focusTimerRef.current !== null) {
+        window.clearTimeout(focusTimerRef.current);
+      }
+      abortRef.current?.abort();
+    },
+    []
+  );
 
   // Close the suggestion list on an outside click.
   useEffect(() => {
@@ -102,26 +300,16 @@ export const MapSearchBox = memo(function MapSearchBox({ token, onPick, note, on
     return () => document.removeEventListener("mousedown", onDocMouseDown);
   }, []);
 
-  const pick = useCallback(
-    (result: GeocodeResult) => {
-      abortRef.current?.abort();
-      justPickedRef.current = true;
-      setQuery(result.label);
-      setResults([]);
-      setStatus("idle");
-      setOpen(false);
-      setActiveIndex(-1);
-      onPick(result.center, result.label);
-    },
-    [onPick]
-  );
-
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
-      if (results.length > 0) {
+      const trimmed = query.trim();
+      if (results.length > 0 && resultsQuery === trimmed) {
         event.preventDefault();
         const index = activeIndex >= 0 && activeIndex < results.length ? activeIndex : 0;
         pick(results[index]);
+      } else if (token && trimmed.length >= MIN_CHARS) {
+        event.preventDefault();
+        void runSearch(trimmed, true);
       }
       return;
     }
@@ -161,42 +349,80 @@ export const MapSearchBox = memo(function MapSearchBox({ token, onPick, note, on
           <path d="m21 21-4.35-4.35" />
         </svg>
         <input
+          ref={inputRef}
           className={styles.searchInput}
           type="search"
+          enterKeyHint="search"
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={onQueryChange}
           onKeyDown={onKeyDown}
+          onPointerDown={() => {
+            if (isPhone) {
+              pointerFocusRef.current = true;
+              if (blurTimerRef.current !== null) {
+                window.clearTimeout(blurTimerRef.current);
+                blurTimerRef.current = null;
+              }
+              pendingBlurRef.current = false;
+              if (focusTimerRef.current !== null) {
+                window.clearTimeout(focusTimerRef.current);
+                focusTimerRef.current = null;
+              }
+              // Capture the old snap now, but do not render or move the sheet
+              // until click. The native input must stay under the finger for the
+              // complete iOS touch sequence so Safari opens the keyboard.
+              onPhoneFocusIntent?.();
+            }
+          }}
+          onPointerCancel={() => {
+            pointerFocusRef.current = false;
+          }}
           onFocus={() => {
             if (status !== "idle") {
               setOpen(true);
             }
-            // Phone: lift the search up inside the bottom sheet so the field and
-            // its upward-opening suggestions clear the soft keyboard. Leave ~35%
-            // of the visible sheet above the field for the upward popover.
             if (isPhone) {
-              onPhoneFocus?.();
-              const wrap = wrapRef.current;
-              // The phone sheet's SCROLLER is .cs-sheet-body (the handle + brief are
-              // static siblings OUTSIDE it); the aside is overflow:hidden now, so
-              // scrollTop/scrollTo must target the body, not .cs-insights.
-              const sheet = wrap?.closest(".cs-sheet-body") as HTMLElement | null;
-              if (wrap && sheet) {
-                // Measure the field's offset within the sheet's scroll content
-                // via rects, not offsetTop — offsetTop is relative to the nearest
-                // positioned ancestor, which isn't guaranteed to be the sheet.
-                const offsetInSheet =
-                  sheet.scrollTop +
-                  wrap.getBoundingClientRect().top -
-                  sheet.getBoundingClientRect().top;
-                sheet.scrollTo({
-                  top: Math.max(0, offsetInSheet - sheet.clientHeight * 0.35),
-                  behavior: "smooth"
-                });
+              if (blurTimerRef.current !== null) {
+                window.clearTimeout(blurTimerRef.current);
+                blurTimerRef.current = null;
+              }
+              pendingBlurRef.current = false;
+              // Pointer-driven focus waits for click below. Keyboard, switch
+              // control, and other non-pointer focus paths have no click to wait
+              // for, so queue their expansion independently.
+              if (!pointerFocusRef.current) {
+                onPhoneFocusIntent?.();
+                queuePhoneExpansion();
               }
             }
           }}
-          placeholder="Find your block — address or ZIP…"
-          aria-label="Find your block — search an address or ZIP code"
+          onClick={() => {
+            if (isPhone) {
+              pointerFocusRef.current = false;
+              queuePhoneExpansion();
+            }
+          }}
+          onBlur={() => {
+            if (!isPhone) {
+              return;
+            }
+            pointerFocusRef.current = false;
+            if (focusTimerRef.current !== null) {
+              window.clearTimeout(focusTimerRef.current);
+              focusTimerRef.current = null;
+            }
+            if (blurTimerRef.current !== null) {
+              window.clearTimeout(blurTimerRef.current);
+            }
+            pendingBlurRef.current = true;
+            // Keyboard/programmatic blur has no pointer gesture to protect. A
+            // pointer-driven blur is completed by the document click listener.
+            if (!pointerSequenceRef.current) {
+              schedulePhoneBlur();
+            }
+          }}
+          placeholder="Address, ZIP, or neighborhood…"
+          aria-label="Search by address, ZIP code, or neighborhood"
           role="combobox"
           aria-expanded={showDropdown}
           aria-controls={listId}
@@ -214,13 +440,20 @@ export const MapSearchBox = memo(function MapSearchBox({ token, onPick, note, on
               Couldn&apos;t reach the search service. Please try again.
             </p>
           ) : status === "empty" ? (
-            <p className={styles.searchNote}>No matches in New York City.</p>
+            <p className={styles.searchNote}>
+              No NYC matches. Try an address, ZIP code, or neighborhood.
+            </p>
           ) : (
             results.map((result, index) => (
               <button
                 key={result.id}
                 type="button"
                 role="option"
+                onPointerDown={(event) => {
+                  // Keep focus on the input until pick() runs, preventing a mobile
+                  // pointer from dismissing the keyboard before the click lands.
+                  event.preventDefault();
+                }}
                 aria-selected={index === activeIndex}
                 className={`${styles.searchOption}${
                   index === activeIndex ? ` ${styles.searchOptionActive}` : ""
@@ -228,7 +461,12 @@ export const MapSearchBox = memo(function MapSearchBox({ token, onPick, note, on
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => pick(result)}
               >
-                <span className={styles.searchOptionLabel}>{result.label}</span>
+                <span className={styles.searchOptionTop}>
+                  <span className={styles.searchOptionLabel}>{result.label}</span>
+                  <span className={styles.searchOptionKind}>
+                    {RESULT_TYPE_LABELS[result.featureType]}
+                  </span>
+                </span>
                 {result.context ? (
                   <span className={styles.searchOptionContext}>{result.context}</span>
                 ) : null}

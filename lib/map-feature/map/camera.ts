@@ -25,7 +25,7 @@ export function computeFitPadding(ff: FormFactor, sheetPx: number): Padding {
   if (ff.isPhone) {
     // Reserve the bottom band so a fit lands above it. sheetPx is the sheet's
     // settled snap height on the signals lens, or the non-sheet fallback (45% of
-    // the visual viewport + a 68px tab-bar band) on the 311 lens.
+    // the visual viewport + its bottom margin) on the 311 lens.
     return { top: 40, bottom: sheetPx + 40, left: 24, right: 24 };
   }
   if (ff.isTabletPortrait) {

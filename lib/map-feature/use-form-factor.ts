@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 
 import { MQ } from "./breakpoints";
 
 // Single source of truth for JS-side form-factor branches (fitBounds padding,
-// easeTo bias, tour geometry, tap-to-peek). Replaces the inline matchMedia
+// easeTo bias, tour geometry, touch gesture handling). Replaces the inline matchMedia
 // scattered across the maps + tour so they stay in lockstep with the CSS
 // breakpoint tokens. WIDTH axis and POINTER axis are read separately: an iPad
 // Pro landscape is `isCoarse` but not `isPhone`/`isTabletPortrait`.
@@ -16,10 +16,10 @@ export interface FormFactor {
   isCoarse: boolean;
 }
 
-// SSR + first-paint default: assume desktop. matchMedia can't run on the server,
-// and defaulting to desktop keeps the approved fine-pointer layout flash-free on
-// the desktop path; touch clients correct on mount (before paint where React lets
-// us, via the lazy initializer below).
+// SSR + hydration default: assume desktop. The first browser render MUST use the
+// same value as the server render; reading matchMedia in useState's initializer
+// makes a phone hydrate different markup and triggers a hydration mismatch. A
+// layout effect reconciles the real device class before paint.
 const DESKTOP: FormFactor = { isPhone: false, isTabletPortrait: false, isCoarse: false };
 
 function read(): FormFactor {
@@ -34,9 +34,9 @@ function read(): FormFactor {
 }
 
 export function useFormFactor(): FormFactor {
-  const [formFactor, setFormFactor] = useState<FormFactor>(read);
+  const [formFactor, setFormFactor] = useState<FormFactor>(DESKTOP);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
     const queries = [
       window.matchMedia(MQ.phone),

@@ -8,3 +8,13 @@ export function firstParam(params: SearchParams | undefined, key: string): strin
   const value = params?.[key];
   return Array.isArray(value) ? value[0] : value;
 }
+
+/** Read a URL parameter only when it is a safe, positive integer. */
+export function positiveIntParam(params: SearchParams | undefined, key: string): number | null {
+  const value = firstParam(params, key);
+  if (!value || !/^\d+$/.test(value)) {
+    return null;
+  }
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}

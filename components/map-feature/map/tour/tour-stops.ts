@@ -89,9 +89,9 @@ export type TourStop = {
   // No id / order / advancement change — these are text-only overrides. bodyCoarse
   // wins over bodyPhone (a coarse pointer includes tablet-portrait, not just phone).
   bodyPhone?: string; // isPhone body (rail labels hidden, "Browse" short label)
-  bodyCoarse?: string; // isCoarse body (touch verbs: "tap", two-tap peek wording)
+  bodyCoarse?: string; // isCoarse body (touch verbs such as "tap")
   missHintPhone?: string; // isPhone wrong-click line ("tap" verbs, short labels)
-  missHintCoarse?: string; // isCoarse wrong-click line (two-tap peek wording)
+  missHintCoarse?: string; // isCoarse wrong-click line (touch wording)
 };
 
 // Copy uses {borough} where the ACTIVE borough name belongs; the guide replaces
@@ -202,7 +202,7 @@ export const STOPS: TourStop[] = [
     body:
       "We opened one neighborhood for you — the panel now shows exactly what's happening there this week. Click any shaded block to read a different one; grey ones are quiet this week.",
     bodyCoarse:
-      "We opened one neighborhood for you — the panel now shows exactly what's happening there this week. To read another, tap a shaded block to preview it, then tap again to open.",
+      "We opened one neighborhood for you — the panel now shows exactly what's happening there this week. To read another, tap any shaded block once; grey ones are quiet this week.",
     cta: "Next",
     successText: ""
   },
@@ -316,8 +316,8 @@ export function liveStops(
     return true;
   }).map((stop) => {
     const anchor = ff.isPhone && stop.anchorPhone ? stop.anchorPhone : stop.anchor;
-    // Coarse wins over phone for BOTH body and missHint: the touch verbs / two-tap
-    // peek wording apply on every touch pointer (phone + tablet-portrait), not just
+    // Coarse wins over phone for BOTH body and missHint: touch wording applies on
+    // every touch pointer (phone + tablet-portrait), not just
     // <=640; bodyPhone/missHintPhone carry the phone-only label shrink.
     const body =
       ff.isCoarse && stop.bodyCoarse

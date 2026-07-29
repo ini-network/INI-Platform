@@ -22,6 +22,7 @@
     "mapbox-gl": "^3.25.0"
   },
   "devDependencies": {
+    "@playwright/cli": "^0.1.17",
     "@tailwindcss/postcss": "^4",
     "@types/geojson": "^7946.0.16",
     "@types/node": "^20",
