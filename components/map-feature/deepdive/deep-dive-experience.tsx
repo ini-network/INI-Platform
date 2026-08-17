@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type { BoroughNeighborhoodsResponse } from "@/lib/map-feature/api";
 import type { NeighborhoodRow } from "@/lib/map-feature/borough-overview";
@@ -52,13 +52,24 @@ export function DeepDiveExperience({
   const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
   const [hoveredAreaId, setHoveredAreaId] = useState<number | null>(null);
   const selectedAreaIdRef = useRef(selectedAreaId);
-  selectedAreaIdRef.current = selectedAreaId;
+
+  useLayoutEffect(() => {
+    selectedAreaIdRef.current = selectedAreaId;
+  }, [selectedAreaId]);
 
   const cacheRef = useRef<Map<string, BoroughNeighborhoodsResponse>>(new Map());
   const reqRef = useRef(0);
-  if (initialData && !cacheRef.current.has(key(initialTimeWindow, initialIssueType))) {
-    cacheRef.current.set(key(initialTimeWindow, initialIssueType), initialData);
-  }
+
+  // Seed server data before the loader effect reads the cache. Keeping this out
+  // of render avoids mutating an imperative cache while React is reconciling.
+  useEffect(() => {
+    if (initialData) {
+      const initialKey = key(initialTimeWindow, initialIssueType);
+      if (!cacheRef.current.has(initialKey)) {
+        cacheRef.current.set(initialKey, initialData);
+      }
+    }
+  }, [initialData, initialIssueType, initialTimeWindow]);
 
   // Load neighborhoods whenever the time window or issue type changes.
   useEffect(() => {
@@ -98,7 +109,7 @@ export function DeepDiveExperience({
     window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
   }, [timeWindow, issueType]);
 
-  const allRows: NeighborhoodRow[] = data?.neighborhoods ?? [];
+  const allRows = useMemo<NeighborhoodRow[]>(() => data?.neighborhoods ?? [], [data]);
   const totalCount = data?.total_count ?? allRows.length;
 
   // Auto-select the top hotspot so the map opens with an overlay (never empty)
@@ -111,6 +122,9 @@ export function DeepDiveExperience({
     const current = selectedAreaIdRef.current;
     const stillPresent = current !== null && allRows.some((row) => row.area_id === current);
     if (!stillPresent) {
+      // This intentionally reconciles selection ownership when a new data set
+      // no longer contains the previous area; deriving it would revive stale
+      // selections when users switch filters back.
       setSelectedAreaId(allRows[0].area_id);
     }
   }, [allRows]);

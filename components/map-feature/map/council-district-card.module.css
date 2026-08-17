@@ -1,0 +1,346 @@
+.card {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid color-mix(in srgb, var(--primary, #7c3aed) 18%, transparent);
+  border-radius: var(--radius-lg, 18px);
+  background: var(--surface, #fffdf8);
+  box-shadow: 0 16px 38px rgba(35, 23, 54, 0.09);
+  color: var(--ink, #111c18);
+}
+
+.meetingsCard {
+  gap: 14px;
+  box-shadow: none;
+}
+
+.meetingsCard > .calendarLink {
+  width: fit-content;
+  justify-self: end;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.headingGroup {
+  display: flex;
+  flex: 1 1 230px;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 11px;
+}
+
+.headingIcon,
+.eventsIcon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--primary, #7c3aed);
+  background: color-mix(in srgb, var(--primary, #7c3aed) 10%, var(--surface, #fffdf8));
+}
+
+.headingIcon {
+  width: 42px;
+  height: 42px;
+}
+
+.headingIcon svg,
+.calendarLink svg,
+.contacts svg,
+.eventsIcon svg,
+.events li > a svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.eyebrow,
+.title,
+.loading,
+.events h3,
+.eventsNote,
+.empty {
+  margin: 0;
+}
+
+.eyebrow {
+  color: var(--primary, #7c3aed);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.075em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.title {
+  max-width: 250px;
+  margin-top: 4px;
+  font-size: 18px;
+  font-weight: 850;
+  letter-spacing: -0.018em;
+  line-height: 1.2;
+}
+
+.calendarLink {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 13px;
+  border: 1px solid color-mix(in srgb, var(--primary, #7c3aed) 25%, transparent);
+  border-radius: 12px;
+  color: var(--primary, #7c3aed);
+  background: color-mix(in srgb, var(--primary, #7c3aed) 5%, var(--surface, #fffdf8));
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+
+.calendarLink:hover {
+  border-color: color-mix(in srgb, var(--primary, #7c3aed) 46%, transparent);
+  background: color-mix(in srgb, var(--primary, #7c3aed) 9%, var(--surface, #fffdf8));
+}
+
+.representative {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--primary, #7c3aed) 12%, transparent);
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--primary, #7c3aed) 5%, var(--surface-soft, #fbf8f1));
+}
+
+.person,
+.vacantState {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  display: grid;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--primary, #7c3aed) 22%, transparent);
+  border-radius: 50%;
+  color: #fff;
+  background: var(--primary, #7c3aed);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--primary, #7c3aed) 22%, transparent);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+}
+
+.personText,
+.vacantState > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.personText strong,
+.vacantState strong {
+  font-size: 16px;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.personText span,
+.vacantState span,
+.loading,
+.eventsNote,
+.empty {
+  color: var(--muted, #6a756f);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.contacts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.contacts a {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--primary, #7c3aed) 16%, transparent);
+  border-radius: 11px;
+  color: var(--primary, #7c3aed);
+  background: var(--surface, #fffdf8);
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+
+.contacts a:hover {
+  border-color: color-mix(in srgb, var(--primary, #7c3aed) 38%, transparent);
+  background: color-mix(in srgb, var(--primary, #7c3aed) 5%, var(--surface, #fffdf8));
+}
+
+.events {
+  display: grid;
+  gap: 11px;
+}
+
+.eventsHeading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.eventsIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
+.events h3 {
+  font-size: 14px;
+  font-weight: 850;
+  letter-spacing: -0.008em;
+  line-height: 1.35;
+}
+
+.eventsNote {
+  margin-top: 2px;
+}
+
+.events ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.events li {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 11px;
+  padding: 10px 10px 10px 12px;
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.1));
+  border-radius: 12px;
+  background: var(--surface-soft, #fbf8f1);
+}
+
+.events li > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.events li strong {
+  font-size: 12.5px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.events li span {
+  color: var(--muted, #6a756f);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.events li > a {
+  display: grid;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--primary, #7c3aed);
+  background: var(--surface, #fffdf8);
+  text-decoration: none;
+  transition: background-color 150ms ease;
+}
+
+.events li > a:hover {
+  background: color-mix(in srgb, var(--primary, #7c3aed) 8%, var(--surface, #fffdf8));
+}
+
+.loading,
+.empty {
+  padding: 4px 0;
+}
+
+.calendarLink:focus-visible,
+.contacts a:focus-visible,
+.events li > a:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary, #7c3aed) 42%, transparent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 440px) {
+  .card {
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .header {
+    display: grid;
+  }
+
+  .title {
+    max-width: none;
+  }
+
+  .calendarLink {
+    width: 100%;
+  }
+
+  .contacts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (pointer: coarse) {
+  .calendarLink,
+  .contacts a {
+    min-height: 44px;
+  }
+
+  .events li > a {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calendarLink,
+  .contacts a,
+  .events li > a {
+    transition: none;
+  }
+}

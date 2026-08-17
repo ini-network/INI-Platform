@@ -1,22 +1,24 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useSyncExternalStore, type ReactNode } from "react";
 
-import { NavRail } from "./nav-rail";
-import { TabBar } from "./tab-bar";
-import { TopBar } from "./top-bar";
 import { PageTourOverlay } from "../tour/page-tour-overlay";
+
+const subscribeToFrameContext = () => () => {};
+const getFrameContext = () => window.self !== window.top;
+const getServerFrameContext = () => false;
 
 // New app shell for the redesign: left icon rail + top bar. Built alongside the
 // legacy app-shell.tsx so routes can migrate one at a time.
 export function AppShellV2({ children }: { children: ReactNode }) {
-  const [isIframe, setIsIframe] = useState(false);
+  const isIframe = useSyncExternalStore(
+    subscribeToFrameContext,
+    getFrameContext,
+    getServerFrameContext
+  );
 
   useEffect(() => {
-    const _isIframe = window.self !== window.top;
-    setIsIframe(_isIframe);
-
-    if (!_isIframe) return;
+    if (!isIframe) return;
 
     const handleGlobalClick = (e: MouseEvent) => {
       const anchor = (e.target as HTMLElement).closest("a");
@@ -36,7 +38,7 @@ export function AppShellV2({ children }: { children: ReactNode }) {
 
     document.addEventListener("click", handleGlobalClick, true);
     return () => document.removeEventListener("click", handleGlobalClick, true);
-  }, []);
+  }, [isIframe]);
 
   if (isIframe) {
     return (

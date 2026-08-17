@@ -129,7 +129,14 @@
 
 /* ---------- borough overview view ---------- */
 .cs-overview { position: absolute; inset: 0; }
-.cs-map-canvas { position: absolute; inset: 0; }
+.cs-map-canvas {
+  position: absolute;
+  inset: 0;
+  /* Pointer gestures belong to Mapbox while they start over the map. This
+     prevents iOS/trackpad pinches from scaling the surrounding page. */
+  touch-action: none;
+  overscroll-behavior: contain;
+}
 .cs-map-canvas .mapboxgl-canvas { outline: none; }
 .cs-map-fallback {
   position: absolute;
@@ -163,6 +170,19 @@
   -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
   box-shadow: var(--shadow-lg);
+}
+.cs-insights.cs-insights--civic {
+  width: clamp(440px, 36vw, 480px);
+  overflow-x: hidden;
+  border-color: color-mix(in srgb, var(--primary, #7c3aed) 13%, rgba(255, 255, 255, 0.7));
+  background: rgba(255, 253, 248, 0.9);
+}
+@media (min-width: 641px) {
+  /* Keep the global Copilot launcher available without letting it cover Civic's
+     representative or meeting actions in the dedicated right workspace. */
+  body:has(.cs-insights--civic) .cs-map-copilot button[title="Toggle AI Copilot"] {
+    right: calc(clamp(440px, 36vw, 480px) + 32px) !important;
+  }
 }
 .cs-insights-head { display: flex; flex-direction: column; gap: 4px; }
 .cs-insights-title { display: flex; align-items: center; gap: 8px; }
@@ -619,6 +639,11 @@
     border-radius: 18px 18px 0 0;
     transition: height 220ms cubic-bezier(0.2, 0, 0, 1);
   }
+  .cs-insights.cs-insights--civic {
+    width: auto;
+    max-width: none;
+    overflow-x: hidden;
+  }
   /* The signals sheet (data-snap) is a NON-scrolling frame: the grab handle + peek
      brief are static children and .cs-sheet-body owns the scroll, so the handle
      can't drift with momentum scroll or slide under content (owner complaint 1).
@@ -638,6 +663,8 @@
   .cs-sheet-body {
     flex: 1 1 auto;
     min-height: 0;
+    min-width: 0;
+    overflow-x: hidden;
     overflow-y: auto;
     /* Trap the scroll: at scrollTop 0 a downward swipe must not chain to the
        document (Chrome pull-to-refresh reloads the app; iOS rubber-bands the
@@ -689,6 +716,7 @@
   .cs-sheet-brief {
     flex: 1 1 auto;
     min-width: 0;
+    min-height: 44px;
     margin: 0;
     padding: 8px 0;
     border: 0;
@@ -828,6 +856,10 @@
    1024 (or any fine pointer) the desktop 372px panel stands. */
 @media (min-width: 641px) and (max-width: 1024px) and (pointer: coarse) {
   .cs-insights { width: 320px; }
+  .cs-insights.cs-insights--civic { width: 360px; }
+  body:has(.cs-insights--civic) .cs-map-copilot button[title="Toggle AI Copilot"] {
+    right: 392px !important;
+  }
   /* The surrounding host already supplies the available height. */
   .cs-shell { height: 100%; }
 }

@@ -211,7 +211,7 @@ const SEGMENTS: Record<TourSegment, PageStop[]> = {
       bubbleSide: "over",
       title: "You're all set",
       body:
-        "That's the tour — the map, the news, and the stories behind it. Search an address anytime, or switch to 311 Reports for the city's official view. Want a refresher later? The ? button by the map toggle replays this tour.",
+        "That's the tour — the map, the news, and the stories behind it. Search an address anytime, or open Civic Districts for official voting boundaries and representation. Want a refresher later? The ? button by the map toggle replays this tour.",
       kind: "info",
       cta: "Back to the map",
       advance: { type: "finish" },
@@ -560,7 +560,7 @@ export function PageTourOverlay() {
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, [seg, index, step, safeIndex, modalSel, succeedThenAdvance]);
+  }, [seg, index, step, safeIndex, modalSel, succeedThenAdvance, shellTop]);
 
   const runShake = useCallback((el: HTMLElement | null) => {
     if (!el || typeof el.animate !== "function") return;

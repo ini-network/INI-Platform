@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  forwardRef,
   memo,
   useCallback,
   useEffect,
@@ -41,7 +42,7 @@ type Status = "idle" | "loading" | "results" | "empty" | "error";
 
 type Props = {
   token: string | undefined;
-  onPick: (center: [number, number], label: string) => void;
+  onPick: (result: GeocodeResult) => void;
   // The Mapbox bbox is rectangular and overlaps New Jersey around Staten Island.
   // The host can apply the actual five-borough polygons before suggestions show.
   isResultAllowed?: (result: GeocodeResult) => boolean;
@@ -61,16 +62,20 @@ type Props = {
   onPhoneBlur?: () => void;
 };
 
-export const MapSearchBox = memo(function MapSearchBox({
-  token,
-  onPick,
-  isResultAllowed,
-  note,
-  onSearchStart,
-  onPhoneFocusIntent,
-  onPhoneFocus,
-  onPhoneBlur
-}: Props) {
+export const MapSearchBox = memo(
+  forwardRef<HTMLInputElement, Props>(function MapSearchBox(
+    {
+      token,
+      onPick,
+      isResultAllowed,
+      note,
+      onSearchStart,
+      onPhoneFocusIntent,
+      onPhoneFocus,
+      onPhoneBlur
+    },
+    forwardedRef
+  ) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GeocodeResult[]>([]);
   const [status, setStatus] = useState<Status>("idle");
@@ -191,7 +196,7 @@ export const MapSearchBox = memo(function MapSearchBox({
       // A committed address is an end state: close the phone keyboard so the map
       // and newly selected neighborhood are visible immediately.
       inputRef.current?.blur();
-      onPick(result.center, result.label);
+      onPick(result);
     },
     [onPick]
   );
@@ -349,7 +354,14 @@ export const MapSearchBox = memo(function MapSearchBox({
           <path d="m21 21-4.35-4.35" />
         </svg>
         <input
-          ref={inputRef}
+          ref={(node) => {
+            inputRef.current = node;
+            if (typeof forwardedRef === "function") {
+              forwardedRef(node);
+            } else if (forwardedRef) {
+              forwardedRef.current = node;
+            }
+          }}
           className={styles.searchInput}
           type="search"
           enterKeyHint="search"
@@ -479,4 +491,5 @@ export const MapSearchBox = memo(function MapSearchBox({
       {note ? <p className={styles.searchStatus}>{note}</p> : null}
     </div>
   );
-});
+  })
+);

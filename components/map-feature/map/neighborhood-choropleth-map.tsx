@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Map as MapboxMap } from "mapbox-gl";
 
 import { boroughBounds } from "@/lib/map-feature/map/bounds";
@@ -60,19 +60,32 @@ export function NeighborhoodChoroplethMap({
   // Always tracks the desired selection so onReady() can apply it even when the
   // selection was set before the map finished loading (auto-select on open).
   const selectedAreaIdRef = useRef<number | null>(selectedAreaId);
-  selectedAreaIdRef.current = selectedAreaId;
   const hoverStateRef = useRef<number | null>(null);
   const lastReportedHoverRef = useRef<number | null>(null);
   const onSelectRef = useRef(onSelect);
-  onSelectRef.current = onSelect;
   const onHoverRef = useRef(onHover);
-  onHoverRef.current = onHover;
   const severityRef = useRef(severityByArea);
-  severityRef.current = severityByArea;
   const centerRef = useRef(centerByArea);
-  centerRef.current = centerByArea;
   const metaRef = useRef(metaByArea);
-  metaRef.current = metaByArea;
+
+  // Keep stable Mapbox handlers pointed at the latest React inputs before the
+  // browser can dispatch another map event. This avoids listener churn while
+  // keeping render itself pure.
+  useLayoutEffect(() => {
+    selectedAreaIdRef.current = selectedAreaId;
+    onSelectRef.current = onSelect;
+    onHoverRef.current = onHover;
+    severityRef.current = severityByArea;
+    centerRef.current = centerByArea;
+    metaRef.current = metaByArea;
+  }, [
+    centerByArea,
+    metaByArea,
+    onHover,
+    onSelect,
+    selectedAreaId,
+    severityByArea
+  ]);
 
   const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
   const center = BOROUGH_CENTERS[borough] ?? [-73.94, 40.7];

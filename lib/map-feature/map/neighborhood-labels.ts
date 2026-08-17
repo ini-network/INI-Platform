@@ -1,5 +1,5 @@
-type Position = [number, number];
-type PolygonCoordinates = Position[][];
+export type Position = [number, number];
+export type PolygonCoordinates = Position[][];
 
 const MIN_RING_AREA = 1e-14;
 const LONG_LABEL_THRESHOLD = 28;
@@ -145,7 +145,7 @@ function polygonArea(polygon: PolygonCoordinates): number {
   );
 }
 
-function labelPolygons(
+export function labelPolygons(
   geometry: RawFeature["geometry"],
 ): PolygonCoordinates[] {
   if (!geometry) return [];
@@ -294,7 +294,7 @@ function scanlineMidpoints(
 // Return one deterministic point well inside the polygon. A Point source is
 // intentional: polygon symbols are re-anchored after GeoJSON tiling/clipping,
 // which can draw the same neighborhood name multiple times at close zooms.
-function visualCenter(polygon: PolygonCoordinates): Position | null {
+export function visualCenter(polygon: PolygonCoordinates): Position | null {
   const outer = polygon[0];
   let minLng = Number.POSITIVE_INFINITY;
   let minLat = Number.POSITIVE_INFINITY;

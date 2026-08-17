@@ -19,6 +19,13 @@ export type GeocodeResult = {
   // [lng, lat].
   center: [number, number];
   featureType: GeocodeFeatureType;
+  // Present only for Mapbox address features with components safe for the
+  // server-side NYC GeoSupport confirmation step.
+  structuredAddress?: {
+    addressNumber: string;
+    streetName: string;
+    zipCode?: string;
+  };
 };
 
 export type GeocodeFeatureType =
@@ -103,6 +110,10 @@ function parseFeature(raw: unknown): GeocodeResult | null {
       place_formatted?: unknown;
       mapbox_id?: unknown;
       feature_type?: unknown;
+      context?: {
+        address?: { address_number?: unknown; street_name?: unknown } | null;
+        postcode?: { name?: unknown } | null;
+      } | null;
     } | null;
   };
   const coords = feature.geometry?.coordinates;
@@ -116,13 +127,38 @@ function parseFeature(raw: unknown): GeocodeResult | null {
   const label = name || full || "Result";
   const context = placeFormatted || (full && full !== label ? full : "");
   const featureType = parseFeatureType(props.feature_type);
+  const addressNumber = props.context?.address?.address_number;
+  const streetName = props.context?.address?.street_name;
+  const postcode = props.context?.postcode?.name;
+  const structuredAddress =
+    featureType === "address" &&
+    typeof addressNumber === "string" &&
+    /^[0-9A-Za-z-]{1,16}$/.test(addressNumber) &&
+    typeof streetName === "string" &&
+    streetName.length <= 80 &&
+    /^[0-9A-Za-z .'-]+$/.test(streetName)
+      ? {
+          addressNumber,
+          streetName,
+          ...(typeof postcode === "string" && /^\d{5}$/.test(postcode)
+            ? { zipCode: postcode }
+            : {})
+        }
+      : undefined;
   const id =
     typeof props.mapbox_id === "string"
       ? props.mapbox_id
       : typeof feature.id === "string" || typeof feature.id === "number"
         ? String(feature.id)
         : `${coords[0]},${coords[1]}`;
-  return { id, label, context, center: [coords[0], coords[1]], featureType };
+  return {
+    id,
+    label,
+    context,
+    center: [coords[0], coords[1]],
+    featureType,
+    structuredAddress
+  };
 }
 
 function normalizeSearchText(value: string): string {

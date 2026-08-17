@@ -240,11 +240,24 @@ export async function getNewsArticle(id: number | string): Promise<NewsArticle> 
 export async function getCommunityReports(
   query: { borough?: string; limit?: number; offset?: number } = {}
 ): Promise<ReportsListResponse> {
-  return fetchJson<ReportsListResponse>("/pulse/reports", {
-    borough: query.borough,
-    limit: query.limit,
-    offset: query.offset
-  });
+  const apiBaseUrl = (
+    process.env.COMMUNITY_REPORTS_API_BASE_URL?.trim() || getApiBaseUrl()
+  ).replace(/\/$/, "");
+  if (!apiBaseUrl) {
+    throw new ApiFetchError(missingApiBaseUrlMessage(), 500);
+  }
+  const response = await fetch(
+    `${apiBaseUrl}/pulse/reports${queryString({
+      borough: query.borough,
+      limit: query.limit,
+      offset: query.offset
+    })}`,
+    { cache: "no-store" }
+  );
+  if (!response.ok) {
+    throw new ApiFetchError(`API request failed: ${response.status}`, response.status);
+  }
+  return (await response.json()) as ReportsListResponse;
 }
 
 export type BoroughNeighborhoodsResponse = {

@@ -150,9 +150,10 @@ export function PostModal({
   // site (returnFocusRef) when given, else the element focused before opening.
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
+    const returnFocusTarget = returnFocusRef?.current;
     closeRef.current?.focus();
     return () => {
-      const target = returnFocusRef?.current ?? opener;
+      const target = returnFocusTarget ?? opener;
       target?.focus?.();
     };
   }, [returnFocusRef]);
