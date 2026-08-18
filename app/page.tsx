@@ -35,8 +35,8 @@ export default function HomePage() {
 
         <div className="max-w-5xl mx-auto px-6 text-center relative z-10">
           {/* Subtitle Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-indigo-200 mb-6 backdrop-blur-md shadow-lg">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
+          <div className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full bg-white/10 border border-white/15 text-sm md:text-base font-bold text-indigo-200 mb-6 backdrop-blur-md shadow-lg">
+            <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
             Unsiloing Collaboration Across 25 Campuses & 5 Boroughs
           </div>
 
@@ -67,7 +67,19 @@ export default function HomePage() {
 
           {/* Co-Powered Branding Statement */}
           <p className="text-xs md:text-sm text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed italic">
-            Co-powered by CUNY campuses and <span className="font-bold text-slate-300">Vngle: The Civic Insights Company</span>, connecting fragmented academic and civic efforts into a unified innovation ecosystem.
+            Co-powered by CUNY campuses and{" "}
+            <a
+              href="https://vngle.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-indigo-400 hover:text-indigo-300 underline decoration-indigo-400/60 hover:decoration-indigo-300 underline-offset-4 transition-colors not-italic inline-flex items-center gap-1"
+            >
+              <span>Vngle: The Civic Insights Company</span>
+              <svg className="w-3.5 h-3.5 inline shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+            , connecting fragmented academic and civic efforts into a unified innovation ecosystem.
           </p>
 
           {/* Core Ecosystem Search Submission Form */}
