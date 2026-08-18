@@ -83,6 +83,28 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ================= 1.5. DEMO VIDEO ================= */}
+      <section className="py-20 bg-slate-50 relative overflow-hidden">
+        <div className="max-w-5xl mx-auto px-6 text-center">
+          <div className="inline-block px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-xs font-bold text-indigo-700 mb-6">
+            See How It Works
+          </div>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight mb-10">
+            Discover the INI Network
+          </h2>
+          <div className="relative max-w-4xl mx-auto rounded-3xl overflow-hidden shadow-2xl border border-slate-200/60 bg-black aspect-video flex items-center justify-center">
+            <video 
+              controls 
+              className="w-full h-full object-contain"
+              preload="metadata"
+            >
+              <source src="/assets/videos/INI Network Demo Video.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        </div>
+      </section>
+
       {/* ================= 2. WHY THIS PLATFORM MATTERS ================= */}
       <section className="py-20 bg-white relative overflow-hidden">
         <div className="max-w-5xl mx-auto px-6">
