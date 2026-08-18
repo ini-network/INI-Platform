@@ -53,6 +53,18 @@ export default function HomePage() {
             The Institute for Nonpartisan Innovation (INI) Collaboration Network helps faculty, students, and community partners discover expertise, build cross-campus partnerships, and turn research into real-world civic impact.
           </p>
 
+          {/* Demo Video */}
+          <div className="relative max-w-4xl mx-auto rounded-3xl overflow-hidden shadow-2xl border border-white/10 bg-black aspect-video flex items-center justify-center mb-10">
+            <video 
+              controls 
+              className="w-full h-full object-contain"
+              preload="metadata"
+            >
+              <source src="/assets/videos/INI Network Demo Video.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          </div>
+
           {/* Co-Powered Branding Statement */}
           <p className="text-xs md:text-sm text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed italic">
             Co-powered by CUNY campuses and <span className="font-bold text-slate-300">Vngle: The Civic Insights Company</span>, connecting fragmented academic and civic efforts into a unified innovation ecosystem.
@@ -83,29 +95,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ================= 1.5. DEMO VIDEO ================= */}
-      <section className="py-20 bg-slate-50 relative overflow-hidden">
-        <div className="max-w-5xl mx-auto px-6 text-center">
-          <div className="inline-block px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-xs font-bold text-indigo-700 mb-6">
-            See How It Works
-          </div>
-          <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight mb-10">
-            Discover the INI Network
-          </h2>
-          <div className="relative max-w-4xl mx-auto rounded-3xl overflow-hidden shadow-2xl border border-slate-200/60 bg-black aspect-video flex items-center justify-center">
-            <video 
-              controls 
-              className="w-full h-full object-contain"
-              preload="metadata"
-            >
-              <source src="/assets/videos/INI Network Demo Video.mp4" type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-          </div>
-        </div>
-      </section>
 
-      {/* ================= 2. WHY THIS PLATFORM MATTERS ================= */}
+
+      {/* ================= 2. WHY THIS ECOSYSTEM MATTERS ================= */}
       <section className="py-20 bg-white relative overflow-hidden">
         <div className="max-w-5xl mx-auto px-6">
 
@@ -180,7 +172,7 @@ export default function HomePage() {
                 The CUNY Opportunity
               </div>
               <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-                Why This Platform Matters
+                Why This Ecosystem Matters
               </h2>
 
               <div className="space-y-4 text-slate-600 text-sm md:text-base leading-relaxed">
@@ -263,7 +255,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ================= 3. WHAT THE PLATFORM ENABLES ================= */}
+      {/* ================= 3. WHAT THE ECOSYSTEM ENABLES ================= */}
       <section className="py-20 bg-slate-100/50 border-t border-slate-200">
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center mb-14">
@@ -271,7 +263,7 @@ export default function HomePage() {
               Core Capabilities
             </div>
             <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
-              What the Platform Enables
+              What the Ecosystem Enables
             </h2>
             <p className="text-xs md:text-sm text-slate-500 max-w-xl mx-auto mt-2.5">
               Empowering active, community-led innovation pathways across academic and urban boundaries.
@@ -391,12 +383,6 @@ export default function HomePage() {
 
             {/* Feature 4: AI Copilot */}
             <div className="group bg-slate-50/50 p-6 rounded-3xl border border-slate-200/80 hover:bg-white hover:border-amber-300 hover:shadow-xl transition-all duration-300 relative overflow-hidden cursor-default md:col-span-2 md:max-w-md md:mx-auto w-full">
-              <div className="absolute top-0 right-0 p-4">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800 shadow-sm border border-amber-200/50">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse"></span>
-                  Always Available
-                </span>
-              </div>
               <div className="w-12 h-12 bg-ambger-50 text-amber-600 rounded-xl flex items-center justify-center mb-5 border border-amber-100 group-hover:scale-110 transition-transform">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />

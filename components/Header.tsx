@@ -18,10 +18,10 @@ export default function Header() {
     const supabase = createClient();
     const [user, setUser] = useState<User | null>(null);
     const [isAdminOpen, setIsAdminOpen] = useState(false);
-    const [isMapOpen, setIsMapOpen] = useState(false);
+    const [isDirectoryOpen, setIsDirectoryOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const adminDropdownRef = useRef<HTMLDivElement>(null);
-    const mapDropdownRef = useRef<HTMLDivElement>(null);
+    const directoryDropdownRef = useRef<HTMLDivElement>(null);
 
     // Auto-close mobile menu when navigating
     useEffect(() => {
@@ -54,8 +54,8 @@ export default function Header() {
             if (adminDropdownRef.current && !adminDropdownRef.current.contains(event.target as Node)) {
                 setIsAdminOpen(false);
             }
-            if (mapDropdownRef.current && !mapDropdownRef.current.contains(event.target as Node)) {
-                setIsMapOpen(false);
+            if (directoryDropdownRef.current && !directoryDropdownRef.current.contains(event.target as Node)) {
+                setIsDirectoryOpen(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
@@ -76,12 +76,8 @@ export default function Header() {
     // Declares structural navigation paths
     const navLinks = [
         { name: "Home", href: "/", protected: false },
-        ...(user ? [{ name: "My Matches", href: "/matches", protected: true }] : [{ name: "My Matches 🔒", href: "/login?redirectReason=auth_required&from=/matches", protected: true }]),
-        { name: "Directory", href: "/directory", protected: false },
-        { name: user ? "Network Map" : "Network Map 🔒", href: user ? "/explore" : "/login?redirectReason=auth_required&from=/explore", protected: true },
-        { name: "Join Us", href: "/partners", protected: false },
-        { name: "America 250", href: "/america250", protected: false },
-        { name: "About", href: "/about", protected: false },
+        { name: "Join", href: "/partners", protected: false },
+        { name: "History", href: "/about", protected: false },
     ];
 
     return (
@@ -115,18 +111,18 @@ export default function Header() {
                             );
                         })}
 
-                        {/* Public-data Map Dropdown */}
-                        <div className="relative flex items-center" ref={mapDropdownRef}>
+                        {/* Directory Dropdown */}
+                        <div className="relative flex items-center" ref={directoryDropdownRef}>
                             <button
-                                onClick={() => setIsMapOpen(!isMapOpen)}
-                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 focus:outline-none ${["/map", "/news", "/reports"].includes(pathname)
+                                onClick={() => setIsDirectoryOpen(!isDirectoryOpen)}
+                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 focus:outline-none ${["/directory", "/explore", "/matches"].includes(pathname)
                                         ? "bg-white text-blue-700 shadow-sm"
                                         : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                                     }`}
                             >
-                                <span>{!user ? "🔒 Public-data Map" : "Public-data Map"}</span>
+                                <span>Directory</span>
                                 <svg
-                                    className={`w-3.5 h-3.5 transition-transform duration-200 ${isMapOpen ? "rotate-180" : ""}`}
+                                    className={`w-3.5 h-3.5 transition-transform duration-200 ${isDirectoryOpen ? "rotate-180" : ""}`}
                                     fill="none"
                                     stroke="currentColor"
                                     viewBox="0 0 24 24"
@@ -135,32 +131,40 @@ export default function Header() {
                                 </svg>
                             </button>
 
-                            {isMapOpen && (
+                            {isDirectoryOpen && (
                                 <div className="absolute left-0 mt-2 top-full w-48 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 p-1.5 space-y-1">
                                     <Link
-                                        href={user ? "/map" : "/login?redirectReason=auth_required&from=/map"}
-                                        onClick={() => setIsMapOpen(false)}
-                                        className={`block px-3.5 py-2.5 text-xs font-bold rounded-xl transition-colors ${pathname === "/map" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}
+                                        href="/directory"
+                                        onClick={() => setIsDirectoryOpen(false)}
+                                        className={`block px-3.5 py-2.5 text-xs font-bold rounded-xl transition-colors ${pathname === "/directory" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}
                                     >
-                                        🗺️ Interactive Map {!user && "🔒"}
+                                        Directory
                                     </Link>
                                     <Link
-                                        href={user ? "/news" : "/login?redirectReason=auth_required&from=/news"}
-                                        onClick={() => setIsMapOpen(false)}
-                                        className={`block px-3.5 py-2.5 text-xs font-bold rounded-xl transition-colors ${pathname === "/news" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}
+                                        href={user ? "/explore" : "/login?redirectReason=auth_required&from=/explore"}
+                                        onClick={() => setIsDirectoryOpen(false)}
+                                        className={`block px-3.5 py-2.5 text-xs font-bold rounded-xl transition-colors ${pathname === "/explore" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}
                                     >
-                                        📰 Civic News {!user && "🔒"}
+                                        Network View {!user && "🔒"}
                                     </Link>
                                     <Link
-                                        href={user ? "/reports" : "/login?redirectReason=auth_required&from=/reports"}
-                                        onClick={() => setIsMapOpen(false)}
-                                        className={`block px-3.5 py-2.5 text-xs font-bold rounded-xl transition-colors ${pathname === "/reports" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}
+                                        href={user ? "/matches" : "/login?redirectReason=auth_required&from=/matches"}
+                                        onClick={() => setIsDirectoryOpen(false)}
+                                        className={`block px-3.5 py-2.5 text-xs font-bold rounded-xl transition-colors ${pathname === "/matches" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}
                                     >
-                                        🗣️ Civic Stories {!user && "🔒"}
+                                        My Matches {!user && "🔒"}
                                     </Link>
                                 </div>
                             )}
                         </div>
+
+                        {/* Public Data Map - Construction */}
+                        <button
+                            onClick={() => alert("We're evolving the public data. Returning soon!")}
+                            className="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 focus:outline-none text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                        >
+                            🚧 Public Data Map
+                        </button>
 
                         {/* Admin Portal Dropdown */}
                         {isAdmin && (
@@ -270,20 +274,27 @@ export default function Header() {
                             );
                         })}
 
-                        {/* Public-data Map Mobile Links */}
+                        {/* Directory Mobile Links */}
                         <div className="pt-4 mt-4 border-t border-slate-100 space-y-1.5">
                             <div className="px-4 py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                🗺️ Public-data Map Features
+                                📁 Directory Features
                             </div>
-                            <Link href={user ? "/map" : "/login?redirectReason=auth_required&from=/map"} onClick={() => setIsMobileMenuOpen(false)} className={`block px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === "/map" ? "bg-blue-50 text-blue-700 shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
-                                Interactive Map {!user && "🔒"}
+                            <Link href="/directory" onClick={() => setIsMobileMenuOpen(false)} className={`block px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === "/directory" ? "bg-blue-50 text-blue-700 shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+                                Directory
                             </Link>
-                            <Link href={user ? "/news" : "/login?redirectReason=auth_required&from=/news"} onClick={() => setIsMobileMenuOpen(false)} className={`block px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === "/news" ? "bg-blue-50 text-blue-700 shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
-                                Civic News {!user && "🔒"}
+                            <Link href={user ? "/explore" : "/login?redirectReason=auth_required&from=/explore"} onClick={() => setIsMobileMenuOpen(false)} className={`block px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === "/explore" ? "bg-blue-50 text-blue-700 shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+                                Network View {!user && "🔒"}
                             </Link>
-                            <Link href={user ? "/reports" : "/login?redirectReason=auth_required&from=/reports"} onClick={() => setIsMobileMenuOpen(false)} className={`block px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === "/reports" ? "bg-blue-50 text-blue-700 shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
-                                Civic Stories {!user && "🔒"}
+                            <Link href={user ? "/matches" : "/login?redirectReason=auth_required&from=/matches"} onClick={() => setIsMobileMenuOpen(false)} className={`block px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === "/matches" ? "bg-blue-50 text-blue-700 shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+                                My Matches {!user && "🔒"}
                             </Link>
+                        </div>
+                        
+                        {/* Public Data Map Mobile - Construction */}
+                        <div className="pt-4 mt-4 border-t border-slate-100 space-y-1.5">
+                            <button onClick={() => alert("We're evolving the public data. Returning soon!")} className="w-full text-left block px-4 py-3 rounded-xl text-sm font-bold transition-all text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                                🚧 Public Data Map
+                            </button>
                         </div>
 
                         {/* Admin Portal section inside Mobile Menu */}
