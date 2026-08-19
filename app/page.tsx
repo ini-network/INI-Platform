@@ -6,12 +6,10 @@ import Link from "next/link";
 import Footer from "@/components/Footer";
 
 /**
- * HomePage Component
- * Implements the redesigned landing page for the INI Collaboration Network.
- * Integrates premium visual aesthetics (sleek dark modes, smooth gradients, glowing glassmorphic elements)
- * while optimizing the core value proposition text for clarity, conciseness, and high-impact scanning.
+ * SearchForm Component
+ * Isolates search state to prevent full page re-renders on every keystroke.
  */
-export default function HomePage() {
+function SearchForm() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -21,6 +19,39 @@ export default function HomePage() {
       router.push(`/directory?q=${encodeURIComponent(searchQuery)}`);
     }
   };
+
+  return (
+    <form onSubmit={handleSearch} className="max-w-2xl mx-auto relative group">
+      <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+      <div className="relative flex flex-col sm:flex-row items-center bg-white rounded-xl shadow-2xl p-2 transition-all focus-within:ring-4 focus-within:ring-indigo-500/30">
+        <svg className="hidden sm:block w-6 h-6 text-slate-400 ml-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search for 'Sustainability', 'Hunter College', skills..."
+          className="hero-search-input w-full py-3.5 px-4 text-slate-900 outline-none text-base bg-transparent placeholder:text-slate-400"
+        />
+        <button
+          type="submit"
+          className="w-full sm:w-auto bg-slate-900 hover:bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg transition-colors whitespace-nowrap shadow-md"
+        >
+          Search Directory
+        </button>
+      </div>
+    </form>
+  );
+}
+
+/**
+ * HomePage Component
+ * Implements the redesigned landing page for the INI Collaboration Network.
+ * Integrates premium visual aesthetics (sleek dark modes, smooth gradients, glowing glassmorphic elements)
+ * while optimizing the core value proposition text for clarity, conciseness, and high-impact scanning.
+ */
+export default function HomePage() {
 
   return (
     <div className="h-full w-full overflow-y-auto bg-slate-50 font-sans selection:bg-indigo-100 selection:text-indigo-900">
@@ -83,27 +114,7 @@ export default function HomePage() {
           </p>
 
           {/* Core Ecosystem Search Submission Form */}
-          <form onSubmit={handleSearch} className="max-w-2xl mx-auto relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-            <div className="relative flex flex-col sm:flex-row items-center bg-white rounded-xl shadow-2xl p-2 transition-all focus-within:ring-4 focus-within:ring-indigo-500/30">
-              <svg className="hidden sm:block w-6 h-6 text-slate-400 ml-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search for 'Sustainability', 'Hunter College', skills..."
-                className="hero-search-input w-full py-3.5 px-4 text-slate-900 outline-none text-base bg-transparent placeholder:text-slate-400"
-              />
-              <button
-                type="submit"
-                className="w-full sm:w-auto bg-slate-900 hover:bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg transition-colors whitespace-nowrap shadow-md"
-              >
-                Search Directory
-              </button>
-            </div>
-          </form>
+          <SearchForm />
         </div>
       </section>
 
