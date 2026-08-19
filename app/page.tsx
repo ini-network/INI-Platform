@@ -213,10 +213,6 @@ export default function HomePage() {
                   </li>
                 ))}
               </ul>
-
-              <p className="pt-4 border-t border-slate-100 text-slate-800 font-semibold text-xs md:text-sm italic">
-                "We believe the future of civic innovation relies on making collaboration more visible, accessible, and actionable across NYC."
-              </p>
             </div>
 
             {/* Right Column: Premium Visual Card */}
@@ -264,6 +260,13 @@ export default function HomePage() {
             </div>
 
           </div>
+
+          {/* Full-Width Quote Span */}
+          <div className="mt-14 pt-8 border-t border-slate-100 text-center max-w-4xl mx-auto">
+            <p className="text-slate-800 font-semibold text-sm md:text-base italic leading-relaxed">
+              "We believe the future of civic innovation relies on making collaboration more visible, accessible, and actionable across NYC."
+            </p>
+          </div>
         </div>
       </section>
 
@@ -285,34 +288,46 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
             {/* Enablement Card 1 */}
-            <div className="bg-white p-8 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center">
-              <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-5 text-3xl shadow-sm">
-                🌐
+            <div className="bg-white p-8 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all flex flex-col text-center">
+              <div className="flex flex-row items-center justify-center gap-4 mb-4">
+                <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-2xl shadow-sm shrink-0">
+                  🌐
+                </div>
+                <h3 className="text-base md:text-lg font-extrabold text-slate-900 text-left">
+                  Cross-Campus Collaboration
+                </h3>
               </div>
-              <h3 className="text-base md:text-lg font-extrabold text-slate-900 mb-2">Cross-Campus Collaboration</h3>
-              <p className="text-xs md:text-sm text-slate-600 leading-relaxed max-w-xs">
+              <p className="text-xs md:text-sm text-slate-600 leading-relaxed max-w-xs mx-auto">
                 Connect expertise, initiatives, and opportunities across CUNY’s 25-campus system.
               </p>
             </div>
 
             {/* Enablement Card 2 */}
-            <div className="bg-white p-8 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-5 text-3xl shadow-sm">
-                ⚖️
+            <div className="bg-white p-8 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all flex flex-col text-center">
+              <div className="flex flex-row items-center justify-center gap-4 mb-4">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-2xl shadow-sm shrink-0">
+                  ⚖️
+                </div>
+                <h3 className="text-base md:text-lg font-extrabold text-slate-900 text-left">
+                  Research to Civic Impact
+                </h3>
               </div>
-              <h3 className="text-base md:text-lg font-extrabold text-slate-900 mb-2">Research to Civic Impact</h3>
-              <p className="text-xs md:text-sm text-slate-600 leading-relaxed max-w-xs">
+              <p className="text-xs md:text-sm text-slate-600 leading-relaxed max-w-xs mx-auto">
                 Bridge academic insight with community-informed action and public problem-solving.
               </p>
             </div>
 
             {/* Enablement Card 3 */}
-            <div className="bg-white p-8 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center">
-              <div className="w-16 h-16 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center mb-5 text-3xl shadow-sm">
-                🤝
+            <div className="bg-white p-8 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all flex flex-col text-center">
+              <div className="flex flex-row items-center justify-center gap-4 mb-4">
+                <div className="w-14 h-14 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-2xl shadow-sm shrink-0">
+                  🤝
+                </div>
+                <h3 className="text-base md:text-lg font-extrabold text-slate-900 text-left">
+                  Community-Connected Innovation
+                </h3>
               </div>
-              <h3 className="text-base md:text-lg font-extrabold text-slate-900 mb-2">Community-Connected Innovation</h3>
-              <p className="text-xs md:text-sm text-slate-600 leading-relaxed max-w-xs">
+              <p className="text-xs md:text-sm text-slate-600 leading-relaxed max-w-xs mx-auto">
                 Strengthen collaboration between faculty, students, and trusted civic partners across NYC.
               </p>
             </div>
