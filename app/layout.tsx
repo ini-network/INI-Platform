@@ -38,8 +38,11 @@ export default function RootLayout({
   const isLoginPage = pathname === "/login"; // Check if path is /login
 
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} antialiased`}>
-      <body className="flex flex-col h-dvh overflow-hidden bg-slate-50 text-slate-900 font-sans">
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} antialiased`} suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/favicon.png" />
+      </head>
+      <body className="flex flex-col h-dvh overflow-hidden bg-slate-50 text-slate-900 font-sans" suppressHydrationWarning>
 
         {/* Only render Header if NOT on the login page */}
         {!isLoginPage && <Header />}

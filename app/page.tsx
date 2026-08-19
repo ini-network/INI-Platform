@@ -274,14 +274,19 @@ export default function HomePage() {
 
           {/* Full-Width Quote Span */}
           <div className="mt-14 pt-8 border-t border-slate-100 text-center max-w-4xl mx-auto">
-            <p className="text-slate-800 font-semibold text-sm md:text-base italic leading-relaxed">
-              "We believe the future of civic innovation relies on making collaboration more visible, accessible, and actionable across NYC."
-            </p>
+            <blockquote className="space-y-2">
+              <p className="text-slate-800 font-bold text-base md:text-lg italic leading-relaxed">
+                “We believe the future of civic innovation relies on making collaboration more visible, accessible, and actionable across NYC.”
+              </p>
+              <footer className="text-slate-500 font-bold text-xs md:text-sm tracking-wide">
+                — INI Team
+              </footer>
+            </blockquote>
           </div>
         </div>
       </section>
 
-      {/* ================= 3. WHAT THE ECOSYSTEM ENABLES ================= */}
+      {/* ================= 3. WHAT THE INI COLLABORATION NETWORK ENABLES ================= */}
       <section className="py-20 bg-slate-100/50 border-t border-slate-200">
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center mb-14">
@@ -289,10 +294,10 @@ export default function HomePage() {
               Core Capabilities
             </div>
             <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
-              What the CUNY-Driven Ecosystem Enables
+              What the INI Collaboration Network Enables
             </h2>
-            <p className="text-xs md:text-sm text-slate-500 max-w-xl mx-auto mt-2.5">
-              Empowering active, community-led innovation pathways across academic and urban landscapes.
+            <p className="text-xs md:text-sm text-slate-600 max-w-2xl mx-auto mt-2.5 leading-relaxed">
+              Connecting <strong className="text-slate-900 font-semibold">academic expertise, civic organizations, and community knowledge</strong> to create stronger opportunities and pathways for collaboration across New York City.
             </p>
           </div>
 
@@ -305,11 +310,11 @@ export default function HomePage() {
                   🌐
                 </div>
                 <h3 className="text-base md:text-lg font-extrabold text-slate-900 text-left">
-                  Cross-Campus Collaboration
+                  Cross-Ecosystem Collaboration
                 </h3>
               </div>
               <p className="text-xs md:text-sm text-slate-600 leading-relaxed max-w-xs mx-auto">
-                Connect expertise, initiatives, and opportunities across CUNY’s 25-campus system.
+                Connect people, expertise, initiatives, and opportunities across <strong className="text-slate-800 font-medium">CUNY's campus system and NYC’s broader civic ecosystem.</strong>
               </p>
             </div>
 
@@ -324,7 +329,7 @@ export default function HomePage() {
                 </h3>
               </div>
               <p className="text-xs md:text-sm text-slate-600 leading-relaxed max-w-xs mx-auto">
-                Bridge academic insight with community-informed action and public problem-solving.
+                Bridge academic research and lived experience with <strong className="text-slate-800 font-medium">community-informed action and public problem-solving.</strong>
               </p>
             </div>
 
@@ -339,7 +344,7 @@ export default function HomePage() {
                 </h3>
               </div>
               <p className="text-xs md:text-sm text-slate-600 leading-relaxed max-w-xs mx-auto">
-                Strengthen collaboration between faculty, students, and trusted civic partners across NYC.
+                Strengthen collaboration between <strong className="text-slate-800 font-medium">campuses, civic organizations, community leaders, and the neighborhoods they serve.</strong>
               </p>
             </div>
 
@@ -347,7 +352,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ================= 4. COLLABORATION INFRASTRUCTURE BUILT FOR CUNY ================= */}
+      {/* ================= 4. COLLABORATION INFRASTRUCTURE FOR NYC ================= */}
       <section className="py-20 bg-white border-t border-slate-200">
         <div className="max-w-5xl mx-auto px-6">
 
@@ -356,10 +361,10 @@ export default function HomePage() {
               INI Features
             </div>
             <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
-              Collaboration Infrastructure Built for CUNY
+              Collaboration Infrastructure for NYC
             </h2>
-            <p className="text-xs md:text-sm text-slate-500 max-w-xl mx-auto mt-2.5">
-              Built systematically to make finding partners and mapping connections effortless.
+            <p className="text-xs md:text-sm text-slate-600 max-w-xl mx-auto mt-2.5 leading-relaxed">
+              Built to make <strong className="text-slate-900 font-semibold">finding expertise, discovering civic work, and forming meaningful connections</strong> across the city easier.
             </p>
           </div>
 
@@ -377,11 +382,11 @@ export default function HomePage() {
                   </svg>
                 </div>
                 <h3 className="text-lg md:text-xl font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors text-left">
-                  Expert Directory
+                  Expert & Civic Directory
                 </h3>
               </div>
               <p className="text-xs md:text-sm text-slate-600 leading-relaxed max-w-sm mx-auto">
-                Search a growing database of faculty, researchers, staff, and civic collaborators. Discover CUNY talent in seconds.
+                Search a growing network of <strong className="text-slate-800 font-medium">faculty, researchers, civic leaders, organizations, and collaborators</strong> working across NYC.
               </p>
             </Link>
 
@@ -401,12 +406,12 @@ export default function HomePage() {
                 </h3>
               </div>
               <p className="text-xs md:text-sm text-slate-600 leading-relaxed max-w-sm mx-auto">
-                Visualize relationships, research clusters, and collaboration opportunities across campuses in real-time.
+                Explore <strong className="text-slate-800 font-medium">people, organizations, initiatives, and collaboration opportunities</strong> across campuses, communities, and boroughs.
               </p>
             </Link>
 
-            {/* Feature 4: AI Copilot */}
-            <div className="group bg-slate-50/50 p-8 rounded-3xl border border-slate-200/80 hover:bg-white hover:border-amber-300 hover:shadow-xl transition-all duration-300 relative overflow-hidden cursor-default md:col-span-2 md:max-w-md md:mx-auto w-full flex flex-col text-center">
+            {/* Feature 3: AI Copilot */}
+            <div className="group bg-slate-50/50 p-8 rounded-3xl border border-slate-200/80 hover:bg-white hover:border-amber-300 hover:shadow-xl transition-all duration-300 flex flex-col text-center">
               <div className="flex flex-row items-center justify-center gap-4 mb-4">
                 <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center border border-amber-100 group-hover:scale-110 transition-transform shadow-sm shrink-0">
                   <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -418,7 +423,24 @@ export default function HomePage() {
                 </h3>
               </div>
               <p className="text-xs md:text-sm text-slate-600 leading-relaxed max-w-sm mx-auto">
-                Receive contextual guidance on researchers, initiatives, and collaboration pathways across the CUNY ecosystem.
+                Get contextual guidance to discover <strong className="text-slate-800 font-medium">people, projects, expertise, and potential collaboration pathways</strong> across NYC’s civic ecosystem.
+              </p>
+            </div>
+
+            {/* Feature 4: Public Data Map */}
+            <div className="group bg-slate-50/50 p-8 rounded-3xl border border-slate-200/80 hover:bg-white hover:border-cyan-300 hover:shadow-xl transition-all duration-300 flex flex-col text-center">
+              <div className="flex flex-row items-center justify-center gap-4 mb-4">
+                <div className="w-14 h-14 bg-cyan-50 text-cyan-600 rounded-2xl flex items-center justify-center border border-cyan-100 group-hover:scale-110 transition-transform shadow-sm shrink-0">
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                </div>
+                <h3 className="text-lg md:text-xl font-extrabold text-slate-900 group-hover:text-cyan-600 transition-colors text-left">
+                  Public Data Map
+                </h3>
+              </div>
+              <p className="text-xs md:text-sm text-slate-600 leading-relaxed max-w-sm mx-auto">
+                Access recent neighborhood-level civic information across NYC—connecting local representatives, community reports, and ongoing issues so you can better understand what’s happening.
               </p>
             </div>
 
@@ -441,8 +463,12 @@ export default function HomePage() {
             Built to Strengthen NYC’s Civic Ecosystem
           </h2>
 
-          <p className="text-slate-400 text-xs md:text-sm mb-10 max-w-xl mx-auto leading-relaxed">
-            The INI Collaboration Network is more than a directory or project board. It is emerging civic infrastructure designed to help New York City collaborate at the scale today’s urban challenges demand.
+          <p className="text-slate-300 text-xs md:text-sm mb-6 max-w-2xl mx-auto leading-relaxed">
+            The <strong className="text-white font-bold">INI Collaboration Network</strong> is more than a directory or project board. It is emerging civic infrastructure designed to help <strong className="text-slate-100 font-semibold">people and institutions across New York City discover one another, reduce silos, and collaborate around shared challenges.</strong>
+          </p>
+
+          <p className="text-indigo-200 font-bold text-xs md:text-sm mb-10 max-w-xl mx-auto">
+            Discover who’s working on what—and where you can plug in.
           </p>
 
           <div className="flex flex-col sm:flex-row justify-center gap-4">
@@ -450,13 +476,13 @@ export default function HomePage() {
               href="/directory"
               className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-colors shadow-lg shadow-indigo-500/20 text-xs"
             >
-              Browse Directory
+              Browse the Network
             </Link>
             <Link
               href="/explore"
               className="px-8 py-3.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors border border-slate-700 text-xs"
             >
-              View Network Map
+              Explore the Map
             </Link>
           </div>
         </div>
