@@ -1,6 +1,3 @@
-import { redirect } from "next/navigation";
-import { createClient as createServerClient } from "@/utils/supabase/server";
-import { cookies } from "next/headers";
 import { MapExperience } from "@/components/map-feature/map/map-experience";
 import { AppShellV2 } from "@/components/map-feature/shell/app-shell-v2";
 import {
@@ -11,6 +8,10 @@ import {
 } from "@/lib/map-feature/api";
 import { buildBoroughOverview, type BoroughOverview } from "@/lib/map-feature/borough-overview";
 import type { NeighborhoodSignalsResponse } from "@/lib/map-feature/signal-types";
+import {
+  isCivicDistrictKey,
+  isSelectableCivicGeographyType
+} from "@/lib/map-feature/civic-types";
 import { firstParam, positiveIntParam } from "@/lib/map-feature/search-params";
 import type { GeoJSONFeatureCollection } from "@/lib/map-feature/shared-types";
 import boroughBoundary from "../../public/map/nyc-borough-boundary-simplified.json";
@@ -27,20 +28,24 @@ export default async function MapPage({
 }: {
   searchParams?: Promise<SearchParams> | SearchParams;
 }) {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(cookieStore);
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login?redirectReason=auth_required&from=/map");
-  }
-
   const params = (await searchParams) ?? {};
   const boroughParam = firstParam(params, "borough");
   const borough = boroughParam && BOROUGHS.includes(boroughParam) ? boroughParam : "Brooklyn";
   const timeWindow = firstParam(params, "time_window") ?? "30d";
   const issueType = firstParam(params, "issue_type") ?? "all";
   const initialAreaId = positiveIntParam(params, "area_id");
+  const civicLayerParam = firstParam(params, "civic_layer") ?? null;
+  const initialCivicLayer = isSelectableCivicGeographyType(civicLayerParam)
+    ? civicLayerParam
+    : null;
+  const civicDistrictParam = firstParam(params, "civic_district_key") ?? null;
+  const initialCivicDistrictKey = isCivicDistrictKey(civicDistrictParam, initialCivicLayer)
+    ? civicDistrictParam
+    : null;
+  const initialMapView =
+    firstParam(params, "map_view") === "civic" || initialCivicLayer !== null
+      ? "civic"
+      : "community";
 
   // Fetch only the initial borough server-side (fast first paint). The client
   // orchestrator caches it and lazily loads/prefetches the rest. Prefer the
@@ -105,8 +110,14 @@ export default async function MapPage({
         initialTimeWindow={timeWindow}
         initialIssueType={issueType}
         initialAreaId={restoredAreaId}
+        initialMapView={initialMapView}
+        initialCivicLayer={initialCivicLayer}
+        initialCivicDistrictKey={initialCivicDistrictKey}
         initialOverview={overview}
         initialSignals={signals}
+        civicResourceNavigatorEnabled={
+          process.env.CIVIC_RESOURCE_NAVIGATOR_ENABLED === "1"
+        }
       />
     </AppShellV2>
   );

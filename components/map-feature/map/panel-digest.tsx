@@ -12,7 +12,7 @@ import { TOUR_NEWS, TOUR_SIGNALS } from "@/lib/map-feature/tour-fixtures";
 import { useFormFactor } from "@/lib/map-feature/use-form-factor";
 import styles from "./map-signals.module.css";
 
-// The map panel's reading digest. Now LEVEL-AWARE (Travis, 2026-07-15): the top
+// The map panel's reading digest. It is level-aware: the top
 // block (brief line) and the Stories link are constant, but the block beneath
 // changes with how deep the reader has gone —
 //   • LEVEL 1 (city / overview): the borough's local news headlines.
@@ -57,10 +57,12 @@ export const PanelDigest = memo(function PanelDigest({
   // 2-3 render from TOUR_SIGNALS (guaranteed-good rows); every row/link is INERT.
   tourOpen: boolean;
 }) {
-  const [news, setNews] = useState<NewsListItem[]>([]);
-  const [state, setState] = useState<NewsState>("loading");
+  const [newsByBorough, setNewsByBorough] = useState<Map<string, NewsListItem[]>>(
+    () => new Map()
+  );
+  const [failedBorough, setFailedBorough] = useState<string | null>(null);
   // Per-borough cache so re-clicking a borough never refetches.
-  const cacheRef = useRef<Map<string, NewsListItem[]>>(new Map());
+  const requestRef = useRef(0);
   // Touch pointers get the same one-action behavior with touch-appropriate copy.
   const { isCoarse } = useFormFactor();
 
@@ -69,39 +71,46 @@ export const PanelDigest = memo(function PanelDigest({
     if (level !== 1) {
       return;
     }
-    // Tour mode: short-circuit to the frozen fixtures, no network round-trip.
-    if (tourOpen) {
-      setNews(TOUR_NEWS);
-      setState("ready");
-      return;
-    }
+    // Tour mode is derived below from frozen fixtures, with no network round-trip.
+    if (tourOpen) return;
     const borough = activeBorough;
-    const cached = cacheRef.current.get(borough);
-    if (cached) {
-      setNews(cached);
-      setState("ready");
-      return;
-    }
+    const cached = newsByBorough.get(borough);
+    if (cached) return;
     let active = true;
-    setState("loading");
-    setNews([]);
+    const requestId = requestRef.current + 1;
+    requestRef.current = requestId;
     fetch(`/api/news?borough=${encodeURIComponent(borough)}&limit=5`, { cache: "no-store" })
       .then((response) => (response.ok ? response.json() : Promise.reject(response)))
       .then((data: NewsListResponse) => {
-        if (!active) return;
+        if (!active || requestId !== requestRef.current) return;
         const items = data.items ?? [];
-        cacheRef.current.set(borough, items);
-        setNews(items);
-        setState("ready");
+        setNewsByBorough((current) => {
+          const next = new Map(current);
+          next.set(borough, items);
+          return next;
+        });
+        setFailedBorough((current) => (current === borough ? null : current));
       })
       .catch(() => {
-        if (active) setState("error");
+        if (active && requestId === requestRef.current) setFailedBorough(borough);
       });
     return () => {
       // Ignore a stale response when the borough switches mid-flight.
       active = false;
     };
-  }, [activeBorough, level, tourOpen]);
+  }, [activeBorough, level, tourOpen, newsByBorough]);
+
+  const cachedNews = newsByBorough.get(activeBorough);
+  const news = tourOpen
+    ? TOUR_NEWS
+    : cachedNews ?? [];
+  const state: NewsState = tourOpen
+    ? "ready"
+    : cachedNews
+      ? "ready"
+      : failedBorough === activeBorough
+        ? "error"
+        : "loading";
 
   // The data behind levels 2-3: frozen demo rows while touring, live scope
   // signals otherwise.

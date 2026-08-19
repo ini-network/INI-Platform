@@ -33,14 +33,30 @@ export function MapboxCanvas({ center, zoom, styleUrl, className, onReady }: Map
 
   useEffect(() => {
     if (!token) {
-      setError("Map needs a Mapbox token. Set NEXT_PUBLIC_MAPBOX_TOKEN in apps/web/.env.local.");
+      setError("Map needs a Mapbox token. Set NEXT_PUBLIC_MAPBOX_TOKEN in map/.env.local.");
       return;
     }
     if (!containerRef.current || mapRef.current) {
       return;
     }
+    const container = containerRef.current;
     let disposed = false;
     let map: MapboxMap | null = null;
+
+    // Keep pinch/trackpad gestures that begin over the map inside Mapbox. The
+    // listeners are deliberately scoped to the canvas host; browser zoom and
+    // accessibility gestures continue to work everywhere else on the page.
+    const preventPagePinch = (event: WheelEvent) => {
+      if (event.ctrlKey) event.preventDefault();
+    };
+    const preventTouchPagePinch = (event: TouchEvent) => {
+      if (event.touches.length > 1) event.preventDefault();
+    };
+    const preventSafariGesture = (event: Event) => event.preventDefault();
+    container.addEventListener("wheel", preventPagePinch, { passive: false });
+    container.addEventListener("touchmove", preventTouchPagePinch, { passive: false });
+    container.addEventListener("gesturestart", preventSafariGesture, { passive: false });
+    container.addEventListener("gesturechange", preventSafariGesture, { passive: false });
 
     void (async () => {
       try {
@@ -86,6 +102,10 @@ export function MapboxCanvas({ center, zoom, styleUrl, className, onReady }: Map
 
     return () => {
       disposed = true;
+      container.removeEventListener("wheel", preventPagePinch);
+      container.removeEventListener("touchmove", preventTouchPagePinch);
+      container.removeEventListener("gesturestart", preventSafariGesture);
+      container.removeEventListener("gesturechange", preventSafariGesture);
       map?.remove();
       mapRef.current = null;
     };

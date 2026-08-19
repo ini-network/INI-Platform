@@ -1,0 +1,1040 @@
+.card,
+.unavailable {
+  display: grid;
+  flex: 0 0 auto;
+  min-width: 0;
+  gap: 15px;
+  padding: 18px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--primary, #7c3aed) 20%, transparent);
+  border-radius: var(--radius-lg, 18px);
+  background: var(--surface, #fffdf8);
+  box-shadow: 0 16px 38px rgba(35, 23, 54, 0.08);
+  color: var(--ink, #111c18);
+  overflow-wrap: anywhere;
+}
+
+.districtHeader,
+.districtIdentity,
+.personRow,
+.primaryActions,
+.neutralMeta,
+.routeActions,
+.disclosure summary,
+.nextEvent span {
+  display: flex;
+  min-width: 0;
+}
+
+.districtHeader {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.districtIdentity {
+  align-items: center;
+  gap: 11px;
+}
+
+.districtIdentity > div {
+  min-width: 0;
+}
+
+.districtIdentity h2,
+.districtIdentity p,
+.helpRouter h3,
+.helpRouter p,
+.helpResult p,
+.advisory p,
+.expiredNotice p,
+.disclosureBody p,
+.activityBody p,
+.sourceBody p,
+.unavailable p,
+.emptyOfficial {
+  margin: 0;
+}
+
+.districtIdentity h2 {
+  margin-top: 2px;
+  font-size: clamp(18px, 4.7vw, 21px);
+  font-weight: 870;
+  letter-spacing: -0.025em;
+  line-height: 1.16;
+}
+
+.eyebrow {
+  color: var(--primary, #7c3aed);
+  font-size: 10.5px;
+  font-weight: 850;
+  letter-spacing: 0.075em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.boundaryIcon {
+  display: grid;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--primary, #7c3aed);
+  color: #fff;
+}
+
+.boundaryIcon svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.changeButton,
+.unavailable > button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--primary, #7c3aed) 30%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary, #7c3aed) 7%, var(--surface, #fffdf8));
+  color: var(--primary, #7c3aed);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 820;
+  cursor: pointer;
+}
+
+.officials,
+.official,
+.personCopy,
+.helpRouter,
+.helpRouter header,
+.helpTopics,
+.helpResult,
+.detailStack,
+.disclosureBody,
+.officeList,
+.secondaryLinks,
+.activityBody,
+.nextEvent,
+.sourceBody,
+.expiredNotice,
+.advisory {
+  display: grid;
+  min-width: 0;
+}
+
+.officials {
+  gap: 9px;
+}
+
+.official {
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.1));
+  border-radius: 15px;
+  background: var(--surface-soft, #fbf8f1);
+}
+
+.personRow {
+  align-items: center;
+  gap: 12px;
+}
+
+.portraitWrap,
+.initials {
+  position: relative;
+  display: grid;
+  flex: 0 0 66px;
+  width: 66px;
+  height: 66px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--primary, #7c3aed) 22%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primary, #7c3aed) 10%, var(--surface, #fffdf8));
+}
+
+.initials,
+.portraitFallback {
+  color: var(--primary, #7c3aed);
+  font-size: 16px;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+}
+
+.portraitFallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.portraitFallbackHidden {
+  visibility: hidden;
+}
+
+.portrait {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  visibility: hidden;
+}
+
+.portraitLoaded {
+  visibility: visible;
+}
+
+.portraitAttribution {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  max-width: 60px;
+  padding: 2px 4px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: rgba(17, 28, 24, 0.78);
+  color: #fff;
+  font-size: 7px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.personCopy {
+  gap: 3px;
+}
+
+.personCopy > strong {
+  font-size: 17px;
+  font-weight: 860;
+  letter-spacing: -0.012em;
+  line-height: 1.2;
+}
+
+.personCopy > span,
+.emptyOfficial,
+.helpRouter header > p:last-child,
+.helpResult p,
+.advisory p,
+.expiredNotice p,
+.disclosureBody,
+.activityBody,
+.sourceBody,
+.unavailable p {
+  color: var(--muted, #65716b);
+  font-size: 12.5px;
+  line-height: 1.48;
+}
+
+.neutralMeta {
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 3px;
+}
+
+.neutralMeta span {
+  padding: 3px 7px;
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.1));
+  border-radius: 999px;
+  background: var(--surface, #fffdf8);
+  color: var(--muted, #68736d);
+  font-size: 10.5px;
+  font-weight: 760;
+  line-height: 1.25;
+}
+
+.primaryActions {
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.primaryActions > a,
+.primaryHelpButton,
+.routeAction {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--primary, #7c3aed) 22%, transparent);
+  border-radius: 11px;
+  background: var(--surface, #fffdf8);
+  color: var(--primary, #7c3aed);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 840;
+  line-height: 1.25;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.primaryActions > a,
+.primaryHelpButton {
+  flex: 1 1 92px;
+}
+
+.primaryHelpButton {
+  border-color: var(--primary, #7c3aed);
+  background: var(--primary, #7c3aed);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--primary, #7c3aed) 22%, transparent);
+  color: #fff;
+}
+
+.primaryHelpButton[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--primary, #7c3aed) 88%, #1b1230);
+}
+
+.helpRouter {
+  grid-column: 1 / -1;
+  flex: 1 0 100%;
+  gap: 12px;
+  width: 100%;
+  margin-top: 3px;
+  padding: 15px;
+  border: 1px solid color-mix(in srgb, var(--primary, #7c3aed) 24%, transparent);
+  border-radius: 15px;
+  background:
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--primary, #7c3aed) 11%, transparent), transparent 38%),
+    color-mix(in srgb, var(--primary, #7c3aed) 4%, var(--surface, #fffdf8));
+}
+
+.helpRouter header {
+  gap: 3px;
+}
+
+.helpRouter h3 {
+  font-size: 17px;
+  font-weight: 860;
+  letter-spacing: -0.015em;
+  line-height: 1.22;
+}
+
+.helpTopics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.helpTopic {
+  display: grid;
+  min-width: 0;
+  min-height: 68px;
+  align-content: center;
+  gap: 3px;
+  padding: 10px;
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.11));
+  border-radius: 11px;
+  background: var(--surface, #fffdf8);
+  color: var(--ink-soft, #33423b);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.helpTopic strong {
+  font-size: 11.5px;
+  line-height: 1.3;
+}
+
+.helpTopic span {
+  color: var(--muted, #6a756f);
+  font-size: 10.5px;
+  line-height: 1.35;
+}
+
+.helpTopicActive {
+  border-color: color-mix(in srgb, var(--primary, #7c3aed) 45%, transparent);
+  background: color-mix(in srgb, var(--primary, #7c3aed) 9%, var(--surface, #fffdf8));
+  color: var(--primary, #7c3aed);
+}
+
+.helpResult {
+  gap: 7px;
+  padding: 12px;
+  border: 1px solid rgba(22, 112, 81, 0.16);
+  border-radius: 12px;
+  background: #f1faf6;
+}
+
+.helpResult > strong {
+  color: #175b47;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.routeActions {
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.routeAction {
+  width: fit-content;
+  max-width: 100%;
+  border-color: color-mix(in srgb, var(--primary, #7c3aed) 32%, transparent);
+  background: var(--surface, #fffdf8);
+}
+
+.routeActions .routeAction {
+  flex: 1 1 160px;
+  width: auto;
+}
+
+.emergencyNote {
+  color: var(--muted, #65716b);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.emergencyNote a {
+  color: #a33a2b;
+  font-weight: 850;
+}
+
+.detailStack {
+  gap: 8px;
+}
+
+.disclosure {
+  overflow: clip;
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.1));
+  border-radius: 13px;
+  background: var(--surface-soft, #fbf8f1);
+}
+
+.disclosure summary {
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 11px;
+  color: var(--ink-soft, #33423b);
+  cursor: pointer;
+  list-style: none;
+}
+
+.disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure summary > span:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.disclosure summary strong {
+  font-size: 12.5px;
+  font-weight: 840;
+  line-height: 1.3;
+}
+
+.disclosure summary small {
+  color: var(--muted, #6a756f);
+  font-size: 10.5px;
+  line-height: 1.35;
+}
+
+.disclosureChevron {
+  display: grid;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--surface, #fffdf8);
+  color: var(--primary, #7c3aed);
+}
+
+.disclosureChevron svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  transition: transform 160ms ease;
+}
+
+.disclosure[open] .disclosureChevron svg {
+  transform: rotate(180deg);
+}
+
+.disclosureBody {
+  gap: 10px;
+  padding: 2px 12px 13px;
+  border-top: 1px solid var(--line, rgba(20, 30, 25, 0.08));
+}
+
+.disclosureBody > p:first-child {
+  padding-top: 11px;
+}
+
+.disclosureBody ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.limitNote,
+.staleNotice {
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: #fff5dc;
+  color: #795716 !important;
+}
+
+.officeList {
+  gap: 8px;
+  padding-top: 10px;
+}
+
+.officeList address {
+  display: grid;
+  gap: 2px;
+  padding: 11px;
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.1));
+  border-radius: 11px;
+  background: var(--surface, #fffdf8);
+  color: var(--ink-soft, #33423b);
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.42;
+}
+
+.officeList address small {
+  color: var(--muted, #6a756f);
+}
+
+.officeList address > div {
+  display: grid;
+  gap: 2px;
+  padding-bottom: 6px;
+}
+
+.officeList address > div + div {
+  padding-top: 6px;
+  border-top: 1px solid var(--line, rgba(20, 30, 25, 0.1));
+}
+
+.officeList a,
+.secondaryLinks a,
+.nextEvent a,
+.sourceBody a {
+  color: var(--primary, #7c3aed);
+  font-weight: 800;
+}
+
+.secondaryLinks {
+  gap: 7px;
+  padding-top: 10px;
+}
+
+.secondaryLinks a {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 9px 11px;
+  border: 1px solid color-mix(in srgb, var(--primary, #7c3aed) 18%, transparent);
+  border-radius: 10px;
+  background: var(--surface, #fffdf8);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.activityBody,
+.sourceBody {
+  gap: 10px;
+  padding-top: 10px;
+}
+
+.nextEvent {
+  gap: 4px;
+  padding: 11px;
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.1));
+  border-radius: 11px;
+  background: var(--surface, #fffdf8);
+}
+
+.nextEvent > strong {
+  color: var(--ink, #111c18);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.nextEvent span {
+  flex-wrap: wrap;
+  color: var(--muted, #6a756f);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.sourceBody ul {
+  padding-left: 18px;
+}
+
+.expiredNotice,
+.advisory {
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid #efd9aa;
+  border-radius: 12px;
+  background: #fff8e7;
+}
+
+.expiredNotice > strong,
+.advisory > strong {
+  color: #795716;
+  font-size: 13px;
+}
+
+.unavailable > strong {
+  font-size: 14px;
+}
+
+.legacyFallback {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+}
+
+.fallbackHeader {
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--primary, #7c3aed) 20%, transparent);
+  border-radius: 16px;
+  background: var(--surface, #fffdf8);
+  box-shadow: 0 10px 24px rgba(35, 23, 54, 0.06);
+}
+
+.unavailable > button:not(.changeButton) {
+  width: fit-content;
+  min-height: 42px;
+}
+
+.loadingCard {
+  min-height: 230px;
+}
+
+.skeletonPerson {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.08));
+  border-radius: 15px;
+  background: var(--surface-soft, #fbf8f1);
+}
+
+.skeletonAvatar,
+.skeletonCopy,
+.skeletonAction {
+  display: block;
+  background: linear-gradient(90deg, #eee9df 25%, #f8f5ee 50%, #eee9df 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.25s linear infinite;
+}
+
+.skeletonAvatar {
+  flex: 0 0 66px;
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+}
+
+.skeletonCopy {
+  width: min(180px, 55%);
+  height: 45px;
+  border-radius: 9px;
+}
+
+.skeletonAction {
+  width: 110px;
+  height: 42px;
+  border-radius: 11px;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.changeButton:hover,
+.unavailable > button:hover,
+.primaryActions > a:hover,
+.routeAction:hover,
+.secondaryLinks a:hover {
+  border-color: var(--primary, #7c3aed);
+  background: color-mix(in srgb, var(--primary, #7c3aed) 11%, var(--surface, #fffdf8));
+}
+
+.primaryHelpButton:hover {
+  background: color-mix(in srgb, var(--primary, #7c3aed) 88%, #1b1230);
+  color: #fff;
+}
+
+.changeButton:focus-visible,
+.unavailable > button:focus-visible,
+.primaryActions > a:focus-visible,
+.primaryHelpButton:focus-visible,
+.helpTopic:focus-visible,
+.routeAction:focus-visible,
+.disclosure summary:focus-visible,
+.secondaryLinks a:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary, #7c3aed) 42%, transparent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 440px) {
+  .card,
+  .unavailable {
+    gap: 13px;
+    padding: 14px;
+  }
+
+  .districtHeader {
+    align-items: center;
+  }
+
+  .districtIdentity {
+    gap: 9px;
+  }
+
+  .boundaryIcon {
+    flex-basis: 34px;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+
+  .districtIdentity h2 {
+    font-size: 17px;
+  }
+
+  .changeButton {
+    min-height: 36px;
+    padding-inline: 10px;
+    font-size: 10.5px;
+  }
+
+  .official {
+    padding: 10px;
+  }
+
+  .portraitWrap,
+  .initials,
+  .skeletonAvatar {
+    flex-basis: 60px;
+    width: 60px;
+    height: 60px;
+  }
+
+  .personCopy > strong {
+    font-size: 16px;
+  }
+
+  .primaryActions > a,
+  .primaryHelpButton {
+    flex-basis: calc(50% - 4px);
+  }
+
+  .helpRouter {
+    padding: 12px;
+  }
+
+  .helpTopics {
+    grid-template-columns: 1fr;
+  }
+
+  .helpTopic {
+    min-height: 60px;
+  }
+}
+
+@media (pointer: coarse) {
+  .changeButton,
+  .unavailable > button,
+  .primaryActions > a,
+  .primaryHelpButton,
+  .routeAction,
+  .disclosure summary,
+  .secondaryLinks a {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .disclosureChevron svg {
+    transition: none;
+  }
+
+  .skeletonAvatar,
+  .skeletonCopy,
+  .skeletonAction {
+    animation: none;
+  }
+}
+
+/* Civic field-guide treatment: one calm surface, familiar controls, and less
+   visual nesting. These overrides intentionally preserve the existing data and
+   interaction contract while making the reading hierarchy feel editorial. */
+.card,
+.unavailable {
+  gap: 18px;
+  padding: 10px 4px 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.districtHeader {
+  align-items: center;
+  padding: 0 2px 15px;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink, #111c18) 12%, transparent);
+}
+
+.boundaryIcon {
+  flex-basis: 34px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid color-mix(in srgb, var(--primary, #7c3aed) 25%, transparent);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--primary, #7c3aed);
+}
+
+.districtIdentity h2 {
+  margin-top: 1px;
+  font-size: clamp(21px, 5vw, 25px);
+  font-weight: 780;
+  letter-spacing: -0.025em;
+}
+
+.eyebrow {
+  color: var(--muted, #65716b);
+  font-size: 12px;
+  font-weight: 720;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.changeButton {
+  min-height: 44px;
+  padding-inline: 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  font-size: 12.5px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.official {
+  padding: 0 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.portraitWrap,
+.initials {
+  flex-basis: 72px;
+  width: 72px;
+  height: 72px;
+  border-color: color-mix(in srgb, var(--ink, #111c18) 14%, transparent);
+}
+
+.personCopy {
+  gap: 4px;
+}
+
+.personCopy > strong {
+  font-size: 20px;
+  font-weight: 780;
+}
+
+.personCopy > span {
+  font-size: 14px;
+}
+
+.neutralMeta {
+  gap: 0;
+  margin-top: 4px;
+}
+
+.neutralMeta span {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.neutralMeta span + span::before {
+  content: "•";
+  margin-inline: 7px;
+  color: color-mix(in srgb, var(--muted, #65716b) 65%, transparent);
+}
+
+.primaryActions {
+  gap: 8px;
+}
+
+.primaryActions > a,
+.primaryHelpButton {
+  min-height: 46px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 760;
+}
+
+.primaryHelpButton {
+  box-shadow: none;
+}
+
+.primaryActions > .officialSiteLink {
+  flex: 1 0 100%;
+  min-height: 34px;
+  justify-content: flex-start;
+  padding: 2px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.profileIntro {
+  margin: -2px 2px 0;
+  color: var(--ink-soft, #33423b);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.detailStack {
+  gap: 0;
+  border-top: 1px solid color-mix(in srgb, var(--ink, #111c18) 12%, transparent);
+}
+
+.disclosure {
+  overflow: visible;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink, #111c18) 12%, transparent);
+  border-radius: 0;
+  background: transparent;
+}
+
+.disclosure summary {
+  min-height: 62px;
+  padding: 10px 2px;
+  border-radius: 5px;
+}
+
+.disclosure summary strong {
+  color: var(--ink, #111c18);
+  font-size: 15px;
+  font-weight: 740;
+}
+
+.disclosure summary small {
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+.disclosureChevron {
+  flex-basis: 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 0;
+  background: transparent;
+}
+
+.disclosureBody {
+  gap: 12px;
+  padding: 0 2px 18px;
+  border-top: 0;
+  color: var(--ink-soft, #33423b);
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+
+.disclosure[open] .disclosureBody {
+  animation: civicReveal 180ms ease-out both;
+}
+
+.officeList address,
+.nextEvent,
+.sourceBody {
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+@keyframes civicReveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 440px) {
+  .card,
+  .unavailable {
+    gap: 16px;
+    padding: 6px 2px 14px;
+  }
+
+  .districtIdentity h2 {
+    font-size: 20px;
+  }
+
+  .portraitWrap,
+  .initials,
+  .skeletonAvatar {
+    flex-basis: 66px;
+    width: 66px;
+    height: 66px;
+  }
+
+  .primaryActions > a,
+  .primaryHelpButton {
+    flex-basis: 88px;
+  }
+
+  .primaryActions > .officialSiteLink {
+    flex-basis: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .disclosure[open] .disclosureBody {
+    animation: none;
+  }
+}

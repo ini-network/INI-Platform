@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { Marker, type FilterSpecification, type Map as MapboxMap } from "mapbox-gl";
 
 import { MQ } from "@/lib/map-feature/breakpoints";
@@ -9,6 +9,14 @@ import { BOROUGH_CENTERS, computeFitPadding, guardPadding, type Padding } from "
 import { neighborhoodLabelCollection } from "@/lib/map-feature/map/neighborhood-labels";
 import { useFormFactor } from "@/lib/map-feature/use-form-factor";
 import type { SheetSnap } from "@/lib/map-feature/use-sheet-state";
+import type { CivicGeographyFeatureCollection } from "@/lib/map-feature/civic-types";
+import {
+  civicDistrictBounds,
+  civicDistrictFitPadding,
+  civicDistrictMaxZoom,
+  syncCivicDistrictOverlay,
+  updateCivicDistrictSelection
+} from "@/lib/map-feature/map/civic-district-overlay";
 import { MapboxCanvas } from "./mapbox-canvas";
 
 // Borough-level signals map: the neighborhood (NTA) polygons the deep-dive uses,
@@ -58,6 +66,10 @@ type Props = {
   // change (px shifts, token doesn't) never yanks the camera. Ignored off phone.
   sheetPx: number;
   sheetSnap: SheetSnap;
+  // Optional official civic-district geometry. It is deliberately non-
+  // interactive so neighborhood tapping remains the map's only polygon action.
+  civicGeoJson?: CivicGeographyFeatureCollection | null;
+  selectedCivicDistrictKey?: string | null;
 };
 
 // Selection/hover chrome is a neutral ink family, deliberately outside every
@@ -111,34 +123,58 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
   searchedLocationLabel,
   onSelectArea,
   sheetPx,
-  sheetSnap
+  sheetSnap,
+  civicGeoJson = null,
+  selectedCivicDistrictKey = null
 }: Props) {
   const mapRef = useRef<MapboxMap | null>(null);
   const readyRef = useRef(false);
   const selectedStateRef = useRef<number | null>(null);
+  const prevBoroughRef = useRef(borough);
   // Always tracks the desired selection so onReady() can apply it even when the
   // selection was set before the map finished loading (search auto-select).
   const selectedAreaIdRef = useRef<number | null>(selectedAreaId);
-  selectedAreaIdRef.current = selectedAreaId;
   const focusPointRef = useRef<[number, number] | null>(focusPoint);
-  focusPointRef.current = focusPoint;
   const userLocationPointRef = useRef<[number, number] | null>(userLocationPoint);
-  userLocationPointRef.current = userLocationPoint;
   const searchedLocationPointRef = useRef<[number, number] | null>(searchedLocationPoint);
-  searchedLocationPointRef.current = searchedLocationPoint;
   const searchedLocationLabelRef = useRef<string | null>(searchedLocationLabel);
-  searchedLocationLabelRef.current = searchedLocationLabel;
   const markerRefs = useRef<Record<PointSource, Marker | null>>({
     search: null,
     geolocation: null
   });
   const hoverStateRef = useRef<number | null>(null);
   const onSelectRef = useRef(onSelectArea);
-  onSelectRef.current = onSelectArea;
   const tintRef = useRef(tintByArea);
-  tintRef.current = tintByArea;
   const metaRef = useRef(metaByArea);
-  metaRef.current = metaByArea;
+  const civicGeoJsonRef = useRef<CivicGeographyFeatureCollection | null>(civicGeoJson);
+  const selectedCivicDistrictKeyRef = useRef<string | null>(selectedCivicDistrictKey);
+  const civicCameraActiveRef = useRef(false);
+
+  // Preserve stable Mapbox subscriptions while updating every value they read
+  // before paint. The refs remain imperative lifecycle state, not render data.
+  useLayoutEffect(() => {
+    selectedAreaIdRef.current = selectedAreaId;
+    focusPointRef.current = focusPoint;
+    userLocationPointRef.current = userLocationPoint;
+    searchedLocationPointRef.current = searchedLocationPoint;
+    searchedLocationLabelRef.current = searchedLocationLabel;
+    onSelectRef.current = onSelectArea;
+    tintRef.current = tintByArea;
+    metaRef.current = metaByArea;
+    civicGeoJsonRef.current = civicGeoJson;
+    selectedCivicDistrictKeyRef.current = selectedCivicDistrictKey;
+  }, [
+    civicGeoJson,
+    focusPoint,
+    metaByArea,
+    onSelectArea,
+    searchedLocationLabel,
+    searchedLocationPoint,
+    selectedAreaId,
+    selectedCivicDistrictKey,
+    tintByArea,
+    userLocationPoint
+  ]);
 
   // The hover name tag is driven imperatively (textContent/transform on a ref),
   // not through React state — a state set per mousemove would re-render the
@@ -190,18 +226,28 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
   // handlers (onReady, sourcedata finish) read the CURRENT value, never a stale
   // render closure.
   const ff = useFormFactor();
-  const camRef = useRef<{ padding: Padding; sheetPx: number; isPhone: boolean; isCoarse: boolean }>({
+  const camRef = useRef<{
+    padding: Padding;
+    civicPadding: Padding;
+    sheetPx: number;
+    isPhone: boolean;
+    isCoarse: boolean;
+  }>({
     padding: computeFitPadding(ff, sheetPx),
+    civicPadding: civicDistrictFitPadding(ff, sheetPx),
     sheetPx,
     isPhone: ff.isPhone,
     isCoarse: ff.isCoarse
   });
-  camRef.current = {
-    padding: computeFitPadding(ff, sheetPx),
-    sheetPx,
-    isPhone: ff.isPhone,
-    isCoarse: ff.isCoarse
-  };
+  useLayoutEffect(() => {
+    camRef.current = {
+      padding: computeFitPadding(ff, sheetPx),
+      civicPadding: civicDistrictFitPadding(ff, sheetPx),
+      sheetPx,
+      isPhone: ff.isPhone,
+      isCoarse: ff.isCoarse
+    };
+  }, [ff, sheetPx]);
 
   // One camera owner for every navigation path. Search/GPS keeps its precise
   // point focus. Touch selections fit the complete polygon above the mobile
@@ -215,6 +261,27 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
       { preserveDesktopSelection = false }: { preserveDesktopSelection?: boolean } = {}
     ) => {
       const camera = camRef.current;
+      const selectedDistrictBounds = civicDistrictBounds(
+        civicGeoJsonRef.current,
+        selectedCivicDistrictKeyRef.current
+      );
+      if (selectedDistrictBounds) {
+        civicCameraActiveRef.current = true;
+        map.stop();
+        map.fitBounds(selectedDistrictBounds, {
+          padding: guardPadding(map, camera.civicPadding, camera.sheetPx),
+          duration,
+          maxZoom: civicDistrictMaxZoom({
+            isPhone: camera.isPhone,
+            isTabletPortrait: ff.isTabletPortrait,
+            isCoarse: camera.isCoarse
+          }),
+          retainPadding: false
+        });
+        return;
+      }
+      civicCameraActiveRef.current = false;
+
       const focus = focusPointRef.current;
       if (focus) {
         map.stop();
@@ -245,7 +312,7 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
         ...(selectedBounds ? { maxZoom: FOCUS_ZOOM } : {})
       });
     },
-    [borough, boroughGeoJson, features]
+    [borough, boroughGeoJson, features, ff.isTabletPortrait]
   );
 
   // Give every NTA its tint (persistent for signal-bearing neighborhoods, a
@@ -461,6 +528,15 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
 
+      // Keep official district boundaries beneath NTA hover/label chrome. No
+      // handlers are attached, so existing neighborhood hit targets stay exact.
+      syncCivicDistrictOverlay(
+        map,
+        civicGeoJsonRef.current,
+        selectedCivicDistrictKeyRef.current,
+        "nta-hover-line"
+      );
+
       // Hover = bright outline + name tag by the cursor. Touch devices
       // synthesize mousemove on tap but never mouseleave, which would strand
       // both forever — so hover only runs where a real pointer exists (checked
@@ -586,7 +662,6 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
   // per-mount transient state a remount used to reset, then re-tint/re-select
   // once the new data has parsed. The shared camera coordinator below owns the
   // corresponding viewport change.
-  const prevBoroughRef = useRef(borough);
   useEffect(() => {
     if (prevBoroughRef.current === borough) {
       return;
@@ -684,6 +759,58 @@ export const NeighborhoodSignalsMap = memo(function NeighborhoodSignalsMap({
       map.setFeatureState({ source: "nta", id: selectedAreaId }, { selected: true });
     }
   }, [selectedAreaId]);
+
+  // Civic layers remain additive. A restored selection is framed as soon as its
+  // geography arrives; null only tears down the overlay and deliberately avoids
+  // a Community camera reset.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+    syncCivicDistrictOverlay(
+      map,
+      civicGeoJson,
+      selectedCivicDistrictKeyRef.current,
+      "nta-hover-line"
+    );
+    if (
+      civicDistrictBounds(civicGeoJson, selectedCivicDistrictKeyRef.current) &&
+      (camRef.current.isPhone || camRef.current.isCoarse)
+    ) {
+      frameCurrentScope(map, SCOPE_FIT_DURATION);
+    } else if (!civicGeoJson && civicCameraActiveRef.current) {
+      // Restore the already-selected Community focus/area/borough only when a
+      // Civic fit actually owned the camera; initial Community mounting is
+      // unchanged and no URL or selection state is touched.
+      frameCurrentScope(map, SCOPE_FIT_DURATION);
+    }
+  }, [civicGeoJson, frameCurrentScope]);
+
+  // Selected district changes the highlight filters and frames that exact
+  // Polygon/MultiPolygon in the map area not covered by the Civic rail/sheet.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+    updateCivicDistrictSelection(
+      map,
+      selectedCivicDistrictKey,
+      civicGeoJsonRef.current
+    );
+    if (
+      civicDistrictBounds(civicGeoJsonRef.current, selectedCivicDistrictKey) &&
+      (camRef.current.isPhone || camRef.current.isCoarse)
+    ) {
+      frameCurrentScope(map, SCOPE_FIT_DURATION);
+    } else if (selectedCivicDistrictKey === null && civicCameraActiveRef.current) {
+      // Removing a district from the URL/picker must also release the district
+      // camera. Otherwise Mapbox keeps the last fitted zoom even though no
+      // district is selected or highlighted.
+      frameCurrentScope(map, SCOPE_FIT_DURATION);
+    }
+  }, [selectedCivicDistrictKey, frameCurrentScope]);
 
   // Coordinate scope, sheet, and form-factor changes through one camera routine.
   // A simultaneous area selection + peek→half sheet change frames once using the

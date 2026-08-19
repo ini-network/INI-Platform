@@ -1,6 +1,6 @@
 // Static config for the guided map tour. The component (map-tour-guide.tsx)
 // owns all behavior; this file is only the ordered stop list + the copy. Copy is
-// plain-language and says what each control is FOR (Travis's decision, 2026-07-15).
+// plain-language and says what each control is for.
 //
 // v6 (auto-enactment): the guide now PERFORMS the map walkthrough itself and
 // narrates it — the "auto" stops enact their action (select a borough, browse in,

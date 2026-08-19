@@ -14,7 +14,7 @@ import { useFormFactor } from "@/lib/map-feature/use-form-factor";
 import { useVisualViewport } from "@/lib/map-feature/use-visual-viewport";
 import type { SheetSnap } from "@/lib/map-feature/use-sheet-state";
 import { useShellTop } from "../../tour/use-shell-top";
-import { liveStops, type TourEnact, type TourStop } from "./tour-stops";
+import { liveStops, type TourEnact } from "./tour-stops";
 import styles from "./map-tour.module.css";
 
 // Deliberate, proven timings (Amendment 6 — adopted as choices, not guesses):
@@ -91,10 +91,10 @@ type Props = {
   chipPickTick: number;
   canDrill: boolean;
   boroughClickTick: number;
-  blockedTick: number; // parent bumps this when it soft-blocks a switch to 311 Reports
+  blockedTick: number; // parent bumps this when it soft-blocks a lens switch
 };
 
-const BLOCKED_HINT = "311 Reports opens right after the guide — you're almost done.";
+const BLOCKED_HINT = "Civic Districts opens right after the guide — you're almost done.";
 
 // Calm nudge for a stray click on an auto/info stop's dim (nothing to click there —
 // the guide performed the step; the user just reads and presses Next).
@@ -621,7 +621,7 @@ export function MapTourGuide({
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, [index, ready, step.anchor, step.mapRegion, step.id, ff.isPhone, ff.isCoarse]);
+  }, [index, ready, step.anchor, step.mapRegion, step.id, ff.isPhone, ff.isCoarse, shellTop]);
 
   // v6 confirm — borough auto stop: the enacted click bumps boroughClickTick past
   // the activation baseline → reveal Next (no auto-advance; the user presses Next).
@@ -654,7 +654,7 @@ export function MapTourGuide({
     }
   }, [chipPickTick, ready, step.id, step.successText, safeIndex, succeedThenAdvance]);
 
-  // A soft-blocked 311 switch: speak to it (works on any stop, no shake).
+  // A soft-blocked lens switch: speak to it (works on any stop, no shake).
   useEffect(() => {
     if (!ready) return;
     if (blockedTick > blockedBaselineRef.current) {

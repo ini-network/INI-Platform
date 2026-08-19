@@ -6,6 +6,10 @@ import { useRouter } from "next/navigation";
 import { BoroughInsightsPanel } from "../insights/borough-insights-panel";
 import type { BoroughOverview } from "@/lib/map-feature/borough-overview";
 import type { NeighborhoodSignalsResponse } from "@/lib/map-feature/signal-types";
+import {
+  isSelectableCivicGeographyType,
+  type CivicGeographyType
+} from "@/lib/map-feature/civic-types";
 import { SEEN_KEY, activeSegment, startSegment } from "@/lib/map-feature/tour-progress";
 import { BoroughOverviewMap } from "./borough-overview-map";
 import { SignalsMapExperience } from "./signals-map-experience";
@@ -18,7 +22,10 @@ const ALL_BOROUGHS = ["Bronx", "Brooklyn", "Manhattan", "Queens", "Staten Island
 // aren't re-interrupted.
 const TOUR_SEEN_KEY = SEEN_KEY;
 
-type MapMode = "signals" | "reports";
+// `reports` is intentionally retained as an internal legacy path so the former
+// 311 experience can be restored without rebuilding it. The visible second lens
+// is now Civic Districts.
+type MapMode = "signals" | "civic" | "reports";
 
 type Props = {
   boroughGeoJson: unknown;
@@ -28,8 +35,12 @@ type Props = {
   initialTimeWindow: string;
   initialIssueType: string;
   initialAreaId: number | null;
+  initialMapView: "community" | "civic";
+  initialCivicLayer: CivicGeographyType | null;
+  initialCivicDistrictKey: string | null;
   initialOverview: BoroughOverview | null;
   initialSignals: NeighborhoodSignalsResponse | null;
+  civicResourceNavigatorEnabled: boolean;
 };
 
 function cacheKey(borough: string, timeWindow: string, issueType: string): string {
@@ -49,11 +60,15 @@ export function MapExperience({
   initialTimeWindow,
   initialIssueType,
   initialAreaId,
+  initialMapView,
+  initialCivicLayer,
+  initialCivicDistrictKey,
   initialOverview,
-  initialSignals
+  initialSignals,
+  civicResourceNavigatorEnabled
 }: Props) {
   const router = useRouter();
-  const [mode, setMode] = useState<MapMode>("signals");
+  const [mode, setMode] = useState<MapMode>(initialMapView === "civic" ? "civic" : "signals");
   // Guided-tour host state. `tourOpen` drives the tour overlay (rendered by
   // SignalsMapExperience). `tourBlockedTick` increments each time a mode switch
   // is soft-blocked while the tour runs, so the tour can speak to the attempt.
@@ -66,6 +81,10 @@ export function MapExperience({
   const [timeWindow, setTimeWindow] = useState(initialTimeWindow);
   const [issueType, setIssueType] = useState(initialIssueType);
   const [areaId, setAreaId] = useState<number | null>(initialAreaId);
+  const [civicLayer, setCivicLayer] = useState<CivicGeographyType | null>(initialCivicLayer);
+  const [civicDistrictKey, setCivicDistrictKey] = useState<string | null>(
+    initialCivicDistrictKey
+  );
   const [overview, setOverview] = useState<BoroughOverview | null>(initialOverview);
   const [loading, setLoading] = useState(false);
 
@@ -183,16 +202,34 @@ export function MapExperience({
     setAreaId(next);
   }, []);
 
+  const handleCivicLayerChange = useCallback((next: CivicGeographyType | null) => {
+    const allowedNext = isSelectableCivicGeographyType(next) ? next : null;
+    setCivicLayer(allowedNext);
+    setCivicDistrictKey((current) =>
+      allowedNext && current?.startsWith(`${allowedNext}:`) ? current : null
+    );
+  }, []);
+
+  const handleCivicDistrictChange = useCallback((next: string | null) => {
+    setCivicDistrictKey(next);
+  }, []);
+
   const handleModeChange = useCallback(
     (next: MapMode) => {
-      // Soft-block 311 Reports while the tour is open: switching would unmount
-      // SignalsMapExperience (the tour's host). Instead of doing nothing, bump a
-      // tick the tour reads so it can say "311 opens right after the guide."
-      if (next === "reports" && tourOpen) {
+      // The guide teaches Community Signals. Keep that lens in place until the
+      // guide closes so its highlighted controls remain truthful.
+      if (next !== "signals" && tourOpen) {
         setTourBlockedTick((tick) => tick + 1);
         return;
       }
       setMode(next);
+      // Community owns neighborhood state only. Clearing civic state prevents a
+      // hidden boundary from lingering in the share URL after the user leaves
+      // the Civic Districts lens.
+      if (next === "signals") {
+        setCivicDistrictKey(null);
+        setCivicLayer(null);
+      }
       // Entering reports: make sure the panel reflects the borough that may have
       // been changed while reading signals (usually a cache hit → instant).
       if (next === "reports") {
@@ -237,10 +274,11 @@ export function MapExperience({
     }
   }, [router]);
 
-  // The persistent "?" launcher replays the tour. It also forces Signals mode so
-  // the tour's host is mounted (the launcher lives beside the 311 toggle).
+  // The persistent "?" launcher replays the Community Signals guide.
   const handleReplayTour = useCallback(() => {
     setMode("signals");
+    setCivicDistrictKey(null);
+    setCivicLayer(null);
     setShowSkipToast(false);
     setTourOpen(true);
   }, []);
@@ -256,8 +294,26 @@ export function MapExperience({
     } else {
       params.set("area_id", String(areaId));
     }
+    if (mode !== "civic") {
+      params.delete("map_view");
+      params.delete("civic_layer");
+      params.delete("civic_district_key");
+    } else {
+      params.set("map_view", "civic");
+      if (civicLayer === null) {
+        params.delete("civic_layer");
+        params.delete("civic_district_key");
+      } else {
+        params.set("civic_layer", civicLayer);
+        if (civicDistrictKey === null) {
+          params.delete("civic_district_key");
+        } else {
+          params.set("civic_district_key", civicDistrictKey);
+        }
+      }
+    }
     window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
-  }, [borough, timeWindow, issueType, areaId]);
+  }, [borough, timeWindow, issueType, areaId, mode, civicLayer, civicDistrictKey]);
 
   // First-visit auto-open of the guided tour. Runs once after hydration; gated
   // on real signals (a null set means there's nothing on the map to teach) and
@@ -339,8 +395,9 @@ export function MapExperience({
 
   return (
     <div className="cs-overview">
-      {mode === "signals" ? (
+      {mode === "signals" || mode === "civic" ? (
         <SignalsMapExperience
+          lens={mode === "civic" ? "civic" : "community"}
           initialSignals={initialSignals}
           boroughGeoJson={boroughGeoJson}
           labelsGeoJson={labelsGeoJson}
@@ -349,10 +406,15 @@ export function MapExperience({
           onSelectBorough={handleSelectBoroughSignals}
           initialAreaId={areaId}
           onAreaChange={handleAreaChange}
+          activeCivicLayer={civicLayer}
+          selectedCivicDistrictKey={civicDistrictKey}
+          onCivicLayerChange={handleCivicLayerChange}
+          onCivicDistrictChange={handleCivicDistrictChange}
           tourOpen={tourOpen}
           onTourClose={handleTourClose}
           onTourBridge={handleTourBridge}
           tourBlockedTick={tourBlockedTick}
+          civicResourceNavigatorEnabled={civicResourceNavigatorEnabled}
         />
       ) : (
         <>
@@ -406,12 +468,12 @@ export function MapExperience({
         <button
           type="button"
           className={`${mapStyles.modeBtn}${
-            mode === "reports" ? ` ${mapStyles.modeBtnActive}` : ""
+            mode === "civic" ? ` ${mapStyles.modeBtnActive}` : ""
           }`}
-          aria-pressed={mode === "reports"}
-          onClick={() => handleModeChange("reports")}
+          aria-pressed={mode === "civic"}
+          onClick={() => handleModeChange("civic")}
         >
-          311 Reports
+          Civic Districts
         </button>
         {/* The guide teaches the Signals lens; when signals are unavailable its
             Filter stop is unanchorable, so hide the launcher rather than open a

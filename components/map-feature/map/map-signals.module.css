@@ -234,6 +234,51 @@
   letter-spacing: -0.02em;
 }
 
+.civicPanelHead {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: start;
+  gap: 13px;
+  padding-bottom: 2px;
+}
+
+.civicHeaderIcon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--primary, #7c3aed) 20%, transparent);
+  border-radius: 15px;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--primary, #7c3aed) 15%, #fffdf8), #fffdf8);
+  color: var(--primary, #7c3aed);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--primary, #7c3aed) 10%, transparent);
+}
+
+.civicHeaderIconSvg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+
+.civicHeaderCopy {
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.civicPanelKicker {
+  margin: 1px 0 4px;
+  color: #8a5b17;
+  font-size: 10.5px;
+  font-weight: 850;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
 /* The one door into the zoomed neighborhood view (city scope only). Mirrors the
    311 panel's "Explore neighborhoods" block, but as a button — it opens the
    view in place instead of navigating away. */
@@ -295,6 +340,49 @@
   gap: 6px;
   justify-content: center;
 }
+.civicBtn {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 11px;
+  border: 1px solid color-mix(in srgb, #a86d1d 28%, transparent);
+  border-radius: var(--radius-pill, 999px);
+  background: color-mix(in srgb, #a86d1d 6%, var(--surface, #fffdf8));
+  color: #7d5017;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.civicBtn:hover,
+.civicBtnActive {
+  border-color: color-mix(in srgb, #a86d1d 52%, transparent);
+  background: color-mix(in srgb, #a86d1d 12%, var(--surface, #fffdf8));
+  color: #5f3c10;
+}
+.civicBtn:disabled {
+  cursor: wait;
+  opacity: 0.64;
+}
+.civicIcon {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+.civicBtnText {
+  max-width: 126px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .locateBtn {
   display: inline-flex;
   align-items: center;
@@ -341,6 +429,315 @@
 }
 .controlStrip .filterRow {
   flex: 0 0 auto;
+}
+
+.civicControlStrip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.civicControlStrip .search {
+  min-width: 0;
+}
+
+.civicControlStrip .locateBtn {
+  min-height: 46px;
+  padding-inline: 14px;
+}
+
+.civicSummary {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--primary, #7c3aed) 18%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--primary, #7c3aed) 5%, var(--surface, #fffdf8));
+}
+.civicEyebrow,
+.civicSummaryTitle,
+.civicSummaryText {
+  margin: 0;
+}
+.civicEyebrow {
+  color: #8a5b17;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.civicSummaryTitle {
+  color: var(--ink, #111c18);
+  font-size: 21px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+.civicSummaryText {
+  color: var(--muted, #6a756f);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.civicSelectedHero {
+  position: relative;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--primary, #7c3aed) 24%, transparent);
+  background:
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--primary, #7c3aed) 12%, transparent), transparent 42%),
+    var(--surface, #fffdf8);
+  box-shadow: 0 12px 30px rgba(57, 39, 13, 0.07);
+  animation: civicPanelSettle 220ms ease-out both;
+}
+
+.civicSelectedProfile {
+  display: grid;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+@keyframes civicPanelSettle {
+  from {
+    opacity: 0.72;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .civicSelectedHero {
+    animation: none;
+  }
+
+  .civicPrimaryFilter {
+    transition: none;
+  }
+}
+
+.civicHeroTop,
+.civicHeroIdentity {
+  display: flex;
+  align-items: flex-start;
+}
+
+.civicHeroTop {
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.civicHeroIdentity {
+  min-width: 0;
+  gap: 11px;
+}
+
+.civicQuickSwitch {
+  display: grid;
+  gap: 7px;
+  padding-top: 2px;
+}
+
+.civicQuickSwitchLabel {
+  color: var(--muted, #6a756f);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.civicPrimaryFilters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  padding: 5px;
+  border: 1px solid color-mix(in srgb, var(--primary, #7c3aed) 15%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--primary, #7c3aed) 4%, var(--surface, #fffdf8));
+}
+
+.civicPrimaryFilter {
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--ink-soft, #33423b);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 780;
+  line-height: 1.15;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease,
+    box-shadow 160ms ease, color 160ms ease;
+}
+
+.civicPrimaryFilter:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--primary, #7c3aed) 20%, transparent);
+  background: color-mix(in srgb, var(--primary, #7c3aed) 7%, #fff);
+  color: var(--primary, #7c3aed);
+  transform: translateY(-1px);
+}
+
+.civicPrimaryFilterActive {
+  border-color: color-mix(in srgb, var(--primary, #7c3aed) 28%, transparent);
+  background: #fff;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--primary, #7c3aed) 11%, transparent);
+  color: var(--primary, #7c3aed);
+}
+
+.civicPrimaryFilter:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.civicPrimaryFilter:focus-visible {
+  outline: 2px solid var(--primary, #7c3aed);
+  outline-offset: 2px;
+}
+
+.civicQuickSwitchOptions {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+  overflow: visible;
+  padding: 1px 1px 3px;
+}
+
+.civicQuickSwitchButton {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line, rgba(20, 30, 25, 0.14));
+  border-radius: 999px;
+  background: var(--surface, #fffdf8);
+  color: var(--ink-soft, #33423b);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.civicQuickSwitchButton:hover,
+.civicQuickSwitchButtonActive {
+  border-color: color-mix(in srgb, var(--primary, #7c3aed) 42%, transparent);
+  background: color-mix(in srgb, var(--primary, #7c3aed) 11%, var(--surface, #fffdf8));
+  color: var(--primary, #7c3aed);
+}
+
+.civicQuickSwitchButton:focus-visible {
+  outline: 2px solid var(--primary, #7c3aed);
+  outline-offset: 2px;
+}
+
+.civicMapTip {
+  position: absolute;
+  z-index: 4;
+  width: max-content;
+  max-width: min(280px, calc(100% - 16px));
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 10px;
+  background: rgba(17, 28, 24, 0.94);
+  box-shadow: 0 8px 20px rgba(17, 28, 24, 0.18);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.25;
+  pointer-events: none;
+  transform: translate(-9999px, -9999px);
+  transition: opacity 100ms ease;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.civicBoundaryIcon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--primary, #7c3aed);
+  color: #fff;
+}
+
+.civicBoundaryIcon svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.civicChangeButton,
+.civicExploreButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border: 1px solid color-mix(in srgb, var(--primary, #7c3aed) 32%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary, #7c3aed) 7%, var(--surface, #fffdf8));
+  color: var(--primary, #7c3aed);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.civicChangeButton {
+  flex: 0 0 auto;
+  padding: 0 12px;
+}
+
+.civicExploreButton {
+  width: fit-content;
+  min-height: 44px;
+  padding: 0 15px;
+}
+
+.civicChangeButton:hover,
+.civicExploreButton:hover {
+  border-color: var(--primary, #7c3aed);
+  background: color-mix(in srgb, var(--primary, #7c3aed) 13%, var(--surface, #fffdf8));
+}
+
+.civicBoundarySource {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line, rgba(20, 30, 25, 0.1));
+  color: var(--muted, #6a756f);
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+.civicBoundarySource strong {
+  color: var(--ink-soft, #33423b);
+  font-weight: 800;
+}
+
+.civicBoundarySwatch {
+  flex: 0 0 auto;
+  width: 25px;
+  height: 9px;
+  border: 2px solid var(--primary, #7c3aed);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--primary, #7c3aed) 16%, transparent);
+}
+
+.civicChangeButton:focus-visible,
+.civicExploreButton:focus-visible {
+  outline: 2px solid var(--primary, #7c3aed);
+  outline-offset: 2px;
 }
 
 /* A selected neighborhood is the only place where a coverage request has clear
@@ -595,6 +992,17 @@
   .controlStrip .search {
     flex-basis: 100%;
   }
+  .civicControlStrip {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .civicControlStrip .search {
+    min-width: 0;
+  }
+  .civicControlStrip .locateBtn {
+    min-width: 92px;
+    min-height: 46px;
+    padding-inline: 10px;
+  }
   /* iOS Safari enlarges the page when a focused form control is below 16px.
      Keep pinch zoom available for accessibility; make the input itself safe. */
   .searchInput {
@@ -615,6 +1023,13 @@
     padding-inline: 6px;
     font-size: 12px;
   }
+  .controlStrip .civicBtn {
+    flex: 0 0 auto;
+    padding-inline: 7px;
+  }
+  .controlStrip .civicBtnText {
+    max-width: 66px;
+  }
   .controlStrip .filterBtn {
     gap: 4px;
     padding-inline: 8px;
@@ -629,6 +1044,32 @@
      rises in the short sheet. */
   .panelSub {
     display: none;
+  }
+  .civicPanelHead .panelSub {
+    display: block;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .civicPanelHead {
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 11px;
+  }
+  .civicHeaderIcon {
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+  }
+  .civicSelectedHero {
+    padding: 14px;
+  }
+  .civicHeroTop {
+    flex-wrap: wrap;
+  }
+  .civicHeroIdentity {
+    flex: 1 1 220px;
+  }
+  .civicChangeButton {
+    min-height: 44px;
   }
   /* Phone type/spacing inside the sheet (M2 §5): comfortable touch sizes — a
      slightly smaller panel title, roomier signal cards, readable metas. */
@@ -662,6 +1103,12 @@
   .modeBtn {
     padding: 6px 10px;
   }
+  .civicControlStrip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .civicControlStrip .locateBtn {
+    width: 100%;
+  }
 }
 
 /* Touch tap targets (B2 item 3): 44px minimum hit areas on the map-chrome and
@@ -671,6 +1118,7 @@
   .modeBtn,
   .browseBtn,
   .locateBtn,
+  .civicBtn,
   .filterBtn {
     min-height: 44px;
   }
@@ -738,7 +1186,7 @@
   font-weight: 800;
 }
 /* Small quiet clickable line (mirrors the signals "+ N more" links). The Stories
-   link is the site's link blue at every panel level (Travis, 2026-07-15); the
+   link is the site's link blue at every panel level; the
    news "More" link stays muted → primary on hover. */
 .storiesLink,
 .newsMore {
@@ -863,5 +1311,3 @@
   font-size: 11.5px;
   line-height: 1.4;
 }
-
-

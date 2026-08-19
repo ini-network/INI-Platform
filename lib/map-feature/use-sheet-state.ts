@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 
 import { useVisualViewport } from "./use-visual-viewport";
 
@@ -156,7 +156,9 @@ export function useSheetState(): SheetState {
   // Live mirror of heights so the pointer handlers read current values without
   // re-subscribing on every viewport tick.
   const heightsRef = useRef(heights);
-  heightsRef.current = heights;
+  useLayoutEffect(() => {
+    heightsRef.current = heights;
+  }, [heights]);
   // Drag coalescing (T3): raw pointermove can outrun the frame rate on 120Hz
   // devices, so the live clientY is buffered here and flushed to dragHeight through
   // a single rAF per frame. Velocity is still sampled per raw event (below) so the

@@ -5,18 +5,46 @@ import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useSta
 import {
   findAreaContaining,
   findBoroughContaining,
+  pointInGeometry,
   type GeocodeResult,
   type PipGeometry
 } from "@/lib/map-feature/geocode";
+import {
+  CivicApiError,
+  getCivicGeography,
+  getCivicGeographyLayers,
+  resolveCivicLocation
+} from "@/lib/map-feature/civic-api";
 import { useFormFactor } from "@/lib/map-feature/use-form-factor";
 import { useSheetState, type SheetSnap } from "@/lib/map-feature/use-sheet-state";
+import {
+  readCivicResourceContext,
+  writeCivicResourceContext,
+  type CivicNavigatorScope,
+  type CivicResourceContext
+} from "@/lib/map-feature/civic-resources";
 import {
   SIGNAL_CHIPS,
   isEmerging,
   type NeighborhoodSignal,
   type NeighborhoodSignalsResponse
 } from "@/lib/map-feature/signal-types";
+import {
+  CIVIC_GEOGRAPHY_LABELS,
+  SELECTABLE_CIVIC_GEOGRAPHY_TYPES,
+  isSelectableCivicGeographyType,
+  type CivicBorough,
+  type CivicGeographyFeatureCollection,
+  type CivicGeographyLayer,
+  type CivicGeographyType,
+  type CivicLocationGeography,
+  type CivicLocationRequest,
+  type SelectableCivicGeographyType
+} from "@/lib/map-feature/civic-types";
 import { BoroughOverviewMap, type BoroughStyles } from "./borough-overview-map";
+import { CivicDistrictProfileCard } from "./civic-district-profile-card";
+import { CivicResourceNavigator } from "./civic-resource-navigator";
+import { CivicDistrictPicker } from "./civic-district-picker";
 import {
   CoverageRequestDialog,
   type CoverageRequestArea
@@ -48,6 +76,11 @@ const MAP_ACCENTS: Record<string, string> = {
   local_opportunities: "#5b21b6" // var(--primary-strong)
 };
 
+// Civic mode reuses the proven neighborhood camera and location markers after
+// an address/GPS lookup, but leaves Community Signal color and count data out.
+const EMPTY_AREA_TINTS: Record<number, AreaTint> = {};
+const EMPTY_AREA_META: Record<number, { name: string; signals: number }> = {};
+
 type MapView = "city" | "borough";
 type PointSource = "search" | "geolocation";
 type LocationStatus = "idle" | "locating";
@@ -64,6 +97,24 @@ function LocateIcon() {
   );
 }
 
+function CivicHeaderIcon() {
+  return (
+    <svg className={styles.civicHeaderIconSvg} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 20h16M6 17V9m4 8V9m4 8V9m4 8V9M4 7h16L12 3 4 7Z" />
+    </svg>
+  );
+}
+
+const PRIMARY_CIVIC_FILTERS: ReadonlyArray<{
+  geographyType: CivicGeographyType;
+  label: string;
+}> = [
+  { geographyType: "city_council", label: "City Council" },
+  { geographyType: "state_assembly", label: "State Assembly" },
+  { geographyType: "state_senate", label: "State Senate" },
+  { geographyType: "us_congressional", label: "Congress" }
+];
+
 function locationErrorMessage(error: GeolocationPositionError): string {
   if (error.code === error.PERMISSION_DENIED) {
     return "Location access is off. Allow it in your browser settings, or search by address.";
@@ -75,6 +126,7 @@ function locationErrorMessage(error: GeolocationPositionError): string {
 }
 
 type Props = {
+  lens: "community" | "civic";
   initialSignals: NeighborhoodSignalsResponse | null;
   boroughGeoJson: unknown;
   labelsGeoJson: unknown;
@@ -85,15 +137,20 @@ type Props = {
   onSelectBorough: (borough: string) => void;
   initialAreaId: number | null;
   onAreaChange: (areaId: number | null) => void;
+  activeCivicLayer: CivicGeographyType | null;
+  selectedCivicDistrictKey: string | null;
+  onCivicLayerChange: (layer: CivicGeographyType | null) => void;
+  onCivicDistrictChange: (districtKey: string | null) => void;
   // Guided-tour wiring (host = this component; overlay rendered here in a later
   // step). `tourOpen` opens/replays the tour; `onTourClose` persists the seen-key
   // and closes it; `tourBlockedTick` increments when the parent soft-blocks a
-  // switch to 311 Reports while the tour runs, so the tour can speak to it.
+  // lens switch while the tour runs, so the tour can speak to it.
   tourOpen: boolean;
   onTourClose: () => void;
   // Bridge from the map segment into the /news page segment (News-rail stop).
   onTourBridge: () => void;
   tourBlockedTick: number;
+  civicResourceNavigatorEnabled: boolean;
 };
 
 // Map a signal score to a fill opacity (heavier = louder). Concrete numbers,
@@ -117,7 +174,7 @@ function topByScore(list: NeighborhoodSignal[]): NeighborhoodSignal {
 /**
  * Signals lens for the map (the DEFAULT view). Two levels:
  *   • CITY — the five boroughs, each tinted by its top signal. Clicking a borough
- *     selects it (highlight + panel re-scope), exactly like 311 Reports mode —
+ *     selects it (highlight + panel re-scope) without opening a second data lens —
  *     it never zooms. The neighborhood view opens only via the panel's
  *     "Browse … neighborhoods" button, or via an address/ZIP search (an explicit
  *     request to see a specific block).
@@ -129,6 +186,7 @@ function topByScore(list: NeighborhoodSignal[]): NeighborhoodSignal {
  * client-side over the one signal set fetched server-side.
  */
 export function SignalsMapExperience({
+  lens,
   initialSignals,
   boroughGeoJson,
   labelsGeoJson,
@@ -137,11 +195,17 @@ export function SignalsMapExperience({
   onSelectBorough,
   initialAreaId,
   onAreaChange,
+  activeCivicLayer,
+  selectedCivicDistrictKey,
+  onCivicLayerChange,
+  onCivicDistrictChange,
   tourOpen,
   onTourClose,
   onTourBridge,
-  tourBlockedTick
+  tourBlockedTick,
+  civicResourceNavigatorEnabled
 }: Props) {
+  const isCivicLens = lens === "civic";
   const [activeChip, setActiveChip] = useState<string>("all");
   const [view, setView] = useState<MapView>(initialAreaId === null ? "city" : "borough");
   // Camera framing for the borough overview map, independent of `view`: 'city'
@@ -158,9 +222,19 @@ export function SignalsMapExperience({
     null
   );
   const [searchedLocationLabel, setSearchedLocationLabel] = useState<string | null>(null);
+  const [searchedCivicGeographies, setSearchedCivicGeographies] = useState<
+    CivicLocationGeography[] | null
+  >(null);
+  const [resolvedCivicGeographies, setResolvedCivicGeographies] = useState<
+    CivicLocationGeography[] | null
+  >(null);
+  const [civicResourceContext, setCivicResourceContext] = useState<CivicResourceContext | null>(null);
+  const [civicNavigatorScope, setCivicNavigatorScope] = useState<CivicNavigatorScope | null>(null);
+  const [civicResourceNavigatorOpen, setCivicResourceNavigatorOpen] = useState(false);
   const [searchNote, setSearchNote] = useState<string | null>(null);
   const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
   const locationRequestIdRef = useRef(0);
+  const pendingCivicGpsPointRef = useRef<[number, number] | null>(null);
   const autoLocateAttemptedRef = useRef(false);
   const suppressAutoLocateRef = useRef(false);
   const restoredAreaOnMountRef = useRef(initialAreaId !== null);
@@ -192,8 +266,76 @@ export function SignalsMapExperience({
   const [neighborhoodPickerOpen, setNeighborhoodPickerOpen] = useState(false);
   const neighborhoodRegionId = useId();
   const neighborhoodBtnRef = useRef<HTMLButtonElement | null>(null);
+  const [civicPickerOpen, setCivicPickerOpen] = useState(false);
+  const civicRegionId = useId();
+  const civicChangeBtnRef = useRef<HTMLButtonElement | null>(null);
+  const civicProfileScrollRef = useRef(0);
+  const civicResourceHydratedRef = useRef(false);
+  const [civicLayers, setCivicLayers] = useState<CivicGeographyLayer[] | null>(null);
+  const [loadedCivicLayer, setLoadedCivicLayer] = useState<{
+    type: CivicGeographyType;
+    collection: CivicGeographyFeatureCollection;
+  } | null>(null);
+  const [civicLayerError, setCivicLayerError] = useState<{
+    type: CivicGeographyType;
+    message: string;
+  } | null>(null);
+  const civicLayerCacheRef = useRef(
+    new Map<CivicGeographyType, CivicGeographyFeatureCollection>()
+  );
+  const isCivicLensRef = useRef(isCivicLens);
+  useLayoutEffect(() => {
+    isCivicLensRef.current = isCivicLens;
+  }, [isCivicLens]);
+  const civicLocationControllerRef = useRef<AbortController | null>(null);
   const coverageBtnRef = useRef<HTMLButtonElement | null>(null);
   const [coverageArea, setCoverageArea] = useState<CoverageRequestArea | null>(null);
+
+  useEffect(() => {
+    if (!isCivicLens) return;
+    const controller = new AbortController();
+    getCivicGeographyLayers(controller.signal)
+      .then((result) => {
+        if (!controller.signal.aborted) setCivicLayers(result.layers);
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        // A 404 is the intentional flag-off state. Network/server failures also
+        // leave the existing map untouched; the control appears only when a
+        // valid catalog is available.
+        if (error instanceof CivicApiError && error.status === 404) {
+          setCivicLayers([]);
+        } else {
+          setCivicLayers([]);
+        }
+    });
+    return () => controller.abort();
+  }, [isCivicLens]);
+
+  useEffect(() => {
+    if (!isSelectableCivicGeographyType(activeCivicLayer)) return;
+    const controller = new AbortController();
+    const cached = civicLayerCacheRef.current.get(activeCivicLayer);
+    const request = cached
+      ? Promise.resolve(cached)
+      : getCivicGeography(activeCivicLayer, controller.signal);
+    request
+      .then((collection) => {
+        if (controller.signal.aborted) return;
+        civicLayerCacheRef.current.set(activeCivicLayer, collection);
+        setLoadedCivicLayer({ type: activeCivicLayer, collection });
+        setCivicLayerError(null);
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        const message =
+          error instanceof CivicApiError && error.status === 404
+            ? "This layer is not active yet."
+            : "Try again in a moment.";
+        setCivicLayerError({ type: activeCivicLayer, message });
+      });
+    return () => controller.abort();
+  }, [activeCivicLayer]);
 
   // Phone bottom-sheet snap state (peek/half/full). useSheetState internally
   // mounts useVisualViewport, so --app-vh stays live (the sheet's max-height +
@@ -210,6 +352,99 @@ export function SignalsMapExperience({
     handleProps,
     consumeDragMoved
   } = useSheetState();
+
+  useEffect(() => {
+    if (!civicResourceNavigatorEnabled || civicResourceHydratedRef.current) return;
+    civicResourceHydratedRef.current = true;
+    const stored = readCivicResourceContext();
+    if (!stored) return;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setCivicResourceContext(stored);
+      setSearchedLocationPoint(stored.point);
+      setSearchedLocationLabel(stored.addressLabel);
+      setSearchedCivicGeographies(stored.geographies);
+      setResolvedCivicGeographies(stored.geographies);
+      setCivicNavigatorScope({ kind: "confirmed_address" });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [civicResourceNavigatorEnabled]);
+
+  useEffect(() => {
+    if (
+      !isCivicLens ||
+      !civicResourceContext ||
+      civicNavigatorScope?.kind !== "confirmed_address"
+    ) return;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setSearchedLocationPoint(civicResourceContext.point);
+      setSearchedLocationLabel(civicResourceContext.addressLabel);
+      setSearchedCivicGeographies(civicResourceContext.geographies);
+      setResolvedCivicGeographies(civicResourceContext.geographies);
+      if (
+        selectedCivicDistrictKey === null &&
+        civicNavigatorScope?.kind === "confirmed_address"
+      ) {
+        const preferredType = isSelectableCivicGeographyType(activeCivicLayer)
+          ? activeCivicLayer
+          : "city_council";
+        const preferred = civicResourceContext.geographies.find(
+          (geography) => geography.geography_type === preferredType
+        );
+        if (preferred) {
+          onCivicLayerChange(preferredType);
+          onCivicDistrictChange(preferred.geography_key);
+        }
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeCivicLayer,
+    civicResourceContext,
+    civicNavigatorScope,
+    isCivicLens,
+    onCivicDistrictChange,
+    onCivicLayerChange,
+    selectedCivicDistrictKey
+  ]);
+
+  // Civic owns a dedicated workspace. A fresh visit opens its district browser
+  // at full height on phone; a restored/selected district opens the concise
+  // details view. Community's existing neighborhood state stays in memory but
+  // is never rendered into Civic.
+  useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      if (isCivicLens) {
+        setNeighborhoodPickerOpen(false);
+        setFiltersOpen(false);
+        const shouldBrowse =
+          selectedCivicDistrictKey === null &&
+          !civicResourceNavigatorOpen &&
+          civicNavigatorScope?.kind !== "zip_area";
+        setCivicPickerOpen(shouldBrowse);
+        if (!tourOpenRef.current) {
+          setSnap(civicResourceNavigatorOpen || shouldBrowse ? "full" : "half");
+        }
+      } else {
+        civicLocationControllerRef.current?.abort();
+        setCivicPickerOpen(false);
+        if (!tourOpenRef.current) setSnap("half");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [civicNavigatorScope, civicResourceNavigatorOpen, isCivicLens, selectedCivicDistrictKey, setSnap]);
+
   // Phone-only label shrink: "Browse neighborhoods" + Filter can't share the
   // narrow sheet row; the short label keeps the strip to two rows. The tour's
   // browse anchor/behavior are unchanged (B4 aligns the tour copy per form
@@ -219,6 +454,7 @@ export function SignalsMapExperience({
   // T8: transient data-settling flag on the aside so the backdrop blur is dropped
   // for the sheet's height-transition window (phone only) — see the effect below.
   const insightsRef = useRef<HTMLElement | null>(null);
+  const mapSearchInputRef = useRef<HTMLInputElement | null>(null);
   const settleTimerRef = useRef<number | null>(null);
   const prevSnapRef = useRef(snap);
   const prevDraggingRef = useRef(isDragging);
@@ -227,6 +463,28 @@ export function SignalsMapExperience({
   const searchViewportHeightBeforeFocusRef = useRef(0);
   const searchSawKeyboardRef = useRef(false);
   const latestSnapRef = useRef(snap);
+
+  // Reset only when entering district details for the first time. Moving from
+  // one selected district to another should preserve the user's reading
+  // position in the Civic panel.
+  const previousCivicDistrictKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    const previousDistrictKey = previousCivicDistrictKeyRef.current;
+    previousCivicDistrictKeyRef.current = isCivicLens ? selectedCivicDistrictKey : null;
+    if (
+      !isCivicLens ||
+      selectedCivicDistrictKey === null ||
+      previousDistrictKey !== null
+    ) {
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      const panel = insightsRef.current;
+      const sheetBody = panel?.querySelector<HTMLElement>(".cs-sheet-body");
+      (sheetBody ?? panel)?.scrollTo({ top: 0, behavior: "auto" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [isCivicLens, selectedCivicDistrictKey]);
 
   // Blur restoration runs in a later task so the user's target click can finish.
   // Keep a commit-synchronous snapshot to tell whether that click deliberately
@@ -316,7 +574,121 @@ export function SignalsMapExperience({
   // just the active borough. So it must NOT hide behind per-borough canDrill: a
   // polygon-less active borough (canDrill=false) would otherwise strand a search box
   // that still works everywhere else. Gate it on the citywide data instead.
-  const canSearch = !unavailable && (ntaFeatures.length > 0 || boroughFeaturesAll.length > 0);
+  const canSearch =
+    (isCivicLens || !unavailable) &&
+    (ntaFeatures.length > 0 || boroughFeaturesAll.length > 0);
+  const availableCivicLayers = useMemo(
+    () =>
+      (civicLayers ?? []).filter((layer) =>
+        isSelectableCivicGeographyType(layer.geography_type)
+      ),
+    [civicLayers]
+  );
+  const canUseCivicLayers = availableCivicLayers.length > 0;
+
+  // City Council is the clearest default for representation. Loading it as
+  // soon as the dedicated Civic workspace becomes available removes the old
+  // extra "Districts" door without changing Community Signals.
+  useEffect(() => {
+    if (!isCivicLens || activeCivicLayer !== null || !canUseCivicLayers) return;
+    const defaultLayer =
+      availableCivicLayers.find((layer) => layer.geography_type === "city_council") ??
+      availableCivicLayers[0];
+    if (defaultLayer) onCivicLayerChange(defaultLayer.geography_type);
+  }, [
+    isCivicLens,
+    activeCivicLayer,
+    canUseCivicLayers,
+    availableCivicLayers,
+    onCivicLayerChange
+  ]);
+
+  const civicCollection =
+    loadedCivicLayer?.type === activeCivicLayer ? loadedCivicLayer.collection : null;
+  const civicLoading =
+    activeCivicLayer !== null &&
+    civicCollection === null &&
+    civicLayerError?.type !== activeCivicLayer;
+  const activeCivicError =
+    civicLayerError?.type === activeCivicLayer ? civicLayerError.message : null;
+  const selectedCivicFeature =
+    selectedCivicDistrictKey === null
+      ? null
+      : civicCollection?.features.find((feature) => feature.id === selectedCivicDistrictKey) ?? null;
+  const selectedCivicDistrictContext = useMemo(() => {
+    if (
+      !selectedCivicFeature ||
+      !selectedCivicDistrictKey ||
+      !isSelectableCivicGeographyType(activeCivicLayer)
+    ) {
+      return null;
+    }
+    return {
+      geographyKey: selectedCivicDistrictKey,
+      geographyType: activeCivicLayer,
+      label: selectedCivicFeature.properties.display_name
+    };
+  }, [activeCivicLayer, selectedCivicDistrictKey, selectedCivicFeature]);
+
+  // Re-run the local boundary match after either the point or the active layer
+  // arrives. This covers fast searches during layer loading and survives the
+  // app router reconciling the neighborhood `area_id` into the URL.
+  useEffect(() => {
+    if (
+      !isCivicLens ||
+      activeCivicLayer === null ||
+      selectedCivicDistrictKey !== null ||
+      civicCollection === null
+    ) {
+      return;
+    }
+    const point =
+      civicNavigatorScope?.kind === "zip_area"
+        ? userLocationPoint
+        : searchedLocationPoint ?? userLocationPoint;
+    if (!point) return;
+    const localDistrict = civicCollection.features.find((feature) =>
+      pointInGeometry(point, feature.geometry)
+    );
+    if (localDistrict) onCivicDistrictChange(localDistrict.id);
+  }, [
+    isCivicLens,
+    activeCivicLayer,
+    selectedCivicDistrictKey,
+    civicCollection,
+    civicNavigatorScope,
+    searchedLocationPoint,
+    userLocationPoint,
+    onCivicDistrictChange
+  ]);
+
+  const selectedCouncilDistrictId =
+    activeCivicLayer === "city_council" && selectedCivicFeature
+      ? Number(selectedCivicFeature.properties.external_id)
+      : null;
+  const civicResourceGeographies =
+    civicNavigatorScope?.kind === "confirmed_address"
+      ? civicResourceContext?.geographies ?? resolvedCivicGeographies
+      : resolvedCivicGeographies;
+  const searchedElectionDistrictKeys = useMemo(() => {
+    const geographies =
+      civicNavigatorScope?.kind === "confirmed_address"
+        ? civicResourceContext?.geographies ?? searchedCivicGeographies
+        : searchedCivicGeographies;
+    if (!geographies) return null;
+    const keyFor = (type: CivicGeographyType) =>
+      geographies.find((geography) => geography.geography_type === type)
+        ?.geography_key;
+    const usHouse = keyFor("us_congressional");
+    const stateSenate = keyFor("state_senate");
+    const stateAssembly = keyFor("state_assembly");
+    if (!usHouse || !stateSenate || !stateAssembly) return null;
+    return {
+      us_house: usHouse,
+      nys_senate: stateSenate,
+      nys_assembly: stateAssembly
+    };
+  }, [civicNavigatorScope, civicResourceContext, searchedCivicGeographies]);
   // Mapbox requires a real FeatureCollection object — handing it the bare
   // feature array yields a silently EMPTY source (no shapes, no clicks, no
   // hover; the map looks like just the blue borough outline).
@@ -464,20 +836,120 @@ export function SignalsMapExperience({
       : selectedAreaId !== null
         ? `Change neighborhood, currently ${selectedName}`
         : `Choose a neighborhood in ${activeBorough}`;
+  const resolveCivicContext = useCallback(
+    (
+      request: CivicLocationRequest,
+      fallbackPoint?: [number, number],
+      addressCandidate?: { label: string; point: [number, number] }
+    ) => {
+      civicLocationControllerRef.current?.abort();
+      const controller = new AbortController();
+      civicLocationControllerRef.current = controller;
+      setSearchedCivicGeographies(null);
+      setResolvedCivicGeographies(null);
+
+      // The active official GeoJSON is already in the browser. Resolve that
+      // boundary immediately so address/GPS remains useful during a temporary
+      // Geosupport outage; the backend request below still enriches all five
+      // district memberships and election context when it succeeds.
+      if (fallbackPoint && activeCivicLayer && civicCollection) {
+        const localDistrict = civicCollection.features.find((feature) =>
+          pointInGeometry(fallbackPoint, feature.geometry)
+        );
+        if (localDistrict) onCivicDistrictChange(localDistrict.id);
+      }
+
+      resolveCivicLocation(request, controller.signal)
+        .then((result) => {
+          if (controller.signal.aborted || result.status !== "resolved") return;
+          setResolvedCivicGeographies(result.geographies);
+          if (result.purpose === "searched_address") {
+            setSearchedCivicGeographies(result.geographies);
+            const hasCompleteTeam = SELECTABLE_CIVIC_GEOGRAPHY_TYPES.every((type) =>
+              result.geographies.some((geography) => geography.geography_type === type)
+            );
+            if (addressCandidate && hasCompleteTeam) {
+              const nextContext: CivicResourceContext = {
+                version: 1,
+                addressLabel: addressCandidate.label,
+                point: addressCandidate.point,
+                geographies: result.geographies,
+                resolvedAt: new Date().toISOString()
+              };
+              setCivicResourceContext(nextContext);
+              writeCivicResourceContext(nextContext);
+              setCivicNavigatorScope({ kind: "confirmed_address" });
+              setSearchNote(null);
+            } else if (addressCandidate) {
+              setSearchNote(
+                "We found this address, but could not verify all of its civic representatives. Try another complete street-address suggestion."
+              );
+            }
+          }
+          const preferredType = activeCivicLayer ?? "city_council";
+          const district = result.geographies.find(
+            (geography) => geography.geography_type === preferredType
+          );
+          if (!district) return;
+          onCivicLayerChange(preferredType);
+          onCivicDistrictChange(district.geography_key);
+        })
+        .catch(() => {
+          // Best-effort civic context must never break the existing location or
+          // address flow. The dedicated district control remains available.
+          if (!controller.signal.aborted) {
+            setSearchedCivicGeographies(null);
+            setResolvedCivicGeographies(null);
+          }
+        });
+    },
+    [
+      activeCivicLayer,
+      civicCollection,
+      onCivicLayerChange,
+      onCivicDistrictChange
+    ]
+  );
+
+  useEffect(() => {
+    if (!isCivicLens || resolvedCivicGeographies) return;
+    const point = pendingCivicGpsPointRef.current;
+    if (point === null) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      if (pendingCivicGpsPointRef.current === point) {
+        pendingCivicGpsPointRef.current = null;
+      }
+      resolveCivicContext(
+        {
+          mode: "gps",
+          latitude: point[1],
+          longitude: point[0]
+        },
+        point
+      );
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [isCivicLens, resolvedCivicGeographies, resolveCivicContext]);
 
   // --- navigation handlers ----------------------------------------------------
   const clearFocusedPoint = useCallback(() => {
     locationRequestIdRef.current += 1;
+    civicLocationControllerRef.current?.abort();
     setLocationStatus("idle");
     setFocusPoint(null);
+    pendingCivicGpsPointRef.current = null;
     setSearchedLocationPoint(null);
     setSearchedLocationLabel(null);
+    setSearchedCivicGeographies(null);
+    setResolvedCivicGeographies(null);
   }, []);
 
   // Opens the zoomed neighborhood view for the active borough. Only the panel's
   // "Browse … neighborhoods" button calls this — borough map clicks never zoom.
   const openNeighborhoods = useCallback(() => {
     setNeighborhoodPickerOpen(false);
+    setCivicPickerOpen(false);
     setView("borough");
     updateSelectedAreaId(null);
     clearFocusedPoint();
@@ -490,6 +962,7 @@ export function SignalsMapExperience({
   const handleSelectArea = useCallback(
     (areaId: number) => {
       setNeighborhoodPickerOpen(false);
+      setCivicPickerOpen(false);
       updateSelectedAreaId(areaId);
       clearFocusedPoint();
       setSearchNote(null);
@@ -500,6 +973,7 @@ export function SignalsMapExperience({
 
   const backToCity = useCallback(() => {
     setNeighborhoodPickerOpen(false);
+    setCivicPickerOpen(false);
     setView("city");
     updateSelectedAreaId(null);
     clearFocusedPoint();
@@ -509,6 +983,7 @@ export function SignalsMapExperience({
 
   const backToBorough = useCallback(() => {
     setNeighborhoodPickerOpen(false);
+    setCivicPickerOpen(false);
     updateSelectedAreaId(null);
     clearFocusedPoint();
     setSearchNote(null);
@@ -528,6 +1003,7 @@ export function SignalsMapExperience({
       return;
     }
     setFiltersOpen(false);
+    setCivicPickerOpen(false);
     if (view === "city") {
       setView("borough");
       updateSelectedAreaId(null);
@@ -537,6 +1013,239 @@ export function SignalsMapExperience({
     setNeighborhoodPickerOpen(true);
     setSnap("full");
   }, [tourOpen, openNeighborhoods, view, updateSelectedAreaId, clearFocusedPoint, setSnap]);
+
+  const closeCivicPicker = useCallback(() => {
+    setCivicPickerOpen(false);
+    if (!tourOpen) setSnap("half");
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => civicChangeBtnRef.current?.focus({ preventScroll: true }));
+    }
+  }, [tourOpen, setSnap]);
+
+  const openCivicPicker = useCallback(() => {
+    if (tourOpen || !canUseCivicLayers) return;
+    setNeighborhoodPickerOpen(false);
+    setFiltersOpen(false);
+    if (activeCivicLayer === null) {
+      const firstLayer =
+        availableCivicLayers.find((layer) => layer.geography_type === "city_council") ??
+        availableCivicLayers[0];
+      if (firstLayer) onCivicLayerChange(firstLayer.geography_type);
+    }
+    setCivicPickerOpen(true);
+    setSnap("full");
+  }, [
+    tourOpen,
+    canUseCivicLayers,
+    activeCivicLayer,
+    availableCivicLayers,
+    onCivicLayerChange,
+    setSnap
+  ]);
+
+  const handleCivicLayerChange = useCallback(
+    (layer: CivicGeographyType) => {
+      onCivicLayerChange(layer);
+      const searchedDistrict = civicResourceGeographies?.find(
+        (geography) => geography.geography_type === layer
+      );
+      onCivicDistrictChange(searchedDistrict?.geography_key ?? null);
+    },
+    [civicResourceGeographies, onCivicLayerChange, onCivicDistrictChange]
+  );
+
+  const handleCivicHelpRoute = useCallback(
+    (layer: SelectableCivicGeographyType) => {
+      const district = civicResourceGeographies?.find(
+        (geography) => geography.geography_type === layer
+      );
+      if (!district) {
+        mapSearchInputRef.current?.focus({ preventScroll: true });
+        if (!tourOpen) setSnap("full");
+        return;
+      }
+      onCivicLayerChange(layer);
+      onCivicDistrictChange(district.geography_key);
+      setCivicNavigatorScope({ kind: "confirmed_address" });
+      setCivicPickerOpen(false);
+      if (!tourOpen) setSnap("half");
+    }, [civicResourceGeographies, onCivicLayerChange, onCivicDistrictChange, tourOpen, setSnap]);
+
+  const requestCivicAddressSearch = useCallback(() => {
+    setCivicPickerOpen(false);
+    mapSearchInputRef.current?.focus({ preventScroll: true });
+    if (!tourOpen) setSnap("full");
+  }, [tourOpen, setSnap]);
+
+  const openCivicResourceNavigator = useCallback(() => {
+    if (!civicResourceNavigatorEnabled) return;
+    const selectedMatchesSavedAddress = Boolean(
+      selectedCivicDistrictContext &&
+        civicResourceContext?.geographies.some(
+          (geography) => geography.geography_key === selectedCivicDistrictContext.geographyKey
+        )
+    );
+    if (civicNavigatorScope?.kind === "zip_area" && !selectedCivicDistrictContext) {
+      setCivicNavigatorScope(civicNavigatorScope);
+    } else if (selectedCivicDistrictContext && !selectedMatchesSavedAddress) {
+      setCivicNavigatorScope({ kind: "selected_district", district: selectedCivicDistrictContext });
+    } else if (civicResourceContext) {
+      setCivicNavigatorScope({ kind: "confirmed_address" });
+    } else if (selectedCivicDistrictContext) {
+      setCivicNavigatorScope({ kind: "selected_district", district: selectedCivicDistrictContext });
+    } else {
+      setCivicNavigatorScope(null);
+    }
+    const panel = insightsRef.current;
+    const scroller = panel?.querySelector<HTMLElement>(".cs-sheet-body") ?? panel;
+    civicProfileScrollRef.current = scroller?.scrollTop ?? 0;
+    setCivicPickerOpen(false);
+    setCivicResourceNavigatorOpen(true);
+    if (!tourOpen) setSnap("full");
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => {
+        const currentPanel = insightsRef.current;
+        const currentScroller =
+          currentPanel?.querySelector<HTMLElement>(".cs-sheet-body") ?? currentPanel;
+        currentScroller?.scrollTo({ top: 0, behavior: "auto" });
+      });
+    }
+  }, [
+    civicNavigatorScope,
+    civicResourceContext,
+    civicResourceNavigatorEnabled,
+    selectedCivicDistrictContext,
+    tourOpen,
+    setSnap
+  ]);
+
+  const closeCivicResourceNavigator = useCallback(() => {
+    setCivicResourceNavigatorOpen(false);
+    if (!tourOpen) setSnap("half");
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => {
+        const panel = insightsRef.current;
+        const scroller = panel?.querySelector<HTMLElement>(".cs-sheet-body") ?? panel;
+        scroller?.scrollTo({ top: civicProfileScrollRef.current, behavior: "auto" });
+      });
+    }
+  }, [tourOpen, setSnap]);
+
+  const forgetCivicResourceAddress = useCallback(() => {
+      setCivicResourceContext(null);
+      writeCivicResourceContext(null);
+      setSearchedCivicGeographies(null);
+      setResolvedCivicGeographies(null);
+      setSearchedLocationPoint(null);
+      setSearchedLocationLabel(null);
+      setSearchNote(null);
+      setCivicPickerOpen(false);
+      setCivicNavigatorScope(
+        selectedCivicDistrictContext
+          ? { kind: "selected_district", district: selectedCivicDistrictContext }
+          : null
+      );
+    }, [selectedCivicDistrictContext]);
+
+  const returnToSavedAddress = useCallback(() => {
+    if (!civicResourceContext) return;
+    const preferredType = isSelectableCivicGeographyType(activeCivicLayer)
+      ? activeCivicLayer
+      : "city_council";
+    const preferred =
+      civicResourceContext.geographies.find(
+        (geography) => geography.geography_type === preferredType
+      ) ??
+      civicResourceContext.geographies.find(
+        (geography) => geography.geography_type === "city_council"
+      );
+    setSearchedLocationPoint(civicResourceContext.point);
+    setSearchedLocationLabel(civicResourceContext.addressLabel);
+    setSearchedCivicGeographies(civicResourceContext.geographies);
+    setResolvedCivicGeographies(civicResourceContext.geographies);
+    setCivicNavigatorScope({ kind: "confirmed_address" });
+    if (preferred && isSelectableCivicGeographyType(preferred.geography_type)) {
+      onCivicLayerChange(preferred.geography_type);
+      onCivicDistrictChange(preferred.geography_key);
+    }
+    setCivicResourceNavigatorOpen(true);
+    setCivicPickerOpen(false);
+    if (!tourOpen) setSnap("full");
+  }, [
+    activeCivicLayer,
+    civicResourceContext,
+    onCivicDistrictChange,
+    onCivicLayerChange,
+    setSnap,
+    tourOpen
+  ]);
+
+  const handleCivicNavigatorRoute = useCallback(
+    (layer: SelectableCivicGeographyType) => {
+      const district = civicResourceContext?.geographies.find(
+        (geography) => geography.geography_type === layer
+      );
+      if (!district) {
+        requestCivicAddressSearch();
+        return;
+      }
+      onCivicLayerChange(layer);
+      onCivicDistrictChange(district.geography_key);
+      setCivicPickerOpen(false);
+      setCivicResourceNavigatorOpen(true);
+      if (!tourOpen) setSnap("full");
+    },
+    [
+      civicResourceContext,
+      onCivicDistrictChange,
+      onCivicLayerChange,
+      requestCivicAddressSearch,
+      tourOpen,
+      setSnap
+    ]
+  );
+
+  const handleCivicDistrictSelect = useCallback(
+    (districtKey: string) => {
+      const resolvedForActiveLayer = resolvedCivicGeographies?.find(
+        (geography) => geography.geography_type === activeCivicLayer
+      );
+      if (resolvedForActiveLayer?.geography_key !== districtKey) {
+        setResolvedCivicGeographies(null);
+        setSearchedCivicGeographies(null);
+      }
+      const selectedFeature = civicCollection?.features.find(
+        (feature) => feature.id === districtKey
+      );
+      if (selectedFeature && isSelectableCivicGeographyType(activeCivicLayer)) {
+        setCivicNavigatorScope({
+          kind: "selected_district",
+          district: {
+            geographyKey: districtKey,
+            geographyType: activeCivicLayer,
+            label: selectedFeature.properties.display_name
+          }
+        });
+      }
+      onCivicDistrictChange(districtKey);
+      setCivicPickerOpen(false);
+      if (!tourOpen) setSnap(civicResourceNavigatorOpen ? "full" : "half");
+      if (typeof window !== "undefined") {
+        window.requestAnimationFrame(() =>
+          civicChangeBtnRef.current?.focus({ preventScroll: true })
+        );
+      }
+    },
+    [
+      activeCivicLayer,
+      civicCollection,
+      civicResourceNavigatorOpen,
+      onCivicDistrictChange,
+      resolvedCivicGeographies,
+      tourOpen,
+      setSnap
+    ]
+  );
 
   const handlePickerBoroughChange = useCallback(
     (borough: string) => {
@@ -587,6 +1296,7 @@ export function SignalsMapExperience({
       // Both typed searches and device location go through the same NYC polygon
       // resolution, so they cannot disagree about a borough or neighborhood.
       setNeighborhoodPickerOpen(false);
+      setCivicPickerOpen(false);
       if (!tourOpenRef.current) setSnap("half");
       setFocusPoint(null);
       if (source === "search") {
@@ -645,7 +1355,7 @@ export function SignalsMapExperience({
       updateSelectedAreaId(null);
       setSearchNote(
         source === "geolocation"
-          ? "Your current location is outside the Civic Map's New York City coverage."
+          ? "Your current location is outside the Public Data Map's New York City coverage."
           : `“${label}” looks to be outside New York City's neighborhoods.`
       );
     },
@@ -660,27 +1370,80 @@ export function SignalsMapExperience({
   );
 
   const handleSearchPick = useCallback(
-    (center: [number, number], label: string) => {
+    (result: GeocodeResult) => {
+      pendingCivicGpsPointRef.current = null;
       suppressAutoLocateRef.current = true;
       locationRequestIdRef.current += 1;
       setLocationStatus("idle");
-      resolvePoint(center, label, "search");
+      if (isCivicLens) onCivicDistrictChange(null);
+      const selectedAddressLabel = result.context
+        ? `${result.label}, ${result.context}`
+        : result.label;
+      resolvePoint(result.center, selectedAddressLabel, "search");
+      const borough = findBoroughContaining(result.center, boroughFeaturesAll);
+      const structured = result.structuredAddress;
+      if (isCivicLens && result.featureType === "postcode") {
+        const zipCode = result.label.match(/\b\d{5}\b/)?.[0] ?? result.label;
+        setCivicNavigatorScope({
+          kind: "zip_area",
+          zip: {
+            label: selectedAddressLabel,
+            point: result.center,
+            zipCode
+          }
+        });
+        setSearchNote(
+          `ZIP ${zipCode} includes multiple civic districts. Tap a district on the map, or enter a street address to find your exact civic representatives.`
+        );
+        return;
+      }
+      if (isCivicLens && borough && BOROUGHS.includes(borough) && structured) {
+        setCivicNavigatorScope(null);
+        resolveCivicContext(
+          {
+            mode: "address",
+            borough: borough as CivicBorough,
+            address_number: structured.addressNumber,
+            street_name: structured.streetName,
+            ...(structured.zipCode ? { zip_code: structured.zipCode } : {})
+          },
+          result.center,
+          { label: selectedAddressLabel, point: result.center }
+        );
+      }
     },
-    [resolvePoint]
+    [
+      resolvePoint,
+      boroughFeaturesAll,
+      isCivicLens,
+      resolveCivicContext,
+      onCivicDistrictChange
+    ]
   );
 
   const handleSearchStart = useCallback(() => {
+    pendingCivicGpsPointRef.current = null;
     suppressAutoLocateRef.current = true;
     locationRequestIdRef.current += 1;
+    civicLocationControllerRef.current?.abort();
+    if (!isCivicLens) {
+      setSearchedCivicGeographies(null);
+      setResolvedCivicGeographies(null);
+    }
     setLocationStatus("idle");
     setSearchNote(null);
     setNeighborhoodPickerOpen(false);
+    setCivicPickerOpen(false);
     setFiltersOpen(false);
-  }, []);
+  }, [isCivicLens]);
 
   const requestCurrentLocation = useCallback(() => {
     autoLocateAttemptedRef.current = true;
+    civicLocationControllerRef.current?.abort();
+    setSearchedCivicGeographies(null);
+    setResolvedCivicGeographies(null);
     setNeighborhoodPickerOpen(false);
+    setCivicPickerOpen(false);
     setFiltersOpen(false);
     if (tourOpenRef.current) {
       return;
@@ -710,12 +1473,26 @@ export function SignalsMapExperience({
           return;
         }
         setLocationStatus("idle");
+        const gpsPoint: [number, number] = [
+          position.coords.longitude,
+          position.coords.latitude
+        ];
+        pendingCivicGpsPointRef.current = gpsPoint;
+        if (isCivicLensRef.current) onCivicDistrictChange(null);
         resolvePoint(
-          [position.coords.longitude, position.coords.latitude],
+          gpsPoint,
           "Your current location",
           "geolocation",
           position.coords.accuracy
         );
+        if (isCivicLensRef.current) {
+          pendingCivicGpsPointRef.current = null;
+          resolveCivicContext({
+            mode: "gps",
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          }, gpsPoint);
+        }
       },
       (error) => {
         if (requestId !== locationRequestIdRef.current) {
@@ -726,7 +1503,7 @@ export function SignalsMapExperience({
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
-  }, [resolvePoint, setSnap]);
+  }, [resolvePoint, resolveCivicContext, setSnap, onCivicDistrictChange]);
 
   // Never surprise a first-time visitor with a permission prompt. If they have
   // already granted geolocation, reuse that choice once and open their local
@@ -775,6 +1552,7 @@ export function SignalsMapExperience({
       // getCurrentPosition cannot be cancelled. Invalidate any late callback so
       // leaving Civic Signals cannot change map or URL state after unmount.
       locationRequestIdRef.current += 1;
+      civicLocationControllerRef.current?.abort();
     },
     []
   );
@@ -872,56 +1650,63 @@ export function SignalsMapExperience({
     if (!tourOpen && snap === "peek") setSnap("half");
   }, [tourOpen, snap, setSnap, consumeDragMoved]);
 
-  // Tour v6 teardown bookkeeping. finishingRef marks a FINISH close so the falling-
-  // edge effect below skips its reset (finish already ran it); prevTourOpenRef lets
-  // that effect fire only on a real open→closed transition (not on mount).
+  // Tour v6 teardown bookkeeping. finishingRef marks a FINISH close so the
+  // lifecycle synchronizer skips its reset (finish already ran it), while the
+  // previous value distinguishes a real open→closed transition from mount.
   const finishingRef = useRef(false);
   const prevTourOpenRef = useRef(tourOpen);
 
-  // Rising edge of `tourOpen`: reset the map to the 5-borough city view with no
-  // filter and the drawer closed, so the tour always starts from a known state
-  // (a replay from a drilled-in neighborhood can never satisfy a map stop with
-  // an unearned success). Runs in one commit before the tour's own ready-gate.
-  useEffect(() => {
-    if (!tourOpen) {
-      return;
-    }
+  const resetTourHost = useCallback(() => {
     backToCity();
     setActiveChip("all");
     setFiltersOpen(false);
-  }, [tourOpen, backToCity]);
+  }, [backToCity]);
 
-  // Falling edge of `tourOpen` for a NON-finish close (Skip / Esc / a rail nav that
-  // ends the tour). In v6 the tour DROVE the host — it drilled a borough, opened a
-  // neighborhood and maybe the filter drawer — so bailing mid-tour would otherwise
-  // strand that tour-picked state as the skipper's first impression of the map.
-  // Reset it to the clean city view, mirroring the rising-edge reset above. A FINISH
-  // close already ran this reset (finishingRef guards the double-run); the bridge-news
-  // finish navigates to /news with tourOpen still true, so it never reaches this edge.
+  // Synchronize the external `tourOpen` lifecycle after the current commit. A
+  // microtask keeps the reset ahead of the guide's requestAnimationFrame ready
+  // gate without synchronously cascading React state from the effect itself.
+  // Cleanup invalidates a queued reset if the lifecycle changes again first.
   useEffect(() => {
     const wasOpen = prevTourOpenRef.current;
     prevTourOpenRef.current = tourOpen;
-    if (!wasOpen || tourOpen) {
+
+    // Rising edge: every tour starts from the five-borough, unfiltered view.
+    if (tourOpen) {
+      let cancelled = false;
+      queueMicrotask(() => {
+        if (!cancelled) resetTourHost();
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    // Falling edge after Skip / Esc / rail navigation: the tour drove the host,
+    // so return it to the same clean view. A normal mount does nothing.
+    if (!wasOpen) {
       return;
     }
     if (finishingRef.current) {
       finishingRef.current = false;
       return;
     }
-    backToCity();
-    setActiveChip("all");
-    setFiltersOpen(false);
-  }, [tourOpen, backToCity]);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) resetTourHost();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [tourOpen, resetTourHost]);
 
   // Finishing the tour returns to the city view before the parent persists the
-  // seen-key and closes. finishingRef tells the falling-edge effect above not to
+  // seen-key and closes. finishingRef tells the lifecycle effect above not to
   // double-reset. (Staged for the tour overlay — see integration point.)
   const handleTourFinish = useCallback(() => {
     finishingRef.current = true;
-    backToCity();
-    setActiveChip("all");
+    resetTourHost();
     onTourClose();
-  }, [backToCity, onTourClose]);
+  }, [resetTourHost, onTourClose]);
 
   // Step-back rewind for the tour: bring the host to the destination stop's nav
   // depth so its context is true. Closes the filter drawer UNLESS the destination
@@ -1055,17 +1840,16 @@ export function SignalsMapExperience({
 
   // Panel content defined ONCE (no duplication): phone wraps it in the scrolling
   // .cs-sheet-body (below), desktop/tablet render it directly in the aside.
-  const panelBody = unavailable ? (
+  const panelBody = unavailable && !isCivicLens ? (
     <div className={styles.unavailable}>
       <p className={styles.unavailableTitle}>Signals unavailable</p>
       <p className={styles.unavailableText}>
-        We couldn&apos;t load neighborhood signals right now. Switch to Reports for live 311
-        and news, or try again in a moment.
+        We couldn&apos;t load neighborhood signals right now. Try again in a moment.
       </p>
     </div>
   ) : (
     <>
-      {view === "borough" ? (
+      {!isCivicLens && view === "borough" ? (
         <nav className={styles.crumbs} aria-label="Breadcrumb">
           <button type="button" className={styles.crumbLink} onClick={backToCity}>
             New York City
@@ -1093,24 +1877,69 @@ export function SignalsMapExperience({
         </nav>
       ) : null}
 
-      <header className={styles.panelHead}>
-        <div className={styles.titleRow}>
-          <h1 className={styles.panelTitle}>{scopeName}</h1>
-          {scopeHasSignals ? (
-            <span className="cs-badge">
-              {scopeSignals.length} {scopeSignals.length === 1 ? "signal" : "signals"}
-            </span>
-          ) : null}
-        </div>
-        <p className={styles.panelSub}>
-          Signals are local topics from resident posts, city 311 complaints and local news ·
-          last {windowDays} days
-        </p>
-      </header>
+      {isCivicLens ? (
+        <header className={`${styles.panelHead} ${styles.civicPanelHead}`}>
+          <span className={styles.civicHeaderIcon} aria-hidden="true">
+            <CivicHeaderIcon />
+          </span>
+          <div className={styles.civicHeaderCopy}>
+            <h1 className={styles.panelTitle}>Explore by Civic District</h1>
+            <p className={styles.panelSub}>
+              See the elected districts and civic boundaries serving your community.
+            </p>
+          </div>
+        </header>
+      ) : (
+        <header className={styles.panelHead}>
+          <div className={styles.titleRow}>
+            <h1 className={styles.panelTitle}>{scopeName}</h1>
+            {scopeHasSignals ? (
+              <span className="cs-badge">
+                {scopeSignals.length} {scopeSignals.length === 1 ? "signal" : "signals"}
+              </span>
+            ) : null}
+          </div>
+          <p className={styles.panelSub}>
+            {`Community Signals combine resident posts, public NYC 311 complaints, and local reporting to surface neighborhood issues · last ${windowDays} days`}
+          </p>
+        </header>
+      )}
 
-      <div className={styles.controlStrip}>
+      {isCivicLens && !civicResourceNavigatorOpen ? (
+        <nav className={styles.civicPrimaryFilters} aria-label="Explore civic district type">
+          {PRIMARY_CIVIC_FILTERS.map((filter) => {
+            const available = availableCivicLayers.some(
+              (layer) => layer.geography_type === filter.geographyType
+            );
+            const active = activeCivicLayer === filter.geographyType;
+            return (
+              <button
+                key={filter.geographyType}
+                type="button"
+                className={`${styles.civicPrimaryFilter}${active ? ` ${styles.civicPrimaryFilterActive}` : ""}`}
+                aria-pressed={active}
+                disabled={!available}
+                onClick={() => {
+                  if (!active) {
+                    handleCivicLayerChange(filter.geographyType);
+                    setCivicPickerOpen(true);
+                    setSnap("full");
+                  }
+                }}
+              >
+                {filter.label}
+              </button>
+            );
+          })}
+        </nav>
+      ) : null}
+
+      <div
+        className={`${styles.controlStrip}${isCivicLens ? ` ${styles.civicControlStrip}` : ""}`}
+      >
         {canSearch ? (
           <MapSearchBox
+            ref={mapSearchInputRef}
             token={mapboxToken}
             onPick={handleSearchPick}
             isResultAllowed={isSearchResultInNyc}
@@ -1121,7 +1950,7 @@ export function SignalsMapExperience({
             onPhoneBlur={handleSearchBlurPhone}
           />
         ) : null}
-        {canSearch ? (
+        {canSearch && !isCivicLens ? (
           <button
             type="button"
             className={styles.locateBtn}
@@ -1138,12 +1967,13 @@ export function SignalsMapExperience({
                 : "Use my location"}
           </button>
         ) : null}
-        {canDrill ? (
+        {!isCivicLens && canDrill ? (
           <button
             type="button"
             ref={neighborhoodBtnRef}
-            className={`${styles.browseBtn}${neighborhoodPickerOpen ? ` ${styles.browseBtnActive}` : ""
-              }`}
+            className={`${styles.browseBtn}${
+              neighborhoodPickerOpen ? ` ${styles.browseBtnActive}` : ""
+            }`}
             data-tour={view === "city" ? "browse" : undefined}
             aria-label={neighborhoodButtonLabel}
             aria-expanded={neighborhoodPickerOpen}
@@ -1154,8 +1984,9 @@ export function SignalsMapExperience({
           >
             <span className={styles.browseBtnText}>{neighborhoodButtonText}</span>
             <svg
-              className={`${styles.filterCaret}${neighborhoodPickerOpen ? ` ${styles.filterCaretOpen}` : ""
-                }`}
+              className={`${styles.filterCaret}${
+                neighborhoodPickerOpen ? ` ${styles.filterCaretOpen}` : ""
+              }`}
               viewBox="0 0 24 24"
               aria-hidden="true"
             >
@@ -1163,13 +1994,14 @@ export function SignalsMapExperience({
             </svg>
           </button>
         ) : null}
-        <div className={styles.filterRow}>
+        {!isCivicLens ? <div className={styles.filterRow}>
           <button
             type="button"
             ref={filterBtnRef}
             data-tour="filter"
-            className={`${styles.filterBtn}${activeChip !== "all" ? ` ${styles.filterBtnActive}` : ""
-              }`}
+            className={`${styles.filterBtn}${
+              activeChip !== "all" ? ` ${styles.filterBtnActive}` : ""
+            }`}
             style={
               activeChip !== "all"
                 ? ({ "--chip-accent": activeAccent } as CSSProperties)
@@ -1184,6 +2016,7 @@ export function SignalsMapExperience({
                 setNeighborhoodPickerOpen(false);
                 if (!tourOpen) setSnap("half");
               }
+              if (nextOpen) setCivicPickerOpen(false);
             }}
           >
             {activeChip !== "all" ? (
@@ -1195,8 +2028,9 @@ export function SignalsMapExperience({
             )}
             {activeChip === "all" ? "Filter" : `Filter · ${chipLabel}`}
             <svg
-              className={`${styles.filterCaret}${filtersOpen ? ` ${styles.filterCaretOpen}` : ""
-                }`}
+              className={`${styles.filterCaret}${
+                filtersOpen ? ` ${styles.filterCaretOpen}` : ""
+              }`}
               viewBox="0 0 24 24"
               aria-hidden="true"
             >
@@ -1213,9 +2047,9 @@ export function SignalsMapExperience({
               ×
             </button>
           ) : null}
-        </div>
+        </div> : null}
       </div>
-      {filtersOpen ? (
+      {!isCivicLens && filtersOpen ? (
         <div
           id={filterRegionId}
           onKeyDown={(event) => {
@@ -1238,7 +2072,7 @@ export function SignalsMapExperience({
         </div>
       ) : null}
 
-      {neighborhoodPickerOpen && canDrill ? (
+      {!isCivicLens && neighborhoodPickerOpen && canDrill ? (
         <div id={neighborhoodRegionId}>
           <NeighborhoodPicker
             activeBorough={activeBorough}
@@ -1254,7 +2088,98 @@ export function SignalsMapExperience({
         </div>
       ) : null}
 
-      {/*{isNeighborhoodScope &&
+      {isCivicLens && civicPickerOpen && !civicResourceNavigatorOpen ? (
+        <div id={civicRegionId}>
+          <CivicDistrictPicker
+            activeType={activeCivicLayer}
+            collection={civicCollection}
+            selectedDistrictKey={selectedCivicDistrictKey}
+            catalogLoading={civicLayers === null}
+            catalogUnavailable={civicLayers !== null && !canUseCivicLayers}
+            loading={civicLoading}
+            error={activeCivicError}
+            onSelectDistrict={handleCivicDistrictSelect}
+            onClose={closeCivicPicker}
+          />
+        </div>
+      ) : null}
+
+      {isCivicLens &&
+      !civicPickerOpen &&
+      !civicResourceNavigatorOpen &&
+      selectedCivicDistrictKey === null ? (
+        <section className={styles.civicSummary} aria-label="Civic district guidance">
+          <p className={styles.civicEyebrow}>Find your districts</p>
+          <h2 className={styles.civicSummaryTitle}>Search an address above</h2>
+          <p className={styles.civicSummaryText}>
+            Select an address suggestion to match its official districts, or explore them manually.
+          </p>
+          {canUseCivicLayers ? (
+            <button type="button" className={styles.civicExploreButton} onClick={openCivicPicker}>
+              Explore district boundaries
+            </button>
+          ) : null}
+        </section>
+      ) : null}
+
+      {isCivicLens &&
+      isSelectableCivicGeographyType(activeCivicLayer) &&
+      selectedCivicDistrictKey !== null &&
+      !civicPickerOpen ? (
+        <section
+          className={styles.civicSelectedProfile}
+          aria-label="Selected civic district"
+          hidden={civicResourceNavigatorOpen}
+        >
+          <CivicDistrictProfileCard
+            districtKey={selectedCivicDistrictKey}
+            districtName={
+              selectedCivicFeature?.properties.display_name ??
+              civicResourceGeographies?.find(
+                (geography) => geography.geography_key === selectedCivicDistrictKey
+              )?.display_name ??
+              CIVIC_GEOGRAPHY_LABELS[activeCivicLayer]
+            }
+            geographyType={activeCivicLayer}
+            councilDistrictId={
+              selectedCouncilDistrictId !== null &&
+              Number.isInteger(selectedCouncilDistrictId) &&
+              selectedCouncilDistrictId >= 1 &&
+              selectedCouncilDistrictId <= 51
+                ? selectedCouncilDistrictId
+                : null
+            }
+            boundarySourceName={civicCollection?.release.source_name ?? null}
+            resolvedGeographies={civicResourceGeographies}
+            electionDistrictKeys={searchedElectionDistrictKeys}
+            changeButtonRef={civicChangeBtnRef}
+            onChangeDistrict={openCivicPicker}
+            onRouteToGeography={handleCivicHelpRoute}
+            onRequestAddressSearch={requestCivicAddressSearch}
+            resourceNavigatorEnabled={civicResourceNavigatorEnabled}
+            onOpenResourceNavigator={openCivicResourceNavigator}
+          />
+        </section>
+      ) : null}
+
+      {isCivicLens && civicResourceNavigatorEnabled && civicResourceNavigatorOpen ? (
+        <section className={styles.civicSelectedProfile} aria-label="Civic resources">
+          <CivicResourceNavigator
+            scope={civicNavigatorScope}
+            context={civicResourceContext}
+            electionDistrictKeys={searchedElectionDistrictKeys}
+            onClose={closeCivicResourceNavigator}
+            onChangeAddress={requestCivicAddressSearch}
+            onForgetAddress={forgetCivicResourceAddress}
+            onReturnToSavedAddress={returnToSavedAddress}
+            onSelectMember={handleCivicNavigatorRoute}
+            onRequestAddressSearch={requestCivicAddressSearch}
+          />
+        </section>
+      ) : null}
+
+      {!isCivicLens &&
+      isNeighborhoodScope &&
       selectedAreaId !== null &&
       !tourOpen &&
       !neighborhoodPickerOpen &&
@@ -1281,35 +2206,38 @@ export function SignalsMapExperience({
             Request Real-time Insights
           </button>
         </section>
-      ) : null} 
-      */}
+      ) : null}
 
-      <PanelDigest
-        briefCount={filtered.length}
-        briefPosts={briefCommunityPosts}
-        activeBorough={activeBorough}
-        areaName={selectedName}
-        level={view === "city" ? 1 : isNeighborhoodScope ? 3 : 2}
-        signals={filtered}
-        tourOpen={tourOpen}
-      />
+      {!isCivicLens ? (
+        <PanelDigest
+          briefCount={filtered.length}
+          briefPosts={briefCommunityPosts}
+          activeBorough={activeBorough}
+          areaName={selectedName}
+          level={view === "city" ? 1 : isNeighborhoodScope ? 3 : 2}
+          signals={filtered}
+          tourOpen={tourOpen}
+        />
+      ) : null}
     </>
   );
 
   return (
     <>
-      {view === "borough" && canDrill ? (
+      {!isCivicLens && view === "borough" && canDrill ? (
         <NeighborhoodSignalsMap
           borough={activeBorough}
           boroughGeoJson={boroughGeoJson}
           features={boroughCollection}
-          tintByArea={tintByArea}
-          metaByArea={metaByArea}
+          tintByArea={isCivicLens ? EMPTY_AREA_TINTS : tintByArea}
+          metaByArea={isCivicLens ? EMPTY_AREA_META : metaByArea}
           selectedAreaId={selectedAreaId}
           focusPoint={focusPoint}
           userLocationPoint={userLocationPoint}
           searchedLocationPoint={searchedLocationPoint}
           searchedLocationLabel={searchedLocationLabel}
+          civicGeoJson={isCivicLens ? civicCollection : null}
+          selectedCivicDistrictKey={isCivicLens ? selectedCivicDistrictKey : null}
           onSelectArea={handleSelectArea}
           sheetPx={settledHeight}
           sheetSnap={snap}
@@ -1318,11 +2246,25 @@ export function SignalsMapExperience({
         <BoroughOverviewMap
           boroughGeoJson={boroughGeoJson}
           labelsGeoJson={labelsGeoJson}
-          selectedBorough={activeBorough}
+          selectedBorough={isCivicLens ? "" : activeBorough}
           onSelectBorough={onSelectBorough}
-          onDrillIn={notifyBoroughClick}
-          boroughStyles={boroughStyles}
-          cameraScope={cameraScope}
+          onDrillIn={isCivicLens ? undefined : notifyBoroughClick}
+          boroughInteractionEnabled={!isCivicLens}
+          boroughStyles={isCivicLens ? undefined : boroughStyles}
+          civicGeoJson={isCivicLens ? civicCollection : null}
+          selectedCivicDistrictKey={isCivicLens ? selectedCivicDistrictKey : null}
+          onSelectCivicDistrict={isCivicLens ? handleCivicDistrictSelect : undefined}
+          civicLayerLabel={isCivicLens && activeCivicLayer ? CIVIC_GEOGRAPHY_LABELS[activeCivicLayer] : null}
+          userLocationPoint={isCivicLens ? userLocationPoint : null}
+          searchedLocationPoint={isCivicLens ? searchedLocationPoint : null}
+          searchedLocationLabel={isCivicLens ? searchedLocationLabel : null}
+          civicFocusPoint={
+            isCivicLens && civicNavigatorScope?.kind === "zip_area"
+              ? civicNavigatorScope.zip.point
+              : null
+          }
+          civicFocusZoom={isCivicLens && civicNavigatorScope?.kind === "zip_area" ? 11.2 : null}
+          cameraScope={isCivicLens ? "city" : cameraScope}
           sheetPx={settledHeight}
           sheetSnap={snap}
         />
@@ -1332,7 +2274,7 @@ export function SignalsMapExperience({
           floats INSIDE the spotlight hole (it can't be dimmed), so a click would
           escape the guided lesson and regress the tour. The tour's own Back handles
           stepping out; users leave via Skip. */}
-      {!unavailable && view === "borough" && !tourOpen ? (
+      {!isCivicLens && !unavailable && view === "borough" && !tourOpen ? (
         <button type="button" className="cs-map-back cs-map-back--signals" onClick={backToCity}>
           ← All boroughs
         </button>
@@ -1340,8 +2282,10 @@ export function SignalsMapExperience({
 
       <aside
         ref={insightsRef}
-        className="cs-insights"
-        aria-label={`${scopeName} neighborhood briefing`}
+        className={`cs-insights${isCivicLens ? " cs-insights--civic" : ""}`}
+        aria-label={
+          isCivicLens ? "Civic districts and elected representation" : `${scopeName} neighborhood briefing`
+        }
         data-tour="panel"
         data-snap={isPhone ? snap : undefined}
         data-dragging={isPhone && isDragging ? "" : undefined}
@@ -1355,7 +2299,8 @@ export function SignalsMapExperience({
           <button
             type="button"
             className="cs-sheet-handle"
-            aria-label="Expand panel"
+            aria-label={snap === "peek" ? "Expand panel" : "Resize panel"}
+            aria-expanded={snap !== "peek"}
             {...handleProps}
             onClick={expandFromPeek}
           >
@@ -1367,17 +2312,27 @@ export function SignalsMapExperience({
             filtered.length, briefPosts = briefCommunityPosts). Hidden at half/full
             (CSS) since the header + digest brief then carry the same numbers.
             Tapping it rises the sheet to half. */}
-        {isPhone && !unavailable ? (
+        {isPhone && (isCivicLens || !unavailable) ? (
           <div className="cs-sheet-peek">
             <button
               type="button"
               className="cs-sheet-brief"
-              aria-label="Open search and neighborhood controls"
+              aria-label={
+                isCivicLens ? "Open civic district controls" : "Open search and neighborhood controls"
+              }
               onClick={expandFromPeek}
             >
-              <strong>{scopeName}</strong> — {filtered.length}{" "}
-              {filtered.length === 1 ? "issue" : "issues"} · {briefCommunityPosts}{" "}
-              {briefCommunityPosts === 1 ? "post" : "posts"}
+              {isCivicLens ? (
+                <>
+                  <strong>Civic Districts</strong> — {selectedCivicFeature?.properties.display_name ?? "Find your district"}
+                </>
+              ) : (
+                <>
+                  <strong>{scopeName}</strong> — {filtered.length}{" "}
+                  {filtered.length === 1 ? "issue" : "issues"} · {briefCommunityPosts}{" "}
+                  {briefCommunityPosts === 1 ? "post" : "posts"}
+                </>
+              )}
             </button>
             {canSearch ? (
               <button
@@ -1412,7 +2367,7 @@ export function SignalsMapExperience({
           reading live host state as props. The rising-edge reset effect above
           resets the map on open; handleTourFinish resets + closes;
           notifyBoroughClick feeds boroughClickTick; tourBlockedTick surfaces
-          soft-blocked 311 switches. */}
+          soft-blocked lens switches. */}
       {tourOpen ? (
         <MapTourGuide
           onClose={onTourClose}
