@@ -64,7 +64,7 @@ export default function Footer() {
             </h4>
             <ul className="space-y-3 text-xs md:text-sm font-semibold">
               <li>
-                <Link href="/about" className="hover:text-white transition-colors">
+                <Link href="/history" className="hover:text-white transition-colors">
                   About INI
                 </Link>
               </li>

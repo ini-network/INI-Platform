@@ -10,9 +10,19 @@ export const metadata = {
 export default function AboutPage() {
   const milestones = [
     {
+      date: "Fall 2024",
+      title: "First Student Listening Session",
+      location: "John Jay College",
+      icon: "💡",
+      description: "Co-hosted by Vngle and CUNY CIE, INI’s first student session explored what CUNY students wanted from career-connected opportunities—and helped shape the vision for a CUNY-centered think-and-do tank.",
+      color: "from-indigo-500 to-blue-500",
+      badgeColor: "bg-indigo-100 text-indigo-800",
+    },
+    {
       date: "Spring 2025",
       title: "Formal Public Launch",
       location: "Pier 57",
+      icon: "🚀",
       description: "Successfully launched the INI initiative publicly, establishing our initial foundation and showcasing early student research projects to the broader NYC civic tech community.",
       color: "from-blue-500 to-indigo-500",
       badgeColor: "bg-blue-100 text-blue-800",
@@ -21,6 +31,7 @@ export default function AboutPage() {
       date: "Fall 2025",
       title: "First Cross-Campus Gathering",
       location: "16 CUNY Campuses Connected",
+      icon: "🤝",
       description: "Brought together faculty, student fellows, and civic leaders from 16 distinct CUNY campuses to share research models, identify academic synergies, and collaborate on shared urban challenges.",
       color: "from-emerald-500 to-teal-500",
       badgeColor: "bg-emerald-100 text-emerald-800",
@@ -29,6 +40,7 @@ export default function AboutPage() {
       date: "Spring 2026",
       title: "Soft Launch of the Network Tool",
       location: "New York City College of Technology (City Tech)",
+      icon: "🌐",
       description: "Deployed the first interactive version of the INI Collaboration Network platform, facilitating seamless search, mapping, and collaboration across the CUNY directory.",
       color: "from-purple-500 to-indigo-500",
       badgeColor: "bg-purple-100 text-purple-800",
@@ -37,6 +49,7 @@ export default function AboutPage() {
       date: "Present",
       title: "Five Cohorts Activated",
       location: "Across the CUNY Ecosystem",
+      icon: "🎓",
       description: "Actively training and coordinating our fifth consecutive student fellow cohort, building a sustainable, long-term human infrastructure for civic innovation in New York City.",
       color: "from-amber-500 to-orange-500",
       badgeColor: "bg-amber-100 text-amber-800",
@@ -49,7 +62,7 @@ export default function AboutPage() {
       subtitle: "Research & Discovery",
       description: "Conducting critical research to identify active civic efforts, academic interests, and resources across all 25 CUNY campuses.",
       icon: (
-        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
         </svg>
       ),
@@ -60,7 +73,7 @@ export default function AboutPage() {
       subtitle: "Data & Tech Stack",
       description: "Improving search functionality, mapping tools, AI integrations, and maintaining clean database layers for CUNY's 1400+ directory records.",
       icon: (
-        <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
         </svg>
       ),
@@ -71,7 +84,7 @@ export default function AboutPage() {
       subtitle: "Community Outreach",
       description: "Connecting academic departments, student cohorts, and external community leaders to foster interdisciplinary networks.",
       icon: (
-        <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-7 h-7 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
         </svg>
       ),
@@ -82,7 +95,7 @@ export default function AboutPage() {
       subtitle: "Applied Projects",
       description: "Deploying research models into real-world applications, testing policy frameworks, and developing public-interest technologies.",
       icon: (
-        <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-7 h-7 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
       ),
@@ -138,61 +151,105 @@ export default function AboutPage() {
 
       {/* 3. HOW INI BEGAN */}
       <section className="max-w-5xl mx-auto px-6 py-20">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-stretch">
           {/* Left Narrative */}
           <div className="lg:col-span-7 space-y-6">
             <h2 className="text-3xl font-bold text-slate-900 tracking-tight">How INI Began</h2>
             <div className="text-slate-600 text-base leading-relaxed space-y-4">
               <p>
-                INI builds on more than <strong>six years of collaboration</strong> with CUNY faculty and student leaders, beginning through partnerships with the Computer Science department at <strong>John Jay College of Criminal Justice</strong> and later expanding through work at <strong>New York City College of Technology (City Tech)</strong> in partnership with the <strong>CUNY 2X</strong> initiative.
+                INI began with a belief in CUNY: some of New York City’s greatest talent, research, technology, and civic capacity already exist across its campuses. The opportunity is to better connect and activate them.
               </p>
               <p>
-                Through this collaborative work, one systemic challenge became increasingly clear: many highly impactful civic, academic, and community initiatives across New York City remained difficult to discover, disconnected from one another, or isolated within institutional silos.
+                The vision grew from more than six years of collaboration across CUNY—from advancing CUNY-developed technology alongside the Chair of Computer Science at John Jay College, to relationships with CUNY’s Tech Talent Pipeline, to Vngle founder and CUNY alum Blake Stoner’s time in the Craig Newmark Graduate School’s Executive Program centered on Innovation and Leadership.
               </p>
-              <p className="bg-slate-100/80 p-4 rounded-xl border border-slate-200/50 font-medium italic text-slate-800">
-                "INI was created to help address that challenge by making collaboration across campuses, disciplines, and communities more visible and actionable."
+              <p>
+                INI moved from vision to action at New York City College of Technology, launching its first student fellowship cohorts with CUNY 2X and expanding connections across campuses and New York City’s civic community.
               </p>
+              <p>
+                Today, INI.network is building connective infrastructure between CUNY and NYC’s civic community—bringing students, faculty, campuses, and community leaders closer together while making impactful civic, academic, and community initiatives easier to discover and connect across all five boroughs.
+              </p>
+
+              {/* Blake Stoner Quote Box */}
+              <div className="bg-slate-100/80 p-6 rounded-2xl border border-slate-200/60 space-y-4">
+                <h3 className="font-extrabold text-slate-900 text-base md:text-lg leading-snug">
+                  INI is a bet on CUNY and a stronger civic innovation future for New York City.
+                </h3>
+                <blockquote className="text-slate-700 text-sm md:text-base leading-relaxed italic space-y-3">
+                  <p>
+                    “INI is a bet on what becomes possible when CUNY and New York City’s communities are more deeply connected—spurring collaboration across all five boroughs and giving students career-connected opportunities to contribute, build, and become civic leaders.
+                  </p>
+                  <p>
+                    CUNY helped shape Vngle, and with most of our team now CUNY alumni, INI is our way of giving back—creating stronger pathways for opportunity and civic impact across the University and the city.”
+                  </p>
+                </blockquote>
+                <div className="pt-3 border-t border-slate-200/60">
+                  <div className="font-bold text-slate-900 text-sm">Blake Stoner</div>
+                  <div className="text-xs text-slate-500 font-medium">Founder & CEO, Vngle | CUNY alum</div>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Right Core Projects Card */}
-          <div className="lg:col-span-5">
-            <div className="bg-gradient-to-br from-slate-900 to-slate-950 text-white p-8 rounded-3xl shadow-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="lg:col-span-5 h-full">
+            <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-white p-8 md:p-10 rounded-3xl shadow-xl relative overflow-hidden h-full flex flex-col justify-between border border-slate-800/80">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
               
-              <h3 className="text-lg font-bold text-blue-400 mb-6 uppercase tracking-wider">Early Focus Areas</h3>
-              
-              <ul className="space-y-6">
-                <li className="flex gap-4">
-                  <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                    <span className="text-sm">🔑</span>
+              <div className="flex-1 flex flex-col justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-bold text-blue-400 mb-3 uppercase tracking-wider">
+                    Foundation
                   </div>
-                  <div>
-                    <h4 className="font-bold text-slate-100">National Provenance Tech</h4>
-                    <p className="text-xs text-slate-400 mt-1">Deploying CUNY-developed provenance technology nationally to protect nonpartisan digital integrity.</p>
-                  </div>
-                </li>
+                  <h3 className="text-xl md:text-2xl font-extrabold text-white mb-6 tracking-tight">
+                    Early Focus Areas
+                  </h3>
+                </div>
                 
-                <li className="flex gap-4">
-                  <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                    <span className="text-sm">🎓</span>
+                <div className="flex-1 flex flex-col justify-around gap-4 my-auto">
+                  <div className="flex gap-4.5 items-start p-4.5 rounded-2xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.07] transition-colors">
+                    <div className="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center shrink-0 text-2xl shadow-sm mt-0.5">
+                      <span>🔑</span>
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="font-extrabold text-slate-100 text-base">National Provenance Tech</h4>
+                      <p className="text-xs md:text-sm text-slate-400 leading-relaxed">
+                        Deploying CUNY-developed provenance technology nationally to protect nonpartisan digital integrity and combat misinformation.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-bold text-slate-100">Student Applied Research</h4>
-                    <p className="text-xs text-slate-400 mt-1">Creating high-impact applied research and system implementation opportunities for students.</p>
+                  
+                  <div className="flex gap-4.5 items-start p-4.5 rounded-2xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.07] transition-colors">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center shrink-0 text-2xl shadow-sm mt-0.5">
+                      <span>🎓</span>
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="font-extrabold text-slate-100 text-base">Student Applied Research</h4>
+                      <p className="text-xs md:text-sm text-slate-400 leading-relaxed">
+                        Creating high-impact applied research, fellowship cohorts, and system implementation opportunities for CUNY students.
+                      </p>
+                    </div>
                   </div>
-                </li>
 
-                <li className="flex gap-4">
-                  <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                    <span className="text-sm">🌍</span>
+                  <div className="flex gap-4.5 items-start p-4.5 rounded-2xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.07] transition-colors">
+                    <div className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-400/30 flex items-center justify-center shrink-0 text-2xl shadow-sm mt-0.5">
+                      <span>🌍</span>
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="font-extrabold text-slate-100 text-base">Civic Connection</h4>
+                      <p className="text-xs md:text-sm text-slate-400 leading-relaxed">
+                        Connecting academic research and university resources directly with real-world civic systems and local NYC communities.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-bold text-slate-100">Civic Connection</h4>
-                    <p className="text-xs text-slate-400 mt-1">Connecting academic research directly with real-world civic systems and local CUNY communities.</p>
-                  </div>
-                </li>
-              </ul>
+                </div>
+              </div>
+
+              {/* Bottom Card Footer Callout */}
+              <div className="mt-8 pt-5 border-t border-white/10 flex items-center justify-between gap-4 text-xs text-slate-400">
+                <span className="font-semibold text-slate-300">Co-developed across 25 CUNY Campuses</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              </div>
             </div>
           </div>
         </div>
@@ -210,17 +267,13 @@ export default function AboutPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
             {studentRoles.map((role, idx) => (
-              <div key={idx} className={`p-6 rounded-2xl bg-white border transition-all duration-300 hover:shadow-md ${role.bg}`}>
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center shrink-0 border border-slate-100">
-                    {role.icon}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-lg">{role.title}</h3>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{role.subtitle}</p>
-                  </div>
+              <div key={idx} className={`p-8 rounded-3xl bg-white border transition-all duration-300 hover:shadow-md flex flex-col items-center text-center ${role.bg}`}>
+                <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center shrink-0 border border-slate-100 mb-4">
+                  {role.icon}
                 </div>
-                <p className="text-sm text-slate-600 leading-relaxed">{role.description}</p>
+                <h3 className="font-extrabold text-slate-900 text-lg md:text-xl mb-1">{role.title}</h3>
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">{role.subtitle}</p>
+                <p className="text-sm text-slate-600 leading-relaxed max-w-sm mx-auto">{role.description}</p>
               </div>
             ))}
           </div>
@@ -241,35 +294,51 @@ export default function AboutPage() {
           <p className="text-slate-600">A timeline of the development and expansion of the Institute for Nonpartisan Innovation.</p>
         </div>
 
-        <div className="relative border-l-2 border-slate-200 ml-4 md:ml-32 space-y-12 pb-8">
+        <div className="max-w-4xl mx-auto space-y-8">
           {milestones.map((item, idx) => (
-            <div key={idx} className="relative pl-8 md:pl-12 group">
-              {/* Timeline Bullet */}
-              <div className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-white border-4 border-blue-500 group-hover:scale-125 transition-transform" />
-              
-              {/* Date Header for Large Screens */}
-              <div className="md:absolute md:-left-36 md:top-1.5 md:w-28 md:text-right md:pr-4">
+            <div key={idx} className="flex flex-col md:flex-row items-stretch md:items-start gap-4 md:gap-8 group">
+              {/* 1. Date Badge (Left Column on Desktop) */}
+              <div className="hidden md:flex w-28 md:w-32 pt-6 justify-end shrink-0">
                 <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${item.badgeColor}`}>
                   {item.date}
                 </span>
               </div>
 
-              {/* Milestone Card */}
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all duration-300">
+              {/* 2. Timeline Spine & Bullet Node */}
+              <div className="hidden md:flex flex-col items-center self-stretch shrink-0 relative">
+                {/* Node Bullet */}
+                <div className="w-5 h-5 rounded-full bg-white border-4 border-blue-600 shadow-sm z-10 mt-6 group-hover:scale-125 transition-transform" />
+                {/* Connecting Line (except for last item) */}
+                {idx !== milestones.length - 1 && (
+                  <div className="w-1 bg-gradient-to-b from-blue-500 via-indigo-400 to-blue-300 rounded-full flex-1 my-1 shadow-xs" />
+                )}
+              </div>
+
+              {/* 3. Milestone Card (Right Column) */}
+              <div className="flex-1 bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100/80 hover:shadow-md hover:border-slate-200 transition-all duration-300 flex flex-col items-center text-center">
                 {/* Date for Mobile View */}
-                <div className="md:hidden mb-2">
-                  <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${item.badgeColor}`}>
+                <div className="md:hidden mb-3">
+                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${item.badgeColor}`}>
                     {item.date}
                   </span>
                 </div>
+
+                {/* Icon */}
+                <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mb-3 text-2xl shadow-xs group-hover:scale-105 transition-transform">
+                  {item.icon}
+                </div>
                 
-                <h3 className="font-extrabold text-slate-900 text-lg md:text-xl flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                  {item.title}
+                {/* Title & Location */}
+                <h3 className="font-extrabold text-slate-900 text-lg md:text-xl flex flex-col sm:flex-row sm:items-center justify-center gap-1 sm:gap-2 mb-2">
+                  <span>{item.title}</span>
                   <span className="hidden sm:inline text-slate-300">|</span>
                   <span className="text-sm font-semibold text-slate-500">{item.location}</span>
                 </h3>
                 
-                <p className="text-slate-600 text-sm mt-3 leading-relaxed">{item.description}</p>
+                {/* Description */}
+                <p className="text-slate-600 text-sm leading-relaxed max-w-xl mx-auto">
+                  {item.description}
+                </p>
               </div>
             </div>
           ))}

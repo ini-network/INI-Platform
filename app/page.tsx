@@ -35,7 +35,7 @@ export default function HomePage() {
 
         <div className="max-w-5xl mx-auto px-6 text-center relative z-10">
           {/* Subtitle Badge */}
-          <div className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full bg-white/10 border border-white/15 text-sm md:text-base font-bold text-indigo-200 mb-6 backdrop-blur-md shadow-lg">
+          <div className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full bg-white/10 border border-white/15 text-lg md:text-xl font-bold text-indigo-200 mb-6 backdrop-blur-md shadow-lg">
             <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
             Unsiloing Collaboration Across 25 Campuses & 5 Boroughs
           </div>
@@ -55,8 +55,8 @@ export default function HomePage() {
 
           {/* Demo Video */}
           <div className="relative max-w-4xl mx-auto rounded-3xl overflow-hidden shadow-2xl border border-white/10 bg-black aspect-video flex items-center justify-center mb-10">
-            <video 
-              controls 
+            <video
+              controls
               className="w-full h-full object-contain"
               preload="metadata"
             >
@@ -118,12 +118,12 @@ export default function HomePage() {
             <div className="relative">
               {/* Offset backdrop wrapper to match ecosystem card styling */}
               <div className="absolute inset-0 bg-linear-to-tr from-indigo-100/80 to-emerald-100/80 rounded-3xl transform -rotate-1 scale-102 md:scale-103" />
-              
+
               <div className="relative bg-white rounded-3xl p-10 md:p-14 border border-slate-100/60 shadow-xl overflow-hidden">
                 {/* Decorative background gradients */}
                 <div className="absolute top-0 right-0 w-96 h-96 bg-linear-to-br from-indigo-500/5 to-purple-500/5 rounded-full blur-3xl -z-10 pointer-events-none" />
                 <div className="absolute -bottom-10 -left-10 w-72 h-72 bg-emerald-500/5 rounded-full blur-3xl -z-10 pointer-events-none" />
-                
+
                 <div className="relative flex flex-col md:flex-row gap-8 md:gap-10 items-start">
                   {/* Large Decorative Quote Icon */}
                   <div className="hidden md:flex w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100/80 items-center justify-center shrink-0 text-indigo-600">
@@ -131,7 +131,7 @@ export default function HomePage() {
                       <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
                     </svg>
                   </div>
-                  
+
                   <div className="flex-1 space-y-8">
                     <blockquote className="space-y-4">
                       <span className="block text-3xl md:text-5xl font-extrabold text-slate-900 leading-tight">
@@ -141,20 +141,20 @@ export default function HomePage() {
                         by creating new ways for NYC to collaborate, while creating pathways for more of CUNY to discover the impact they can make in their communities.”
                       </p>
                     </blockquote>
-                    
+
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pt-8 border-t border-slate-100">
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2.5 flex-wrap">
                           <span className="font-extrabold text-slate-900 text-base md:text-lg">Arthur Chisolm</span>
-                          <a 
-                            href="https://www.linkedin.com/feed/update/urn:li:activity:7395134427678339072/" 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
+                          <a
+                            href="https://www.linkedin.com/feed/update/urn:li:activity:7395134427678339072/"
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="inline-flex items-center text-[10px] md:text-xs text-indigo-600 hover:text-indigo-800 transition-colors font-bold gap-1 bg-indigo-50/50 px-2.5 py-0.5 rounded border border-indigo-100/50"
                             aria-label="Arthur Chisolm LinkedIn update"
                           >
                             <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
-                              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
                             </svg>
                             <span>LinkedIn</span>
                           </a>
@@ -184,7 +184,7 @@ export default function HomePage() {
                 The CUNY Opportunity
               </div>
               <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-                Why This Ecosystem Matters
+                Why a CUNY-Centric Innovation Hub Matters
               </h2>
 
               <div className="space-y-4 text-slate-600 text-sm md:text-base leading-relaxed">
@@ -215,48 +215,48 @@ export default function HomePage() {
               </ul>
 
               <p className="pt-4 border-t border-slate-100 text-slate-800 font-semibold text-xs md:text-sm italic">
-                "We believe the future of civic innovation depends on making collaboration more visible, accessible, and actionable across NYC."
+                "We believe the future of civic innovation relies on making collaboration more visible, accessible, and actionable across NYC."
               </p>
             </div>
 
             {/* Right Column: Premium Visual Card */}
-            <div className="lg:col-span-5 relative mt-6 lg:mt-0">
+            <div className="lg:col-span-4 relative mt-6 lg:mt-0">
               <div className="absolute inset-0 bg-gradient-to-tr from-indigo-100 to-emerald-50 rounded-3xl transform rotate-3 scale-105" />
-              <div className="bg-white p-6 rounded-3xl shadow-xl relative border border-slate-100/60 space-y-6">
+              <div className="bg-white p-6 rounded-3xl shadow-xl relative border border-slate-100/60 space-y-6 flex flex-col justify-center h-full">
 
-                <div className="flex items-center gap-4 pb-5 border-b border-slate-100">
-                  <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0 border border-indigo-100">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex flex-row items-center justify-center gap-4 pb-5 border-b border-slate-100 text-center">
+                  <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0 border border-indigo-100">
+                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-extrabold text-slate-900">A Unified Ecosystem</h3>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Connecting experts across NYC</p>
+                  <div className="text-left flex-1">
+                    <h3 className="text-sm md:text-base font-extrabold text-slate-900">A Unified Ecosystem</h3>
+                    <p className="text-[11px] md:text-xs text-slate-500 mt-0.5">Connecting experts across NYC</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 pb-5 border-b border-slate-100">
-                  <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0 border border-emerald-100">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex flex-row items-center justify-center gap-4 pb-5 border-b border-slate-100 text-center">
+                  <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0 border border-emerald-100">
+                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-extrabold text-slate-900">Accelerated Innovation</h3>
-                    <p className="text-[11px] text-slate-500 mt-0.5">From research to real-world impact</p>
+                  <div className="text-left flex-1">
+                    <h3 className="text-sm md:text-base font-extrabold text-slate-900">Accelerated Innovation</h3>
+                    <p className="text-[11px] md:text-xs text-slate-500 mt-0.5">From research to real-world impact</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center shrink-0 border border-purple-100">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex flex-row items-center justify-center gap-4 text-center">
+                  <div className="w-14 h-14 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center shrink-0 border border-purple-100">
+                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                     </svg>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-extrabold text-slate-900">Civic Application</h3>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Empowering student & civic projects</p>
+                  <div className="text-left flex-1">
+                    <h3 className="text-sm md:text-base font-extrabold text-slate-900">Civic Application</h3>
+                    <p className="text-[11px] md:text-xs text-slate-500 mt-0.5">Empowering student & civic projects</p>
                   </div>
                 </div>
 
@@ -275,44 +275,44 @@ export default function HomePage() {
               Core Capabilities
             </div>
             <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
-              What the Ecosystem Enables
+              What the CUNY-Driven Ecosystem Enables
             </h2>
             <p className="text-xs md:text-sm text-slate-500 max-w-xl mx-auto mt-2.5">
-              Empowering active, community-led innovation pathways across academic and urban boundaries.
+              Empowering active, community-led innovation pathways across academic and urban landscapes.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
             {/* Enablement Card 1 */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all">
-              <div className="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-4 text-indigo-600 font-extrabold">
+            <div className="bg-white p-8 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-5 text-3xl shadow-sm">
                 🌐
               </div>
-              <h3 className="text-base font-extrabold text-slate-900 mb-2">Cross-Campus Collaboration</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <h3 className="text-base md:text-lg font-extrabold text-slate-900 mb-2">Cross-Campus Collaboration</h3>
+              <p className="text-xs md:text-sm text-slate-600 leading-relaxed max-w-xs">
                 Connect expertise, initiatives, and opportunities across CUNY’s 25-campus system.
               </p>
             </div>
 
             {/* Enablement Card 2 */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all">
-              <div className="w-10 h-10 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-4 text-emerald-600 font-extrabold">
+            <div className="bg-white p-8 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-5 text-3xl shadow-sm">
                 ⚖️
               </div>
-              <h3 className="text-base font-extrabold text-slate-900 mb-2">Research to Civic Impact</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <h3 className="text-base md:text-lg font-extrabold text-slate-900 mb-2">Research to Civic Impact</h3>
+              <p className="text-xs md:text-sm text-slate-600 leading-relaxed max-w-xs">
                 Bridge academic insight with community-informed action and public problem-solving.
               </p>
             </div>
 
             {/* Enablement Card 3 */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all">
-              <div className="w-10 h-10 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center mb-4 text-purple-600 font-extrabold">
+            <div className="bg-white p-8 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center mb-5 text-3xl shadow-sm">
                 🤝
               </div>
-              <h3 className="text-base font-extrabold text-slate-900 mb-2">Community-Connected Innovation</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <h3 className="text-base md:text-lg font-extrabold text-slate-900 mb-2">Community-Connected Innovation</h3>
+              <p className="text-xs md:text-sm text-slate-600 leading-relaxed max-w-xs">
                 Strengthen collaboration between faculty, students, and trusted civic partners across NYC.
               </p>
             </div>
@@ -327,7 +327,7 @@ export default function HomePage() {
 
           <div className="text-center mb-14">
             <div className="inline-block px-3 py-1 rounded-full bg-purple-50 border border-purple-100 text-xs font-bold text-purple-700 mb-3">
-              Platform Features
+              INI Features
             </div>
             <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
               Collaboration Infrastructure Built for CUNY
@@ -342,17 +342,19 @@ export default function HomePage() {
             {/* Feature 1: Directory */}
             <Link
               href="/directory"
-              className="group bg-slate-50/50 p-6 rounded-3xl border border-slate-200/80 hover:bg-white hover:border-indigo-300 hover:shadow-xl transition-all duration-300"
+              className="group bg-slate-50/50 p-8 rounded-3xl border border-slate-200/80 hover:bg-white hover:border-indigo-300 hover:shadow-xl transition-all duration-300 flex flex-col text-center"
             >
-              <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-5 border border-indigo-100 group-hover:scale-110 transition-transform">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
+              <div className="flex flex-row items-center justify-center gap-4 mb-4">
+                <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center border border-indigo-100 group-hover:scale-110 transition-transform shadow-sm shrink-0">
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg md:text-xl font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors text-left">
+                  Expert Directory
+                </h3>
               </div>
-              <h3 className="text-lg font-extrabold text-slate-900 mb-2 group-hover:text-indigo-600 transition-colors">
-                Expert Directory
-              </h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <p className="text-xs md:text-sm text-slate-600 leading-relaxed max-w-sm mx-auto">
                 Search a growing database of faculty, researchers, staff, and civic collaborators. Discover CUNY talent in seconds.
               </p>
             </Link>
@@ -360,50 +362,36 @@ export default function HomePage() {
             {/* Feature 2: Network Map */}
             <Link
               href="/explore"
-              className="group bg-slate-50/50 p-6 rounded-3xl border border-slate-200/80 hover:bg-white hover:border-emerald-300 hover:shadow-xl transition-all duration-300"
+              className="group bg-slate-50/50 p-8 rounded-3xl border border-slate-200/80 hover:bg-white hover:border-emerald-300 hover:shadow-xl transition-all duration-300 flex flex-col text-center"
             >
-              <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-5 border border-emerald-100 group-hover:scale-110 transition-transform">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
-                </svg>
+              <div className="flex flex-row items-center justify-center gap-4 mb-4">
+                <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center border border-emerald-100 group-hover:scale-110 transition-transform shadow-sm shrink-0">
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
+                  </svg>
+                </div>
+                <h3 className="text-lg md:text-xl font-extrabold text-slate-900 group-hover:text-emerald-600 transition-colors text-left">
+                  Interactive Network Map
+                </h3>
               </div>
-              <h3 className="text-lg font-extrabold text-slate-900 mb-2 group-hover:text-emerald-600 transition-colors">
-                Interactive Network Map
-              </h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <p className="text-xs md:text-sm text-slate-600 leading-relaxed max-w-sm mx-auto">
                 Visualize relationships, research clusters, and collaboration opportunities across campuses in real-time.
               </p>
             </Link>
 
-            {/* Feature 3: Collaboration Hub */}
-            {/* <Link 
-              href="/collab"
-              className="group bg-slate-50/50 p-6 rounded-3xl border border-slate-200/80 hover:bg-white hover:border-purple-300 hover:shadow-xl transition-all duration-300"
-            >
-              <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-5 border border-purple-100 group-hover:scale-110 transition-transform">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-extrabold text-slate-900 mb-2 group-hover:text-purple-600 transition-colors">
-                Collaboration Hub
-              </h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Form teams, share active civic/research opportunities, and coordinate cross-campus initiatives.
-              </p>
-            </Link> */}
-
             {/* Feature 4: AI Copilot */}
-            <div className="group bg-slate-50/50 p-6 rounded-3xl border border-slate-200/80 hover:bg-white hover:border-amber-300 hover:shadow-xl transition-all duration-300 relative overflow-hidden cursor-default md:col-span-2 md:max-w-md md:mx-auto w-full">
-              <div className="w-12 h-12 bg-ambger-50 text-amber-600 rounded-xl flex items-center justify-center mb-5 border border-amber-100 group-hover:scale-110 transition-transform">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
+            <div className="group bg-slate-50/50 p-8 rounded-3xl border border-slate-200/80 hover:bg-white hover:border-amber-300 hover:shadow-xl transition-all duration-300 relative overflow-hidden cursor-default md:col-span-2 md:max-w-md md:mx-auto w-full flex flex-col text-center">
+              <div className="flex flex-row items-center justify-center gap-4 mb-4">
+                <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center border border-amber-100 group-hover:scale-110 transition-transform shadow-sm shrink-0">
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg md:text-xl font-extrabold text-slate-900 group-hover:text-amber-600 transition-colors text-left">
+                  AI Collaboration Copilot
+                </h3>
               </div>
-              <h3 className="text-lg font-extrabold text-slate-900 mb-2 group-hover:text-amber-600 transition-colors">
-                AI Collaboration Copilot
-              </h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <p className="text-xs md:text-sm text-slate-600 leading-relaxed max-w-sm mx-auto">
                 Receive contextual guidance on researchers, initiatives, and collaboration pathways across the CUNY ecosystem.
               </p>
             </div>
