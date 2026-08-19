@@ -11,20 +11,20 @@ export default function Footer() {
 
       <div className="relative z-10 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-12 pb-12 border-b border-slate-900">
-          
+
           {/* Main Brand & Branding Statement Column */}
           <div className="md:col-span-6 space-y-5">
-            <Link 
-              href="/" 
+            <Link
+              href="/"
               className="inline-block text-2xl font-black text-white tracking-tight hover:scale-[1.02] transition-transform"
             >
               INI<span className="text-blue-500">.network</span>
             </Link>
             <p className="text-xs md:text-sm text-slate-300 leading-relaxed max-w-lg font-medium">
               INI is a CUNY-centered civic innovation initiative co-powered by{" "}
-              <a 
-                href="https://vngle.com" 
-                target="_blank" 
+              <a
+                href="https://vngle.com"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="font-bold text-white hover:text-blue-400 underline underline-offset-4 decoration-slate-700 hover:decoration-blue-400 transition-all"
               >
@@ -52,7 +52,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link href="/explore" className="hover:text-white transition-colors">
-                  Network Map
+                  Network View
                 </Link>
               </li>
             </ul>

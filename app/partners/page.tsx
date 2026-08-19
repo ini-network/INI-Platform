@@ -46,6 +46,7 @@ function PartnersDashboardContent() {
     const collaborationAreas = [
         {
             badge: "🔬 Featured Policy Lab",
+            logo: "/images/consumer-reports-logo.png",
             title: "Consumer Protection & Policy Research",
             partner: "Consumer Reports",
             description: "Collaborating to address critical health, equity, and environmental issues through student-driven local research.",
@@ -294,10 +295,21 @@ function PartnersDashboardContent() {
                                     <div key={idx}
                                          className={`p-6 rounded-2xl border transition-all duration-300 hover:shadow-md flex flex-col justify-between ${collab.color}`}>
                                         <div>
-                      <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold mb-4 ${collab.badgeColor}`}>
-                        {collab.badge}
-                      </span>
+                                            <div className="flex items-center justify-between gap-3 mb-4">
+                                                <span
+                                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${collab.badgeColor}`}>
+                                                    {collab.badge}
+                                                </span>
+                                                {collab.logo && (
+                                                    <div className="h-9 px-3.5 py-1 bg-white rounded-xl border border-blue-200/80 shadow-xs flex items-center shrink-0">
+                                                        <img
+                                                            src={collab.logo}
+                                                            alt={collab.partner}
+                                                            className="h-6 w-auto object-contain"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
 
                                             <h3 className="text-xl font-extrabold text-slate-900 mb-1 leading-snug">
                                                 {collab.title}
