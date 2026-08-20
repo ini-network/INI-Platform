@@ -14,43 +14,43 @@ export default function AboutPage() {
       title: "First Student Listening Session",
       location: "John Jay College",
       icon: "💡",
-      description: "Co-hosted by Vngle and CUNY CIE, INI’s first student session explored what CUNY students wanted from career-connected opportunities—and helped shape the vision for a CUNY-centered think-and-do tank.",
+      description: "Co-hosted by Vngle and CUNY CIE, the first session explored what students wanted from career-connected opportunities and helped shape the vision for INI.",
       color: "from-indigo-500 to-blue-500",
       badgeColor: "bg-indigo-100 text-indigo-800",
     },
     {
       date: "Spring 2025",
-      title: "Formal Public Launch",
+      title: "Public Launch",
       location: "Pier 57",
       icon: "🚀",
-      description: "Successfully launched the INI initiative publicly, establishing our initial foundation and showcasing early student research projects to the broader NYC civic tech community.",
+      description: "INI formally launched, bringing early student work and its broader civic innovation vision to New York City’s civic community.",
       color: "from-blue-500 to-indigo-500",
       badgeColor: "bg-blue-100 text-blue-800",
     },
     {
       date: "Fall 2025",
       title: "First Cross-Campus Gathering",
-      location: "16 CUNY Campuses Connected",
+      location: "16 CUNY Campuses",
       icon: "🤝",
-      description: "Brought together faculty, student fellows, and civic leaders from 16 distinct CUNY campuses to share research models, identify academic synergies, and collaborate on shared urban challenges.",
+      description: "Faculty, students, and civic leaders from 16 campuses came together to surface shared interests and opportunities for collaboration.",
       color: "from-emerald-500 to-teal-500",
       badgeColor: "bg-emerald-100 text-emerald-800",
     },
     {
       date: "Spring 2026",
-      title: "Soft Launch of the Network Tool",
-      location: "New York City College of Technology (City Tech)",
+      title: "INI.network Soft Launch",
+      location: "City Tech",
       icon: "🌐",
-      description: "Deployed the first interactive version of the INI Collaboration Network platform, facilitating seamless search, mapping, and collaboration across the CUNY directory.",
+      description: "The first interactive version of the collaboration platform launched with tools for discovery, mapping, and network exploration.",
       color: "from-purple-500 to-indigo-500",
       badgeColor: "bg-purple-100 text-purple-800",
     },
     {
       date: "Present",
-      title: "Five Cohorts Activated",
+      title: "Five Student Cohorts Activated",
       location: "Across the CUNY Ecosystem",
       icon: "🎓",
-      description: "Actively training and coordinating our fifth consecutive student fellow cohort, building a sustainable, long-term human infrastructure for civic innovation in New York City.",
+      description: "INI continues developing career-connected fellowships while expanding the people, information, and relationships powering the network.",
       color: "from-amber-500 to-orange-500",
       badgeColor: "bg-amber-100 text-amber-800",
     },
@@ -60,7 +60,7 @@ export default function AboutPage() {
     {
       title: "Ecosystem Mapping",
       subtitle: "Research & Discovery",
-      description: "Conducting critical research to identify active civic efforts, academic interests, and resources across all 25 CUNY campuses.",
+      description: "Identify civic initiatives, academic interests, expertise, and resources across CUNY & NYC.",
       icon: (
         <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
@@ -70,8 +70,8 @@ export default function AboutPage() {
     },
     {
       title: "Platform Infrastructure",
-      subtitle: "Data & Tech Stack",
-      description: "Improving search functionality, mapping tools, AI integrations, and maintaining clean database layers for CUNY's 1400+ directory records.",
+      subtitle: "Data & Technology",
+      description: "Improve search, mapping, AI integrations, and the data infrastructure behind 1,400+ network records.",
       icon: (
         <svg className="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
@@ -82,7 +82,7 @@ export default function AboutPage() {
     {
       title: "Relationship Building",
       subtitle: "Community Outreach",
-      description: "Connecting academic departments, student cohorts, and external community leaders to foster interdisciplinary networks.",
+      description: "Connect campuses, departments, students, and civic partners around shared interests and opportunities.",
       icon: (
         <svg className="w-7 h-7 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -93,7 +93,7 @@ export default function AboutPage() {
     {
       title: "Civic Innovation",
       subtitle: "Applied Projects",
-      description: "Deploying research models into real-world applications, testing policy frameworks, and developing public-interest technologies.",
+      description: "Translate research and ideas into public-interest technologies, policy experiments, and real-world applications.",
       icon: (
         <svg className="w-7 h-7 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -127,29 +127,12 @@ export default function AboutPage() {
           </h1>
 
           <p className="text-lg md:text-xl text-slate-300 max-w-3xl leading-relaxed">
-            Founded in Fall 2024 to expand real-world, career-connected learning opportunities for CUNY students while enabling new forms of cross-campus collaboration rooted in civic impact.
+            Founded in Fall 2024, <strong>INI</strong> was created to better connect <strong>CUNY’s talent, research, and technology with the civic challenges shaping New York City</strong>—while expanding career-connected learning and collaboration across campuses and communities.
           </p>
         </div>
       </section>
 
-      {/* 2. CORE APPROACH */}
-      <section className="max-w-5xl mx-auto px-6 -mt-8 relative z-20">
-        <div className="bg-white p-8 rounded-3xl shadow-xl border border-slate-100 flex flex-col md:flex-row items-center gap-6 md:gap-8">
-          <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center shrink-0">
-            <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Distributed, Campus-Driven Model</h2>
-            <p className="text-slate-600 leading-relaxed">
-              INI operates through a distributed, campus-driven model — working directly with faculty, departments, students, and community partners across the CUNY ecosystem rather than through a single central office.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. HOW INI BEGAN */}
+      {/* 2. HOW INI BEGAN & EARLY FOUNDATIONS */}
       <section className="max-w-5xl mx-auto px-6 py-20">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-stretch">
           {/* Left Narrative */}
@@ -157,20 +140,20 @@ export default function AboutPage() {
             <h2 className="text-3xl font-bold text-slate-900 tracking-tight">How INI Began</h2>
             <div className="text-slate-600 text-base leading-relaxed space-y-4">
               <p>
-                INI began with a belief in CUNY: some of New York City’s greatest talent, research, technology, and civic capacity already exist across its campuses. The opportunity is to better connect and activate them.
+                INI grew from more than <strong>six years of collaboration across CUNY</strong>—from advancing CUNY-developed technology alongside the Chair of Computer Science at <strong>John Jay College</strong>, to relationships with <strong>CUNY’s Tech Talent Pipeline</strong>, to Vngle founder and CUNY alum <strong>Blake Stoner’s</strong> time in the <strong>Craig Newmark Graduate School’s Executive Program in News Innovation and Leadership</strong>.
               </p>
               <p>
-                The vision grew from more than six years of collaboration across CUNY—from advancing CUNY-developed technology alongside the Chair of Computer Science at John Jay College, to relationships with CUNY’s Tech Talent Pipeline, to Vngle founder and CUNY alum Blake Stoner’s time in the Craig Newmark Graduate School’s Executive Program centered on Innovation and Leadership.
+                The idea was rooted in a simple belief: <strong>some of New York City’s greatest talent, research, technology, and civic capacity already exist across CUNY. The opportunity is to better connect and activate them.</strong>
               </p>
               <p>
-                INI moved from vision to action at New York City College of Technology, launching its first student fellowship cohorts with CUNY 2X and expanding connections across campuses and New York City’s civic community.
+                INI moved from vision to action at <strong>New York City College of Technology</strong>, launching its first five student fellowship cohorts with <strong>CUNY 2X</strong> and expanding connections across campuses and NYC’s civic community.
               </p>
               <p>
-                Today, INI.network is building connective infrastructure between CUNY and NYC’s civic community—bringing students, faculty, campuses, and community leaders closer together while making impactful civic, academic, and community initiatives easier to discover and connect across all five boroughs.
+                Today, <strong>INI.network is building connective infrastructure between CUNY and New York City</strong>—making civic, academic, and community initiatives easier to discover and connect across all five boroughs.
               </p>
 
               {/* Blake Stoner Quote Box */}
-              <div className="bg-slate-100/80 p-6 rounded-2xl border border-slate-200/60 space-y-4">
+              <div className="bg-slate-100/80 p-6 rounded-2xl border border-slate-200/60 space-y-4 mt-6">
                 <h3 className="font-extrabold text-slate-900 text-base md:text-lg leading-snug">
                   INI is a bet on CUNY and a stronger civic innovation future for New York City.
                 </h3>
@@ -188,22 +171,40 @@ export default function AboutPage() {
                 </div>
               </div>
             </div>
+
+            {/* A Distributed, Campus-Driven Model (Moved from top) */}
+            <div className="mt-12 bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col md:flex-row items-center gap-6 md:gap-8">
+              <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center shrink-0">
+                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">A Distributed, Campus-Driven Model</h2>
+                <p className="text-slate-600 leading-relaxed">
+                  INI grows through <strong>faculty, departments, students, campus leaders, and civic and community partners across CUNY and New York City</strong>—creating pathways for campus, community, and University-wide collaboration.
+                </p>
+              </div>
+            </div>
           </div>
 
-          {/* Right Core Projects Card */}
+          {/* Right Core Projects Card (Early Foundations) */}
           <div className="lg:col-span-5 h-full">
             <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-white p-8 md:p-10 rounded-3xl shadow-xl relative overflow-hidden h-full flex flex-col justify-between border border-slate-800/80">
               <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
               <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
               
-              <div className="flex-1 flex flex-col justify-between">
+              <div className="flex-1 flex flex-col justify-between z-10 relative">
                 <div>
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-bold text-blue-400 mb-3 uppercase tracking-wider">
                     Foundation
                   </div>
                   <h3 className="text-xl md:text-2xl font-extrabold text-white mb-6 tracking-tight">
-                    Early Focus Areas
+                    Early Foundations
                   </h3>
+                  <p className="text-sm text-slate-400 mb-4">
+                    INI’s earliest work centered on three areas:
+                  </p>
                 </div>
                 
                 <div className="flex-1 flex flex-col justify-around gap-4 my-auto">
@@ -211,10 +212,10 @@ export default function AboutPage() {
                     <div className="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center shrink-0 text-2xl shadow-sm mt-0.5">
                       <span>🔑</span>
                     </div>
-                    <div className="space-y-1">
-                      <h4 className="font-extrabold text-slate-100 text-base">National Provenance Tech</h4>
+                    <div className="space-y-1 ml-3">
+                      <h4 className="font-extrabold text-slate-100 text-base">CUNY-Built Technology</h4>
                       <p className="text-xs md:text-sm text-slate-400 leading-relaxed">
-                        Deploying CUNY-developed provenance technology nationally to protect nonpartisan digital integrity and combat misinformation.
+                        Advancing CUNY-developed provenance technology into real-world applications supporting trusted information and digital integrity.
                       </p>
                     </div>
                   </div>
@@ -223,10 +224,10 @@ export default function AboutPage() {
                     <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center shrink-0 text-2xl shadow-sm mt-0.5">
                       <span>🎓</span>
                     </div>
-                    <div className="space-y-1">
-                      <h4 className="font-extrabold text-slate-100 text-base">Student Applied Research</h4>
+                    <div className="space-y-1 ml-3">
+                      <h4 className="font-extrabold text-slate-100 text-base">Applied Learning</h4>
                       <p className="text-xs md:text-sm text-slate-400 leading-relaxed">
-                        Creating high-impact applied research, fellowship cohorts, and system implementation opportunities for CUNY students.
+                        Creating fellowships, research, and implementation opportunities for CUNY students and faculty to collaborate on real-world challenges.
                       </p>
                     </div>
                   </div>
@@ -235,33 +236,27 @@ export default function AboutPage() {
                     <div className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-400/30 flex items-center justify-center shrink-0 text-2xl shadow-sm mt-0.5">
                       <span>🌍</span>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 ml-3">
                       <h4 className="font-extrabold text-slate-100 text-base">Civic Connection</h4>
                       <p className="text-xs md:text-sm text-slate-400 leading-relaxed">
-                        Connecting academic research and university resources directly with real-world civic systems and local NYC communities.
+                        Connecting CUNY talent and resources with <strong>NYC communities, civic organizations, and public-interest challenges.</strong>
                       </p>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Bottom Card Footer Callout */}
-              <div className="mt-8 pt-5 border-t border-white/10 flex items-center justify-between gap-4 text-xs text-slate-400">
-                <span className="font-semibold text-slate-300">Co-developed across 25 CUNY Campuses</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 4. STUDENT-POWERED NETWORK */}
+      {/* 3. BUILDING THE COLLABORATION NETWORK */}
       <section className="bg-slate-100 border-y border-slate-200 py-20">
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4">A Student-Powered Collaboration Network</h2>
+            <h2 className="text-3xl font-bold text-slate-900 mb-4">Building the Collaboration Network</h2>
             <p className="text-slate-600 text-lg">
-              Every semester, INI student fellows from across CUNY help maintain, strengthen, and expand the collaboration network.
+              Each semester, <strong>INI fellows help strengthen and expand the network</strong> while gaining hands-on experience across technology, research, communications, and civic engagement.
             </p>
           </div>
 
@@ -277,17 +272,10 @@ export default function AboutPage() {
               </div>
             ))}
           </div>
-
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-8 rounded-3xl shadow-lg text-center max-w-4xl mx-auto">
-            <h3 className="text-xl font-bold mb-2">A Living Learning Environment</h3>
-            <p className="text-blue-100 max-w-2xl mx-auto leading-relaxed">
-              This structural foundation creates a living learning environment where CUNY students gain hands-on professional experience while helping strengthen New York City’s broader civic and academic ecosystem.
-            </p>
-          </div>
         </div>
       </section>
 
-      {/* 5. TIMELINE / MILESTONES */}
+      {/* 4. TIMELINE / MILESTONES */}
       <section className="max-w-5xl mx-auto px-6 py-20">
         <div className="text-center max-w-2xl mx-auto mb-16">
           <h2 className="text-3xl font-bold text-slate-900 mb-3">Growth & Milestones</h2>
@@ -343,23 +331,17 @@ export default function AboutPage() {
             </div>
           ))}
         </div>
-
-        <div className="text-center mt-16 max-w-2xl mx-auto">
-          <p className="text-slate-700 font-semibold leading-relaxed">
-            Today, INI continues to grow as a collaborative civic infrastructure initiative designed to strengthen connections between research, students, faculty, and communities across New York City.
-          </p>
-        </div>
       </section>
 
-      {/* 6. CALL TO ACTION */}
+      {/* 5. CALL TO ACTION */}
       <section className="py-16 bg-slate-950 text-white text-center px-6 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none opacity-20">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[300px] bg-blue-600 rounded-full blur-[120px]" />
         </div>
         <div className="relative z-10 max-w-3xl mx-auto">
-          <h2 className="text-3xl font-extrabold mb-4">Want to explore our network?</h2>
+          <h2 className="text-3xl font-extrabold mb-4">Explore the Network</h2>
           <p className="text-slate-400 mb-8 max-w-xl mx-auto">
-            Browse through 1,400+ active faculty members, search core research interests, and explore cross-campus connection paths in real-time.
+            Discover <strong>1,400+ faculty, researchers, civic collaborators, and network connections</strong> across CUNY and New York City.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link
@@ -372,7 +354,7 @@ export default function AboutPage() {
               href="/partners"
               className="px-8 py-3.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors border border-slate-700"
             >
-              Meet Campus Partners
+              Join as a Campus Partner
             </Link>
           </div>
         </div>
