@@ -50,7 +50,7 @@ function PartnersDashboardContent() {
             title: "Consumer Protection & Policy Research",
             partner: "Consumer Reports",
             description: "Collaborating to address critical health, equity, and environmental issues through student-driven local research.",
-            details: "CUNY students helped source real-world insights on toxic chemicals in beauty products across NYC. This applied research contributed directly to data sets informing New York State's historic Beauty Justice legislation.",
+            details: "CUNY students helped gather real-world insights on toxic chemicals in beauty products across NYC, contributing to research informing New York State's Beauty Justice legislation.",
             color: "border-blue-200/60 bg-blue-50/30 hover:border-blue-400",
             badgeColor: "bg-blue-100 text-blue-800",
         },
@@ -58,15 +58,15 @@ function PartnersDashboardContent() {
             badge: "📊 Civic Insights Engine",
             title: "Real-Time Civic Insights",
             partner: "Vngle: The Civic Insights Company",
-            description: "Developing systems that transform grassroots community knowledge into structured, research-ready information.",
-            details: "This work links CUNY student fellows, faculty mentors, and community partners to co-develop research, support public-interest reporting, guide local policy development, and empower community decision-making.",
+            description: "Giving CUNY faculty and campuses access to real-time, community-informed civic insights that can strengthen research, teaching, and applied projects.",
+            details: "Through Vngle’s CivicWire, faculty and students can explore emerging community needs, develop research around real-world signals, and connect academic expertise to public-interest reporting, policy questions, and local decision-making.",
             color: "border-purple-200/60 bg-purple-50/30 hover:border-purple-400",
             badgeColor: "bg-purple-100 text-purple-800",
             bullets: [
-                "Academic Research Integration",
-                "Public-Interest Reporting Pipelines",
-                "Empirical Policy Development Support",
-                "Community & Grassroots Decision-Making"
+                "Applied Research",
+                "Real-Time Civic Data",
+                "Policy Insights",
+                "Community Decision-Making"
             ]
         }
     ];
@@ -75,7 +75,7 @@ function PartnersDashboardContent() {
         {
             title: "Faculty",
             focus: "Research & Mentorship",
-            description: "Integrating applied civic projects into standard coursework, co-developing research or technology, and mentoring student cohorts.",
+            description: "Integrate applied civic challenges into coursework, co-develop research or technology, and mentor student fellows.",
             icon: (
                 <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
@@ -86,7 +86,7 @@ function PartnersDashboardContent() {
         {
             title: "Students",
             focus: "Fellowships & Labs",
-            description: "Gaining real-world experiential learning opportunities through paid fellowships, civic tech implementation labs, and community initiatives.",
+            description: "Gain career-connected experience through paid opportunities, course-credit civic technology labs, or community initiatives.",
             icon: (
                 <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
@@ -96,8 +96,8 @@ function PartnersDashboardContent() {
         },
         {
             title: "Programs & Offices",
-            focus: "Career & Workforce",
-            description: "Partnering with career services, student innovation centers, and college departments to build career-connected workforce pathways.",
+            focus: "Career & Workforce Pathways",
+            description: "Partner with INI to expand experiential learning, internships, and career-connected opportunities.",
             icon: (
                 <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
@@ -111,7 +111,7 @@ function PartnersDashboardContent() {
         {
             num: "01",
             title: "Career-Connected Learning",
-            description: "Expanding hands-on, credit-bearing, or stipend-supported opportunities that equip CUNY students with in-demand civic tech and research skills."
+            description: "Expand hands-on opportunities that build in-demand research, technology, collaboration, and civic problem-solving skills."
         },
         {
             num: "02",
@@ -121,51 +121,51 @@ function PartnersDashboardContent() {
         {
             num: "03",
             title: "Real-World Community Impact",
-            description: "Ensuring academic research doesn't stop at publishing, but connects directly to NYC community groups, public policy, and local legislation."
+            description: "Connect academic expertise more directly with NYC organizations, communities, and public challenges."
         },
         {
             num: "04",
-            title: "Civic Infrastructure Role",
-            description: "Solidifying CUNY's growing role in New York City's public interest technology stack and local civic innovation ecosystems."
+            title: "Civic Innovation Leadership",
+            description: "Strengthen CUNY's role as a citywide engine for public-interest technology and civic innovation."
         }
     ];
 
     // --- STUDENT OPPORTUNITIES DATA ---
     const studentCategories = [
         {
-            role: "💻 Developers",
-            skills: "Python, React, Next.js, and AI API integration.",
+            role: "💻 Technology",
+            skills: "Software development, AI, APIs, and civic technology.",
         },
         {
-            role: "📊 Data Analysts",
-            skills: "Cleaning and mapping CUNY research datasets.",
+            role: "📊 Data & Research",
+            skills: "Data analysis, mapping, research, and visualization.",
         },
         {
-            role: "🎨 Designers",
-            skills: "Improving the researcher discovery UX.",
+            role: "🎨 Design & Communications",
+            skills: "UX/UI, storytelling, content, and digital engagement.",
         },
         {
-            role: "⚖️ Policy Experts",
-            skills: "Ensuring nonpartisan data integrity.",
+            role: "🏙 Civic & Community Engagement",
+            skills: "Policy research, outreach, partnerships, and campus organizing.",
         }
     ];
 
     const specificRoles = [
         {
+            title: "Social Media Strategist",
+            desc: "Help amplify INI’s projects and impact across CUNY and NYC through social media, digital storytelling, and campaign content.",
+        },
+        {
+            title: "Network Engineer",
+            desc: "Help evolve the active infrastructure behind INI.network, improving platform functionality, integrations, data flows, and network capabilities.",
+        },
+        {
             title: "UX Designer",
-            desc: "Crafting intuitive interfaces for the research discovery engine to connect users cleanly.",
+            desc: "Design intuitive experiences that make civic information, people, and collaboration opportunities easier to discover and navigate.",
         },
         {
-            title: "CUNY Community Checker",
-            desc: "Ensuring data integrity and accuracy through meticulous validation and database entry.",
-        },
-        {
-            title: "Campus Network Ambassador",
-            desc: "Expanding our reach across CUNY's campuses and facilitating collaborative connections.",
-        },
-        {
-            title: "Project Lead",
-            desc: "Guiding team workflows, setting milestones, and overseeing platform delivery goals.",
+            title: "Network Ambassador",
+            desc: "Research and verify network information while building connections across CUNY—surfacing faculty, initiatives, organizations, and opportunities that strengthen the broader network.",
         }
     ];
 
@@ -239,9 +239,9 @@ function PartnersDashboardContent() {
                                 </h1>
 
                                 <p className="text-sm md:text-base text-slate-300 max-w-2xl leading-relaxed">
-                                    The Institute for Nonpartisan Innovation (INI) helps CUNY faculty, students, and
-                                    campus programs collaborate on real-world civic challenges through applied research,
-                                    interdisciplinary projects, and cross-campus innovation initiatives.
+                                    INI helps CUNY faculty, students, and campus programs turn academic expertise into
+                                    real-world civic impact through applied research, student fellowships, and cross-campus
+                                    collaboration.
                                 </p>
                             </div>
                         </section>
@@ -262,20 +262,18 @@ function PartnersDashboardContent() {
                                         <h2 className="text-lg font-extrabold text-slate-900 mb-0.5">What INI
                                             Enables</h2>
                                         <p className="text-slate-600 text-sm leading-relaxed">
-                                            INI organizes implementation labs, fellowships, and cohort-based programs
-                                            where students work alongside faculty and external partners on applied civic
-                                            systems and research initiatives aligned with campus strengths and academic
-                                            priorities.
+                                            INI organizes fellowships, implementation labs, and applied projects that connect
+                                            students and faculty with external partners around real civic challenges aligned with
+                                            campus strengths.
                                         </p>
                                     </div>
                                 </div>
 
                                 <div className="border-t border-slate-100 pt-4">
                                     <p className="text-slate-600 text-xs leading-relaxed">
-                                        <strong>Fellowship Impact:</strong> Each semester, stipend-supported INI student
-                                        fellows across CUNY help maintain and expand the collaboration network while
-                                        contributing to projects connected to civic technology, public-interest
-                                        research, and community impact.
+                                        <strong>Fellowship Impact:</strong> Each semester, INI fellows across CUNY help expand
+                                        the collaboration network while contributing to civic technology, public-interest
+                                        research, and community initiatives.
                                     </p>
                                 </div>
                             </div>
@@ -286,8 +284,8 @@ function PartnersDashboardContent() {
                             <div className="mb-10 text-center sm:text-left">
                                 <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-2">Example
                                     Collaboration Areas</h2>
-                                <p className="text-slate-500 text-sm">See how CUNY faculty and students have worked with
-                                    leading civic organizations to create state-level and city-wide impacts.</p>
+                                <p className="text-slate-500 text-sm">See how CUNY talent can contribute to civic challenges with citywide and statewide
+                                    impact.</p>
                             </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -353,10 +351,8 @@ function PartnersDashboardContent() {
                         <section className="bg-slate-100 border-y border-slate-200 py-12">
                             <div className="max-w-4xl mx-auto px-6">
                                 <div className="text-center sm:text-left mb-10">
-                                    <h2 className="text-2xl font-extrabold text-slate-900 mb-2 tracking-tight">How INI
+                                    <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">How INI
                                         Works with Campuses</h2>
-                                    <p className="text-slate-500 text-sm">INI collaborates with college ecosystems
-                                        across three primary dimensions to establish flexible engagement models.</p>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
@@ -376,31 +372,35 @@ function PartnersDashboardContent() {
 
                                 <div
                                     className="bg-white border border-slate-200 p-6 rounded-2xl max-w-2xl mx-auto shadow-sm text-center">
-                                    <h3 className="font-extrabold text-slate-900 mb-4 uppercase text-[10px] tracking-wider">Available
-                                        Participation Models</h3>
+                                    <h3 className="font-extrabold text-slate-900 mb-4 uppercase text-[10px] tracking-wider">
+                                        Participation can include:
+                                    </h3>
                                     <div className="flex flex-wrap justify-center gap-3">
-                    <span
-                        className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                      💰 Stipends
-                    </span>
+                                        <span
+                                            className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                            💰 Stipends
+                                        </span>
                                         <span
                                             className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100">
-                      🎓 Academic Credit
-                    </span>
+                                            🎓 Academic Credit
+                                        </span>
                                         <span
                                             className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                      💼 Internships & Labs
-                    </span>
+                                            💼 Internships
+                                        </span>
+                                        <span
+                                            className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-100">
+                                            🔬 Applied Labs
+                                        </span>
                                     </div>
                                 </div>
                             </div>
                         </section>
 
-                        {/* Strategic Value for CUNY */}
+                        {/* Value to CUNY */}
                         <section className="max-w-4xl mx-auto px-6 py-12">
                             <div className="mb-10 text-center sm:text-left">
-                                <h2 className="text-2xl font-extrabold text-slate-900 mb-2 tracking-tight">Strategic
-                                    Value for CUNY</h2>
+                                <h2 className="text-2xl font-extrabold text-slate-900 mb-2 tracking-tight">Value to CUNY</h2>
                                 <p className="text-slate-500 text-sm">Strengthening and amplifying existing campus
                                     initiatives through structural civic support.</p>
                             </div>
@@ -434,30 +434,29 @@ function PartnersDashboardContent() {
                   </span>
 
                                     <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight mb-3">
-                                        Co-Develop Civic Innovation
+                                        Build With INI
                                     </h2>
 
                                     <p className="text-slate-300 text-xs md:text-sm mb-6 leading-relaxed max-w-xl">
-                                        We welcome collaboration with faculty, research centers, academic departments,
-                                        and campus programs across CUNY. Let's explore how INI can support your campus,
-                                        students, and community partnerships.
+                                        We welcome faculty, research centers, departments, and campus programs across CUNY to
+                                        co-develop opportunities for students, research, technology, and civic impact.
                                     </p>
 
                                     <div className="border-t border-white/10 pt-4 mb-6">
                                         <h3 className="font-bold text-[10px] uppercase text-slate-400 tracking-wider mb-3">Potential
-                                            Collaboration Areas</h3>
+                                            collaborations include:</h3>
                                         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-200">
                                             <li className="flex items-center gap-2"><span
-                                                className="text-indigo-400">✓</span> Coursework project integration
+                                                className="text-indigo-400">✓</span> Student fellowships and career pathways
                                             </li>
                                             <li className="flex items-center gap-2"><span
-                                                className="text-indigo-400">✓</span> Co-developing research / tech
+                                                className="text-indigo-400">✓</span> Coursework and applied projects
                                             </li>
                                             <li className="flex items-center gap-2"><span
-                                                className="text-indigo-400">✓</span> Student engagement pathways
+                                                className="text-indigo-400">✓</span> Research or technology development
                                             </li>
                                             <li className="flex items-center gap-2"><span
-                                                className="text-indigo-400">✓</span> Cross-campus collaborations
+                                                className="text-indigo-400">✓</span> Cross-campus initiatives
                                             </li>
                                         </ul>
                                     </div>
@@ -466,7 +465,7 @@ function PartnersDashboardContent() {
                                         href={PARTNER_MAILTO}
                                         className="inline-block bg-white text-indigo-900 font-extrabold py-3 px-6 rounded-xl hover:bg-indigo-50 transition-all hover:scale-105 shadow-md shadow-black/25 text-xs text-center"
                                     >
-                                        Get in contact here
+                                        Explore a Partnership
                                     </a>
                                 </div>
                             </div>
@@ -493,31 +492,35 @@ function PartnersDashboardContent() {
                                     CUNY Student Opportunities
                                 </div>
 
-                                <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-4 leading-tight">
-                                    Join the INI <br/>
+                                <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-2 leading-tight">
+                                    Build Your Career. <br/>
                                     <span
                                         className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-400">
-                    Student Fellowship Network
+                    Strengthen NYC.
                   </span>
                                 </h1>
 
+                                <h2 className="text-base md:text-lg font-bold text-emerald-300 mb-4">
+                                    Join the INI Student Fellowship Network
+                                </h2>
+
                                 <p className="text-sm md:text-base text-slate-300 max-w-2xl leading-relaxed">
-                                    Every semester, INI student fellows across CUNY help maintain, strengthen, and
-                                    expand the discovery network. Gain hands-on learning while building public-interest
-                                    tech and civic systems.
+                                    Each semester, INI Fellows from across CUNY gain career-connected experience while
+                                    building technology, research, and collaboration infrastructure that strengthens civic
+                                    innovation across New York City.
                                 </p>
                             </div>
                         </section>
 
-                        {/* Mission Statement */}
+                        {/* What You'll Work On */}
                         <section className="max-w-4xl mx-auto px-6 -mt-8 relative z-20">
                             <div
                                 className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-6 rounded-2xl shadow-lg">
-                                <h2 className="text-lg font-extrabold mb-1">Our Mission</h2>
+                                <h2 className="text-lg font-extrabold mb-1">What You'll Work On</h2>
                                 <p className="text-emerald-50 text-xs md:text-sm leading-relaxed max-w-3xl">
-                                    We are developing a first-of-its-kind discovery engine to bridge the gap between
-                                    CUNY researchers, students, and civic leaders. We are looking for ambitious
-                                    communicators, developers, data scientists, and community ambassadors.
+                                    INI connects CUNY students, researchers, faculty, and civic leaders around real-world
+                                    challenges. Fellows contribute their skills to projects spanning technology, data, design,
+                                    research, and community engagement.
                                 </p>
                             </div>
                         </section>
@@ -525,10 +528,9 @@ function PartnersDashboardContent() {
                         {/* Who we are looking for */}
                         <section className="max-w-4xl mx-auto px-6 py-12">
                             <div className="mb-10 text-center sm:text-left">
-                                <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-2">Who We Are
+                                <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-2">Who We're
                                     Looking For</h2>
-                                <p className="text-slate-500 text-sm">We recruit interdisciplinary student contributors
-                                    across 25 CUNY campuses for multiple core skillsets.</p>
+                                <p className="text-slate-500 text-sm">We welcome students across CUNY with skills or interests in:</p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
@@ -549,12 +551,11 @@ function PartnersDashboardContent() {
 
                             <hr className="border-slate-200 my-8"/>
 
-                            {/* Roles Available */}
+                            {/* Fellowship Roles */}
                             <div className="mb-10 text-center sm:text-left">
-                                <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-2">Roles
-                                    Available</h2>
-                                <p className="text-slate-500 text-sm">These roles form active semester-long cohorts
-                                    designed to strengthen CUNY's civic tech infrastructure.</p>
+                                <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-2">Fellowship
+                                    Roles</h2>
+                                <p className="text-slate-500 text-sm">Roles vary by semester and project needs, with opportunities including:</p>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -574,10 +575,13 @@ function PartnersDashboardContent() {
                         {/* Student Call to Action */}
                         <section className="max-w-4xl mx-auto px-6 mb-4">
                             <div className="bg-white border border-slate-200 p-8 rounded-2xl shadow-sm text-center">
-                                <h3 className="text-lg font-extrabold text-slate-900 mb-2">Ready to Contribute?</h3>
+                                <h3 className="text-xl font-extrabold text-slate-900 mb-2">Ready to Contribute?</h3>
+                                <p className="text-emerald-700 font-bold text-sm mb-2">
+                                    Build your skills while helping CUNY and NYC collaborate better.
+                                </p>
                                 <p className="text-slate-600 text-xs md:text-sm mb-6 max-w-md mx-auto leading-relaxed">
-                                    Join the team building civic infrastructure for 25 CUNY campuses. Accelerate your
-                                    career with real-world learning.
+                                    Join a growing network of CUNY students gaining real-world experience through civic
+                                    technology, research, and community-connected innovation.
                                 </p>
                                 <a
                                     href={GOOGLE_FORM_URL}
