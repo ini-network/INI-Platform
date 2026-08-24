@@ -51,6 +51,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/map" className="hover:text-white transition-colors">
+                  Public Data Map
+                </Link>
+              </li>
+              <li>
                 <Link href="/explore" className="hover:text-white transition-colors">
                   Network View
                 </Link>

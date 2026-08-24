@@ -46,7 +46,7 @@ export async function proxy(request: NextRequest) {
 
   // THE BOUNCER LOGIC
   // List routes that require authentication
-  const protectedRoutes = ['/admin', '/profile', '/map', '/explore', '/matches', '/news', '/reports'];
+  const protectedRoutes = ['/admin', '/profile', '/explore', '/matches'];
 
   const isProtectedRoute = protectedRoutes.some(route =>
     request.nextUrl.pathname.startsWith(route)

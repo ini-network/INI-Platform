@@ -428,7 +428,10 @@ export default function HomePage() {
             </div>
 
             {/* Feature 4: Public Data Map */}
-            <div className="group bg-slate-50/50 p-8 rounded-3xl border border-slate-200/80 hover:bg-white hover:border-cyan-300 hover:shadow-xl transition-all duration-300 flex flex-col text-center">
+            <Link
+              href="/map"
+              className="group bg-slate-50/50 p-8 rounded-3xl border border-slate-200/80 hover:bg-white hover:border-cyan-300 hover:shadow-xl transition-all duration-300 flex flex-col text-center"
+            >
               <div className="flex flex-row items-center justify-center gap-4 mb-4">
                 <div className="w-14 h-14 bg-cyan-50 text-cyan-600 rounded-2xl flex items-center justify-center border border-cyan-100 group-hover:scale-110 transition-transform shadow-sm shrink-0">
                   <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -442,7 +445,7 @@ export default function HomePage() {
               <p className="text-xs md:text-sm text-slate-600 leading-relaxed max-w-sm mx-auto">
                 Access recent neighborhood-level civic information across NYC—connecting local representatives, community reports, and ongoing issues so you can better understand what’s happening.
               </p>
-            </div>
+            </Link>
 
           </div>
         </div>
