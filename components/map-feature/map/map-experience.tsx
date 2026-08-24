@@ -457,15 +457,15 @@ export function MapExperience({
       <div className={mapStyles.modeToggle} role="group" aria-label="Map view">
         <button
           type="button"
-          className={`${mapStyles.modeBtn}${
-            mode === "signals" ? ` ${mapStyles.modeBtnActive}` : ""
-          }`}
+          className={`${mapStyles.modeBtn}${mode === "signals" ? ` ${mapStyles.modeBtnActive}` : ""
+            }`}
           aria-pressed={mode === "signals"}
           onClick={() => handleModeChange("signals")}
         >
           Community Signals
         </button>
-        <button
+        {/* Civic Districts currently not implemented */}
+        {/*<button
           type="button"
           className={`${mapStyles.modeBtn}${
             mode === "civic" ? ` ${mapStyles.modeBtnActive}` : ""
@@ -474,7 +474,7 @@ export function MapExperience({
           onClick={() => handleModeChange("civic")}
         >
           Civic Districts
-        </button>
+        </button> */}
         {/* The guide teaches the Signals lens; when signals are unavailable its
             Filter stop is unanchorable, so hide the launcher rather than open a
             soft-broken tour (finding 2). */}
