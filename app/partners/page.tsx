@@ -307,11 +307,11 @@ function PartnersDashboardContent() {
                                                     {collab.badge}
                                                 </span>
                                                 {collab.logo && (
-                                                    <div className="h-11 px-4 py-1.5 bg-white rounded-xl border border-slate-200/80 shadow-xs flex items-center shrink-0">
+                                                    <div className="h-11 min-w-11 px-3 py-1.5 bg-white rounded-xl border border-slate-200/80 shadow-xs flex items-center justify-center shrink-0">
                                                         <img
                                                             src={collab.logo}
                                                             alt={collab.partner}
-                                                            className="h-7.5 w-auto max-w-30 object-contain"
+                                                            className="h-8 max-h-8 w-auto max-w-30 object-contain"
                                                         />
                                                     </div>
                                                 )}

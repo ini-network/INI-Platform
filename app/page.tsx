@@ -396,6 +396,9 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
+            <p className="mt-2.5 sm:mt-3.5 px-2 text-center text-xs sm:text-sm text-slate-500 italic font-medium leading-relaxed">
+              By building connections across CUNY, we can help transform NYC into a more collaborative civic network
+            </p>
           </div>
         </div>
       </section>

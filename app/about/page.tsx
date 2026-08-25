@@ -163,7 +163,7 @@ export default function AboutPage() {
                 </div>
               </div>
               <p className="mt-3 px-1 text-center lg:text-left text-xs text-slate-400 italic font-medium leading-relaxed">
-                CUNY alum Blake Stoner with winners of the Vngle-sponsored John Jay College hackathon that helped inspire INI.
+                CUNY alums Blake Stoner and Brandon Huang with winners of the Vngle-sponsored John Jay College hackathon that helped inspire INI.
               </p>
             </div>
           </div>
@@ -231,7 +231,7 @@ export default function AboutPage() {
             <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-white p-8 md:p-10 rounded-3xl shadow-xl relative overflow-hidden h-full flex flex-col justify-between border border-slate-800/80">
               <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
               <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-              
+
               <div className="flex-1 flex flex-col justify-between z-10 relative">
                 <div>
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-bold text-blue-400 mb-3 uppercase tracking-wider">
@@ -244,7 +244,7 @@ export default function AboutPage() {
                     INI’s earliest work centered on three areas:
                   </p>
                 </div>
-                
+
                 <div className="flex-1 flex flex-col justify-around gap-4 my-auto">
                   <div className="flex gap-4.5 items-start p-4.5 rounded-2xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.07] transition-colors">
                     <div className="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center shrink-0 text-2xl shadow-sm mt-0.5">
@@ -257,7 +257,7 @@ export default function AboutPage() {
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex gap-4.5 items-start p-4.5 rounded-2xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.07] transition-colors">
                     <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center shrink-0 text-2xl shadow-sm mt-0.5">
                       <span>🎓</span>
@@ -478,14 +478,14 @@ export default function AboutPage() {
                 <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mb-3 text-2xl shadow-xs group-hover:scale-105 transition-transform">
                   {item.icon}
                 </div>
-                
+
                 {/* Title & Location */}
                 <h3 className="font-extrabold text-slate-900 text-lg md:text-xl flex flex-col sm:flex-row sm:items-center justify-center gap-1 sm:gap-2 mb-2">
                   <span>{item.title}</span>
                   <span className="hidden sm:inline text-slate-300">|</span>
                   <span className="text-sm font-semibold text-slate-500">{item.location}</span>
                 </h3>
-                
+
                 {/* Description */}
                 <p className="text-slate-600 text-sm leading-relaxed max-w-xl mx-auto">
                   {item.description}

@@ -1,13 +1,15 @@
 import { Suspense } from "react";
-import { createClient as createServerClient } from "@/utils/supabase/server";
-import { cookies } from "next/headers";
+import { createClient } from "@supabase/supabase-js";
 import DirectoryClient, { Contact } from "./directory-client";
 
-export const dynamic = "force-dynamic";
+// Cache public directory contacts and revalidate in background every 2 minutes
+export const revalidate = 120;
 
-export default async function DirectoryPage() {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(cookieStore);
+async function DirectoryData() {
+    const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
 
     // Query active database contacts joining relative relational tags/domains
     const { data, error } = await supabase
@@ -26,13 +28,24 @@ export default async function DirectoryPage() {
         console.error("Failed to load directory data on server:", error);
     }
 
+    return <DirectoryClient initialContacts={initialContacts} />;
+}
+
+export default function DirectoryPage() {
     return (
         <Suspense fallback={
-            <div className="flex h-screen w-full items-center justify-center bg-slate-50 font-sans p-8">
-                <div className="text-slate-500 text-sm font-medium animate-pulse">Loading Directory...</div>
+            <div className="flex h-full w-full items-center justify-center bg-slate-50 font-sans p-8">
+                <div className="flex flex-col items-center gap-3">
+                    <div className="flex space-x-2">
+                        <div className="w-3 h-3 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-3 h-3 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-3 h-3 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    </div>
+                    <div className="text-slate-500 text-sm font-medium">Loading Directory...</div>
+                </div>
             </div>
         }>
-            <DirectoryClient initialContacts={initialContacts} />
+            <DirectoryData />
         </Suspense>
     );
 }
