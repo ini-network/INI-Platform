@@ -93,13 +93,14 @@ export default function HomePage() {
               </svg>
               <span>See how INI.network works:</span>
             </p>
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-white/10 bg-black aspect-video flex items-center justify-center">
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-white/10 bg-slate-950 aspect-video flex items-center justify-center">
               <video
                 controls
-                className="w-full h-full object-contain"
+                playsInline
                 preload="metadata"
+                className="w-full h-full object-contain"
               >
-                <source src="/assets/videos/INI Network Demo Video.mp4" type="video/mp4" />
+                <source src="/assets/videos/INI Network Demo Video.mp4#t=0.001" type="video/mp4" />
                 Your browser does not support the video tag.
               </video>
             </div>
