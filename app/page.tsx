@@ -85,16 +85,24 @@ export default function HomePage() {
             The Institute for Nonpartisan Innovation (INI) Collaboration Network helps faculty, students, and community partners discover expertise, build cross-campus partnerships, and turn research into real-world civic impact.
           </p>
 
-          {/* Demo Video */}
-          <div className="relative max-w-4xl mx-auto rounded-3xl overflow-hidden shadow-2xl border border-white/10 bg-black aspect-video flex items-center justify-center mb-10">
-            <video
-              controls
-              className="w-full h-full object-contain"
-              preload="metadata"
-            >
-              <source src="/assets/videos/INI Network Demo Video.mp4" type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
+          {/* Demo Video Header & Video */}
+          <div className="max-w-4xl mx-auto mb-10">
+            <p className="text-sm md:text-base font-semibold text-indigo-200 mb-3 text-center sm:text-left flex items-center justify-center sm:justify-start gap-2">
+              <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              <span>See how INI.network works:</span>
+            </p>
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-white/10 bg-black aspect-video flex items-center justify-center">
+              <video
+                controls
+                className="w-full h-full object-contain"
+                preload="metadata"
+              >
+                <source src="/assets/videos/INI Network Demo Video.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            </div>
           </div>
 
           {/* Co-Powered Branding Statement */}
@@ -370,6 +378,24 @@ export default function HomePage() {
               </p>
             </div>
 
+          </div>
+
+          {/* Visual Showcase: Cross-Ecosystem Collaboration Network Map */}
+          <div className="mt-10 sm:mt-14 max-w-2xl mx-auto w-full px-1 sm:px-0">
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-linear-to-r from-emerald-500/20 via-indigo-500/20 to-purple-500/20 rounded-2xl sm:rounded-3xl blur-md opacity-70 group-hover:opacity-100 transition duration-500" />
+              <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/80 bg-white p-1.5 sm:p-3 shadow-md sm:shadow-lg">
+                <div className="relative aspect-1024/974 w-full bg-slate-50 rounded-xl sm:rounded-2xl overflow-hidden">
+                  <Image
+                    src="/images/ini-cuny-ecosystem-map.jpg"
+                    alt="Map of CUNY Cross-Ecosystem Collaboration Network across NYC boroughs"
+                    fill
+                    className="object-contain transition-transform duration-500 group-hover:scale-[1.01]"
+                    sizes="(max-width: 640px) 100vw, 672px"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
