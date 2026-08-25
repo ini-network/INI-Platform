@@ -107,7 +107,6 @@ export default function AboutPage() {
   const testimonialVideos = [
     { id: "DMbMEQB590g", name: "Roxana Remache", title: "Roxana Remache - INI Fellow Testimonial" },
     { id: "GvHyWCZDgpg", name: "Javaugn Lindsey", title: "Javaugn Lindsey - INI Fellow Testimonial" },
-    { id: "XhWdcJjhGgo", name: "Assel Alkobaldi", title: "Assel Alkobaldi - INI Fellow Testimonial" },
     { id: "J_nUPiCgEdc", name: "Travis Crumble", title: "Travis Crumble - INI Fellow Testimonial" },
     { id: "Law-V7xB3zQ", name: "Randy Lucero", title: "Randy Lucero - INI Fellow Testimonial" },
     { id: "K2YJ1aKybj8", name: "Diamond Williams", title: "Diamond Williams - INI Fellow Testimonial" },
