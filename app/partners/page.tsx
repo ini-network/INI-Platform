@@ -56,6 +56,7 @@ function PartnersDashboardContent() {
         },
         {
             badge: "📊 Civic Insights Engine",
+            logo: "/images/vngle-logo.png",
             title: "Real-Time Civic Insights",
             partner: "Vngle: The Civic Insights Company",
             description: "Giving CUNY faculty and campuses access to real-time, community-informed civic insights that can strengthen research, teaching, and applied projects.",
@@ -209,10 +210,17 @@ function PartnersDashboardContent() {
             </div>
 
             {/* VIEWPORT AREA */}
-            <div className="flex-1 h-full overflow-y-auto selection:bg-indigo-100 selection:text-indigo-900">
+            <div className="flex-1 h-full relative overflow-hidden">
 
                 {/* ================= CAMPUS PARTNERS VIEW ================= */}
-                {activeTab === "partners" && (
+                <div
+                    className={`absolute inset-0 overflow-y-auto selection:bg-indigo-100 selection:text-indigo-900 transition-opacity duration-300 ${
+                        activeTab === "partners"
+                            ? "opacity-100 z-10 pointer-events-auto"
+                            : "opacity-0 z-0 pointer-events-none"
+                    }`}
+                    aria-hidden={activeTab !== "partners"}
+                >
                     <div className="animate-in fade-in duration-300">
                         {/* Hero Header */}
                         <section className="relative bg-slate-900 text-white pt-16 pb-16 overflow-hidden">
@@ -299,11 +307,11 @@ function PartnersDashboardContent() {
                                                     {collab.badge}
                                                 </span>
                                                 {collab.logo && (
-                                                    <div className="h-9 px-3.5 py-1 bg-white rounded-xl border border-blue-200/80 shadow-xs flex items-center shrink-0">
+                                                    <div className="h-11 px-4 py-1.5 bg-white rounded-xl border border-slate-200/80 shadow-xs flex items-center shrink-0">
                                                         <img
                                                             src={collab.logo}
                                                             alt={collab.partner}
-                                                            className="h-6 w-auto object-contain"
+                                                            className="h-7.5 w-auto max-w-30 object-contain"
                                                         />
                                                     </div>
                                                 )}
@@ -471,10 +479,18 @@ function PartnersDashboardContent() {
                             </div>
                         </section>
                     </div>
-                )}
+                    <Footer />
+                </div>
 
                 {/* ================= STUDENT OPPORTUNITIES VIEW ================= */}
-                {activeTab === "student" && (
+                <div
+                    className={`absolute inset-0 overflow-y-auto selection:bg-indigo-100 selection:text-indigo-900 transition-opacity duration-300 ${
+                        activeTab === "student"
+                            ? "opacity-100 z-10 pointer-events-auto"
+                            : "opacity-0 z-0 pointer-events-none"
+                    }`}
+                    aria-hidden={activeTab !== "student"}
+                >
                     <div className="animate-in fade-in duration-300">
                         {/* Hero Header */}
                         <section className="relative bg-slate-900 text-white pt-16 pb-16 overflow-hidden">
@@ -594,9 +610,8 @@ function PartnersDashboardContent() {
                             </div>
                         </section>
                     </div>
-                )}
-
-                <Footer />
+                    <Footer />
+                </div>
             </div>
         </div>
     );
