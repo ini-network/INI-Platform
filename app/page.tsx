@@ -69,7 +69,7 @@ export default function HomePage() {
           {/* Subtitle Badge */}
           <div className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full bg-white/10 border border-white/15 text-lg md:text-xl font-bold text-indigo-200 mb-6 backdrop-blur-md shadow-lg">
             <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
-            Unsiloing Collaboration Across 25 Campuses & 5 Boroughs
+            Unsiloing Collaboration Across 26 Campuses & 5 Boroughs
           </div>
 
           {/* Main H1 Title */}
@@ -290,7 +290,7 @@ export default function HomePage() {
               </div>
             </div>
             <p className="mt-2.5 sm:mt-3.5 px-2 text-center text-xs sm:text-sm text-slate-500 italic font-medium leading-relaxed">
-              “Introducing INI at Baruch College through Dr. Angie Beeman’s Public Service Capstone course.”
+              Introducing INI at Baruch College through Dr. Angie Beeman’s Public Service Capstone course.
             </p>
           </div>
 

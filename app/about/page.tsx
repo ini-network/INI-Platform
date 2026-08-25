@@ -163,7 +163,7 @@ export default function AboutPage() {
                 </div>
               </div>
               <p className="mt-3 px-1 text-center lg:text-left text-xs text-slate-400 italic font-medium leading-relaxed">
-                “CUNY alum Blake Stoner with winners of the Vngle-sponsored John Jay College hackathon that helped inspire INI.”
+                CUNY alum Blake Stoner with winners of the Vngle-sponsored John Jay College hackathon that helped inspire INI.
               </p>
             </div>
           </div>
