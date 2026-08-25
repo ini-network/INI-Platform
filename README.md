@@ -1,6 +1,6 @@
 # INI Collaboration Network
 
-Welcome to the INI (Institute for Nonpartisan Innovation) Collaboration Network. This platform is designed to power civic innovation across New York City by unsiloing collaboration across 25 CUNY campuses and 5 boroughs. It helps faculty, students, and community partners discover expertise, build cross-campus partnerships, and turn research into real-world civic impact.
+Welcome to the INI (Institute for Nonpartisan Innovation) Collaboration Network. This platform is designed to power civic innovation across New York City by unsiloing collaboration across 26 CUNY campuses and 5 boroughs. It helps faculty, students, and community partners discover expertise, build cross-campus partnerships, and turn research into real-world civic impact.
 
 ## What is this project?
 
@@ -8,6 +8,7 @@ The INI Collaboration Network is a modern web application built to serve as a sh
 - **Expert Directory:** A searchable database of faculty, researchers, staff, and civic collaborators.
 - **Interactive Network Map:** Visualizes relationships, research clusters, and collaboration opportunities in real-time.
 - **AI Collaboration Copilot:** Provides contextual guidance on researchers and collaboration pathways.
+- **Impact Showcase:** Highlights the historical context and ongoing success stories of INI Fellows and campus partners through rich media galleries and testimonials.
 
 The platform is co-powered by CUNY campuses and Vngle: The Civic Insights Company.
 
