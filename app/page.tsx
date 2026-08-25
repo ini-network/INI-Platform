@@ -140,12 +140,12 @@ export default function HomePage() {
               {/* Offset backdrop wrapper to match ecosystem card styling */}
               <div className="absolute inset-0 bg-linear-to-tr from-indigo-100/80 to-emerald-100/80 rounded-3xl transform -rotate-1 scale-102 md:scale-103" />
 
-              <div className="relative bg-white rounded-3xl p-10 md:p-14 border border-slate-100/60 shadow-xl overflow-hidden">
+              <div className="relative bg-white rounded-3xl p-6 sm:p-10 md:p-14 border border-slate-100/60 shadow-xl overflow-hidden">
                 {/* Decorative background gradients */}
                 <div className="absolute top-0 right-0 w-96 h-96 bg-linear-to-br from-indigo-500/5 to-purple-500/5 rounded-full blur-3xl -z-10 pointer-events-none" />
                 <div className="absolute -bottom-10 -left-10 w-72 h-72 bg-emerald-500/5 rounded-full blur-3xl -z-10 pointer-events-none" />
 
-                <div className="relative flex flex-col md:flex-row gap-8 md:gap-10 items-start">
+                <div className="relative flex flex-col md:flex-row gap-6 md:gap-10 items-start">
                   {/* Large Decorative Quote Icon */}
                   <div className="hidden md:flex w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100/80 items-center justify-center shrink-0 text-indigo-600">
                     <svg className="w-8 h-8 fill-current" viewBox="0 0 24 24">
@@ -153,17 +153,17 @@ export default function HomePage() {
                     </svg>
                   </div>
 
-                  <div className="flex-1 space-y-8">
-                    <blockquote className="space-y-4">
-                      <span className="block text-3xl md:text-5xl font-extrabold text-slate-900 leading-tight">
+                  <div className="flex-1 space-y-6 sm:space-y-8 w-full">
+                    <blockquote className="space-y-3 sm:space-y-4">
+                      <span className="block text-2xl sm:text-3xl md:text-5xl font-extrabold text-slate-900 leading-tight">
                         “INI has changed lives
                       </span>
-                      <p className="text-lg md:text-2xl text-slate-700 font-medium leading-relaxed">
+                      <p className="text-base sm:text-lg md:text-2xl text-slate-700 font-medium leading-relaxed">
                         by creating new ways for NYC to collaborate, while creating pathways for more of CUNY to discover the impact they can make in their communities.”
                       </p>
                     </blockquote>
 
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pt-8 border-t border-slate-100">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 pt-6 sm:pt-8 border-t border-slate-100">
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2.5 flex-wrap">
                           <span className="font-extrabold text-slate-900 text-base md:text-lg">Arthur Chisolm</span>
@@ -190,6 +190,16 @@ export default function HomePage() {
                           Helped pioneer INI’s first five student fellow cohorts
                         </div>
                       </div>
+
+                      <Link
+                        href="/history#testimonials"
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 sm:py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 font-bold text-xs sm:text-sm rounded-xl border border-indigo-200/80 transition-all duration-200 shadow-xs hover:shadow-sm hover:scale-[1.02] shrink-0"
+                      >
+                        <span>See Testimonials</span>
+                        <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                      </Link>
                     </div>
                   </div>
                 </div>

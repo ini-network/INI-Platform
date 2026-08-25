@@ -314,7 +314,7 @@ export default function AboutPage() {
       </section>
 
       {/* 4. TESTIMONIALS (WHAT INI MAKES POSSIBLE) */}
-      <section className="bg-slate-100/70 border-y border-slate-200/80 py-14 sm:py-20">
+      <section id="testimonials" className="bg-slate-100/70 border-y border-slate-200/80 py-14 sm:py-20 scroll-mt-16">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           {/* Header */}
           <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-14">
