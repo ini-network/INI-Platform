@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import Footer from "@/components/Footer";
 
 
@@ -103,32 +104,69 @@ export default function AboutPage() {
     },
   ];
 
+  const testimonialVideos = [
+    { id: "DMbMEQB590g", name: "Roxana Remache", title: "Roxana Remache - INI Fellow Testimonial" },
+    { id: "GvHyWCZDgpg", name: "Javaugn Lindsey", title: "Javaugn Lindsey - INI Fellow Testimonial" },
+    { id: "XhWdcJjhGgo", name: "Assel Alkobaldi", title: "Assel Alkobaldi - INI Fellow Testimonial" },
+    { id: "J_nUPiCgEdc", name: "Travis Crumble", title: "Travis Crumble - INI Fellow Testimonial" },
+    { id: "Law-V7xB3zQ", name: "Randy Lucero", title: "Randy Lucero - INI Fellow Testimonial" },
+    { id: "K2YJ1aKybj8", name: "Diamond Williams", title: "Diamond Williams - INI Fellow Testimonial" },
+    { id: "FPWau0NK9YY", name: "Maurice Alexander", title: "Maurice Alexander - INI Fellow Testimonial" },
+  ];
+
   return (
     <div className="h-full w-full overflow-y-auto bg-slate-50 font-sans selection:bg-blue-100 selection:text-blue-900">
       {/* 1. HERO SECTION */}
-      <section className="relative bg-slate-900 text-white pt-24 pb-20 overflow-hidden">
+      <section className="relative bg-slate-900 text-white pt-20 pb-16 md:pt-24 md:pb-20 overflow-hidden">
         {/* Glowing Blobs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-1/4 -right-1/4 w-[800px] h-[800px] rounded-full bg-gradient-to-br from-blue-600/20 to-indigo-600/10 blur-3xl" />
-          <div className="absolute -bottom-1/3 -left-1/4 w-[700px] h-[700px] rounded-full bg-gradient-to-tr from-emerald-600/25 to-slate-900/10 blur-3xl" />
+          <div className="absolute -top-1/4 -right-1/4 w-[800px] h-[800px] rounded-full bg-linear-to-br from-blue-600/20 to-indigo-600/10 blur-3xl" />
+          <div className="absolute -bottom-1/3 -left-1/4 w-[700px] h-[700px] rounded-full bg-linear-to-tr from-emerald-600/25 to-slate-900/10 blur-3xl" />
         </div>
 
-        <div className="max-w-5xl mx-auto px-6 relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm font-semibold text-blue-200 mb-6 backdrop-blur-md">
-            <span className="w-2 h-2 rounded-full bg-blue-400"></span>
-            About INI
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            {/* Left Column: Hero Copy */}
+            <div className="lg:col-span-7 space-y-4">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm font-semibold text-blue-200 backdrop-blur-md">
+                <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+                About INI
+              </div>
+
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
+                History of the <br className="hidden sm:block" />
+                <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-400 to-emerald-400">
+                  Institute for Nonpartisan Innovation
+                </span>
+              </h1>
+
+              <p className="text-base sm:text-lg md:text-xl text-slate-300 max-w-2xl leading-relaxed">
+                Founded in Fall 2024, <strong>INI</strong> was created to better connect <strong>CUNY’s talent, research, and technology with the civic challenges shaping New York City</strong>—while expanding career-connected learning and collaboration across campuses and communities.
+              </p>
+            </div>
+
+            {/* Right Column: Hero Photo Showcase */}
+            <div className="lg:col-span-5 mt-4 lg:mt-0">
+              <div className="relative group">
+                <div className="absolute -inset-1 sm:-inset-1.5 bg-linear-to-tr from-blue-500/30 via-emerald-500/20 to-indigo-500/30 rounded-2xl sm:rounded-3xl blur-md sm:blur-lg opacity-80 group-hover:opacity-100 transition duration-500" />
+                <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/15 bg-slate-800/80 backdrop-blur-md shadow-2xl">
+                  <div className="relative aspect-4/3 w-full bg-slate-950/50">
+                    <Image
+                      src="/images/ini-john-jay-hackathon.jpg"
+                      alt="CUNY alum Blake Stoner with winners of the Vngle-sponsored John Jay College hackathon that helped inspire INI"
+                      fill
+                      className="object-cover object-center transition-transform duration-500 group-hover:scale-[1.02]"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 480px"
+                      priority
+                    />
+                  </div>
+                </div>
+              </div>
+              <p className="mt-3 px-1 text-center lg:text-left text-xs text-slate-400 italic font-medium leading-relaxed">
+                “CUNY alum Blake Stoner with winners of the Vngle-sponsored John Jay College hackathon that helped inspire INI.”
+              </p>
+            </div>
           </div>
-
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6 leading-tight">
-            History of the <br className="hidden md:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
-              Institute for Nonpartisan Innovation
-            </span>
-          </h1>
-
-          <p className="text-lg md:text-xl text-slate-300 max-w-3xl leading-relaxed">
-            Founded in Fall 2024, <strong>INI</strong> was created to better connect <strong>CUNY’s talent, research, and technology with the civic challenges shaping New York City</strong>—while expanding career-connected learning and collaboration across campuses and communities.
-          </p>
         </div>
       </section>
 
@@ -275,7 +313,132 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* 4. TIMELINE / MILESTONES */}
+      {/* 4. TESTIMONIALS (WHAT INI MAKES POSSIBLE) */}
+      <section className="bg-slate-100/70 border-y border-slate-200/80 py-14 sm:py-20">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          {/* Header */}
+          <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-14">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-xs font-bold text-blue-700 mb-3.5 sm:mb-4">
+              <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+              Testimonials
+            </div>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-3 sm:mb-4">
+              What INI Makes Possible
+            </h2>
+            <p className="text-xs sm:text-sm md:text-base text-slate-600 leading-relaxed max-w-2xl mx-auto">
+              Hear from the CUNY campus partners and former student fellows helping build a more connected NYC civic innovation ecosystem.
+            </p>
+          </div>
+
+          {/* 1. Campus Partner Testimonial */}
+          <div className="mb-10 sm:mb-14">
+            <div className="text-xs font-bold uppercase tracking-wider text-blue-700 mb-3 sm:mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+              <span>1. Campus Partner Testimonial</span>
+            </div>
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-linear-to-r from-blue-500/20 via-indigo-500/20 to-emerald-500/20 rounded-2xl sm:rounded-3xl blur-md sm:blur-lg opacity-70 group-hover:opacity-100 transition duration-500" />
+              <div className="relative bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-8 border border-slate-200/80 shadow-lg sm:shadow-xl overflow-hidden">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
+                  {/* Video Embed */}
+                  <div className="lg:col-span-7">
+                    <div className="relative aspect-video w-full rounded-xl sm:rounded-2xl overflow-hidden shadow-md bg-slate-900 border border-slate-100">
+                      <iframe
+                        src="https://www.youtube-nocookie.com/embed/XoJVvyXHsHY"
+                        title="Arthur Chisolm - Campus Partner Testimonial"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        className="absolute inset-0 w-full h-full border-0"
+                        loading="lazy"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Narrative & Quote */}
+                  <div className="lg:col-span-5 space-y-3 sm:space-y-4">
+                    <blockquote className="space-y-2 sm:space-y-3">
+                      <span className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 leading-snug block">
+                        “INI has changed lives”
+                      </span>
+                      <p className="text-xs sm:text-sm md:text-base text-slate-600 leading-relaxed italic">
+                        by creating new ways for NYC to collaborate, while creating pathways for more of CUNY to discover the impact they can make in their communities.
+                      </p>
+                    </blockquote>
+
+                    <div className="pt-3 sm:pt-4 border-t border-slate-100 space-y-1">
+                      <div className="font-extrabold text-slate-900 text-sm sm:text-base md:text-lg">
+                        Arthur Chisolm
+                      </div>
+                      <div className="text-xs sm:text-sm text-blue-700 font-semibold">
+                        Former Career & Academic Advisor, CUNY2X Tech at City Tech
+                      </div>
+                      <div className="text-[11px] sm:text-xs text-slate-500">
+                        Helped pioneer INI’s first five student fellow cohorts
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Former Fellow Testimonials */}
+          <div className="mb-10 sm:mb-14">
+            <div className="text-xs font-bold uppercase tracking-wider text-emerald-700 mb-4 sm:mb-6 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+              <span>2. Former Fellow Testimonials</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {testimonialVideos.map((video) => (
+                <div
+                  key={video.id}
+                  className="bg-white rounded-xl sm:rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 shadow-xs sm:shadow-sm hover:shadow-md transition-all duration-300 flex flex-col group"
+                >
+                  <div className="relative aspect-video w-full rounded-lg sm:rounded-xl overflow-hidden bg-slate-900 mb-2.5 sm:mb-3 shadow-xs border border-slate-100">
+                    <iframe
+                      src={`https://www.youtube-nocookie.com/embed/${video.id}`}
+                      title={video.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      className="absolute inset-0 w-full h-full border-0"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-2 mt-auto pt-1">
+                    <span className="text-xs sm:text-sm font-extrabold text-slate-900 line-clamp-1">
+                      {video.name}
+                    </span>
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full shrink-0">
+                      INI Fellow
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Suggested Closing Line & CTA */}
+          <div className="bg-linear-to-r from-blue-50 via-indigo-50/50 to-emerald-50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 border border-blue-100/80 text-center space-y-4 sm:space-y-6">
+            <p className="text-base sm:text-lg md:text-xl font-bold text-slate-900 max-w-2xl mx-auto leading-relaxed">
+              One network. Many perspectives. Growing impact across CUNY and New York City.
+            </p>
+            <div>
+              <Link
+                href="/partners"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm md:text-base rounded-xl transition-all shadow-md hover:shadow-lg shadow-blue-500/25"
+              >
+                <span>Join the Network</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. TIMELINE / MILESTONES */}
       <section className="max-w-5xl mx-auto px-6 py-20">
         <div className="text-center max-w-2xl mx-auto mb-16">
           <h2 className="text-3xl font-bold text-slate-900 mb-3">Growth & Milestones</h2>

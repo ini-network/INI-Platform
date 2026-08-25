@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import Footer from "@/components/Footer";
 
 /**
@@ -270,6 +271,27 @@ export default function HomePage() {
               </div>
             </div>
 
+          </div>
+
+          {/* Photo Showcase: INI at Baruch College */}
+          <div className="mt-10 sm:mt-16 max-w-4xl mx-auto">
+            <div className="relative group">
+              <div className="absolute -inset-1 sm:-inset-1.5 bg-linear-to-r from-indigo-500/20 via-purple-500/20 to-emerald-500/20 rounded-2xl sm:rounded-3xl blur-md sm:blur-lg opacity-70 group-hover:opacity-100 transition duration-500" />
+              <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/80 bg-white shadow-lg sm:shadow-xl">
+                <div className="relative aspect-16/10 sm:aspect-video w-full bg-slate-100">
+                  <Image
+                    src="/images/ini-baruch-capstone.jpg"
+                    alt="Introducing INI at Baruch College through Dr. Angie Beeman’s Public Service Capstone course"
+                    fill
+                    className="object-cover object-[center_30%] sm:object-center transition-transform duration-500 group-hover:scale-[1.01]"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 896px"
+                  />
+                </div>
+              </div>
+            </div>
+            <p className="mt-2.5 sm:mt-3.5 px-2 text-center text-xs sm:text-sm text-slate-500 italic font-medium leading-relaxed">
+              “Introducing INI at Baruch College through Dr. Angie Beeman’s Public Service Capstone course.”
+            </p>
           </div>
 
           {/* Full-Width Quote Span */}
