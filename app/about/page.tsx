@@ -313,15 +313,15 @@ export default function AboutPage() {
       </section>
 
       {/* 4. TESTIMONIALS (WHAT INI MAKES POSSIBLE) */}
-      <section id="testimonials" className="bg-slate-100/70 border-y border-slate-200/80 py-14 sm:py-20 scroll-mt-16">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+      <section className="bg-slate-100/70 border-y border-slate-200/80 pt-6 pb-12 sm:pt-10 sm:pb-16">
+        <div id="testimonials" className="max-w-5xl mx-auto px-4 sm:px-6 scroll-mt-20">
           {/* Header */}
-          <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-14">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-xs font-bold text-blue-700 mb-3.5 sm:mb-4">
-              <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+          <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-10">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-xs font-bold text-blue-700 mb-3 sm:mb-4 shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
               Testimonials
             </div>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-3 sm:mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-2.5 sm:mb-3">
               What INI Makes Possible
             </h2>
             <p className="text-xs sm:text-sm md:text-base text-slate-600 leading-relaxed max-w-2xl mx-auto">
