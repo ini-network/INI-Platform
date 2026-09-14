@@ -122,6 +122,9 @@ export default function Footer() {
             <span>Empowering NYC civic collaboration</span>
           </div>
         </div>
+        <p className="mt-2 text-[10px] md:text-xs font-medium text-blue-500">
+           INI.network maps publicly available information about subject matter expertise of CUNY individuals and resources to make collaboration across CUNY and NYC easier. Inclusion does not imply affiliation nor endorsement of INI.
+       </p>
       </div>
     </footer>
   );

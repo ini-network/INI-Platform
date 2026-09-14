@@ -310,7 +310,11 @@ export default function DirectoryClient({ initialContacts }: { initialContacts: 
 
             {/* DIRECTORY LISTING */}
             <div className="w-full h-full p-8 overflow-y-auto bg-white">
-
+                <span className="ml-2 text-[10px] md:text-xs font-medium text-blue-500">
+                   INI.network maps publicly available information about subject matter expertise of CUNY individuals and resources to make collaboration across CUNY and NYC easier. Inclusion does not imply affiliation nor endorsement of INI. <strong>If your information is inaccurate or if you want your information removed please contact the INI director at: jaime@vngle.com.</strong>
+               </span>
+               <br/>
+               <br/>
                 {/* Filters Input Panel */}
                 <div className={`relative rounded-xl transition-all duration-300 ${tourStep === 1 ? 'z-[100] bg-white p-4 shadow-2xl ring-4 ring-blue-400/50 -m-4 mb-2' : 'mb-6'}`}>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

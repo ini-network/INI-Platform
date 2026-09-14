@@ -453,7 +453,7 @@ export default function HomePage() {
                 </h3>
               </div>
               <p className="text-xs md:text-sm text-slate-600 leading-relaxed max-w-sm mx-auto">
-                Search a growing network of <strong className="text-slate-800 font-medium">faculty, researchers, civic leaders, organizations, and collaborators</strong> working across NYC.
+                Search mapped expertise <strong className="text-slate-800 font-medium"> from researchers to civic leaders </strong> working across NYC.
               </p>
             </Link>
 
