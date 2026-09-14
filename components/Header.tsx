@@ -152,13 +152,13 @@ export default function Header() {
                                     >
                                         Network View {!user && "🔒"}
                                     </Link>
-                                    <Link
+                                    {/* <Link
                                         href={user ? "/matches" : "/login?redirectReason=auth_required&from=/matches"}
                                         onClick={() => setIsDirectoryOpen(false)}
                                         className={`block px-3.5 py-2.5 text-xs font-bold rounded-xl transition-colors ${pathname === "/matches" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}
                                     >
                                         My Matches {!user && "🔒"}
-                                    </Link>
+                                    </Link> */}
                                 </div>
                             )}
                         </div>
