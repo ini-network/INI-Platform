@@ -25,6 +25,7 @@ export default function Header() {
     const directoryDropdownRef = useRef<HTMLDivElement>(null);
     const mapDropdownRef = useRef<HTMLDivElement>(null);
 
+
     // Auto-close mobile menu when navigating
     useEffect(() => {
         setIsMobileMenuOpen(false);
@@ -166,13 +167,26 @@ export default function Header() {
                         {/* Public Data Map Dropdown */}
                         <div className="relative flex items-center" ref={mapDropdownRef}>
                             <button
-                                onClick={() => setIsMapOpen(!isMapOpen)}
+                                // onClick={() => setIsMapOpen(!isMapOpen)}
+                                onClick={() => setIsMapOpen(true)}
                                 className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 focus:outline-none ${["/map", "/news", "/reports"].some(p => pathname.startsWith(p))
                                         ? "bg-white text-blue-700 shadow-sm"
                                         : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                                     }`}
                             >
-                                <span>Public Data Map</span>
+                                <span className="inline-flex items-center gap-2"> 
+                                    <img
+                                        src="/construction.png"
+                                        alt="Under construction"
+                                        className="w-5 h-5 object-contain"
+                                    />
+                                    Public Data Map</span>
+
+                                     {isMapOpen && (
+                                        <p className="px-4 py-2 text-xs font-semibold text-blue-600">
+                                            The map is evolving! Returning soon.
+                                        </p>
+                                    )}
                                 <svg
                                     className={`w-3.5 h-3.5 transition-transform duration-200 ${isMapOpen ? "rotate-180" : ""}`}
                                     fill="none"
@@ -183,7 +197,7 @@ export default function Header() {
                                 </svg>
                             </button>
 
-                            {isMapOpen && (
+                            {/* {isMapOpen && (
                                 <div className="absolute left-0 mt-2 top-full w-48 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 p-1.5 space-y-1">
                                     <Link
                                         href="/map"
@@ -207,7 +221,7 @@ export default function Header() {
                                         🗣️ Civic Stories
                                     </Link>
                                 </div>
-                            )}
+                            )} */}
                         </div>
 
                         {/* Admin Portal Dropdown */}

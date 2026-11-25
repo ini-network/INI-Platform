@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { useState } from "react";
 
 export default function Footer() {
+  const [showMapMessage, setShowMapMessage] = useState(false);
+
   return (
     <footer className="bg-slate-950 text-slate-400 border-t border-slate-900 py-16 px-6 md:px-8 relative overflow-hidden shrink-0">
       {/* Decorative Gradient Background Blur */}
@@ -77,9 +80,34 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/map" className="hover:text-white transition-colors">
-                  Public Data Map
-                </Link>
+                {/* add href="/map back" */}
+                {/* <Link href="/map" className="hover:text-white transition-colors inline-flex">
+                  <img
+                    src="/construction.png"
+                    alt="Under construction"
+                    className="w-5 h-5 object-contain mr-2"
+                    />
+                   Public Data Map
+                </Link> */}
+
+                <button
+                type="button"
+                onClick={() => setShowMapMessage(true)}
+                className="hover:text-white transition-colors inline-flex items-center"
+              >
+                <img
+                  src="/construction.png"
+                  alt="Under construction"
+                  className="w-5 h-5 object-contain mr-2"
+                />
+                Public Data Map
+              </button>
+
+              {showMapMessage && (
+                <p className="mt-2 text-xs text-blue-400 font-medium">
+                  The map is evolving! Returning soon.
+                </p>
+              )}
               </li>
               <li>
                 <Link href="/explore" className="hover:text-white transition-colors">
